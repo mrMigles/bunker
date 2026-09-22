@@ -1,0 +1,147 @@
+{
+  "airlock": {
+    "name": "Шлюз", "w": [4, 4], "cost": { "scrap": 20, "parts": 6 }, "work": 60, "light": true,
+    "objs": [["door_blast", 0], ["hatch_ladder", 1], ["sortie_terminal", 2], ["geiger", 3]],
+    "desc": "Вход в бункер: гермодверь, люк наверх, терминал вылазок. Сюда выносят грунт.",
+    "comfort": -10, "unique": false, "entry": true
+  },
+  "airlock2": {
+    "name": "Шлюз-2", "w": [3, 3], "cost": { "scrap": 25, "parts": 8 }, "work": 70, "light": true,
+    "objs": [["door_blast", 0], ["dirt_chute", 2]],
+    "desc": "Второй вход с гермодверью (нужен выход к туннелю). Точка сброса грунта.", "comfort": -10, "entry": true
+  },
+  "living": {
+    "name": "Жилой отсек", "w": [4, 8], "cost": { "scrap": 6, "wood": 6, "cloth": 2 }, "work": 40, "light": true,
+    "objs": [["bed", 0], ["bed", 2], ["bed", 4], ["bed", 6]], "perW": true,
+    "desc": "Койки для сна. Каждые 2 клетки ширины — одна койка.", "comfort": 10,
+    "upgrades": [{ "cost": { "cloth": 4, "wood": 4 }, "desc": "Матрасы: сон +15%" }, { "cost": { "cloth": 6, "parts": 2 }, "desc": "Шторки и лампы: комфорт +15" }]
+  },
+  "storage": {
+    "name": "Кладовая", "w": [3, 6], "cost": { "scrap": 6, "wood": 8 }, "work": 30, "light": true,
+    "objs": [["shelf", 0], ["shelf", 2], ["shelf", 4]], "perW": true,
+    "desc": "Стеллажи: +60 вместимости на стеллаж.", "comfort": 0,
+    "upgrades": [{ "cost": { "scrap": 6, "wood": 4 }, "desc": "Полки выше: вместимость +30%" }, { "cost": { "parts": 4, "scrap": 6 }, "desc": "Холодильная камера: еда портится вдвое медленнее" }]
+  },
+  "tech": {
+    "name": "Техотсек", "w": [5, 5], "cost": { "scrap": 20, "parts": 10 }, "work": 70, "light": true,
+    "objs": [["bike_gen", 0], ["battery", 1], ["air_filter", 2], ["water_filter", 3], ["hand_pump", 4]],
+    "desc": "Сердце бункера: генератор-велосипед, аккумулятор, фильтр воздуха, водоочистка, водозабор.", "comfort": -5
+  },
+  "hydro": {
+    "name": "Гидропоника", "w": [4, 8], "cost": { "scrap": 10, "parts": 4, "chem": 2 }, "work": 50, "light": true,
+    "objs": [["nutrient_tank", 0], ["hydro_tray", 1], ["hydro_tray", 2], ["hydro_tray", 3], ["hydro_tray", 4], ["hydro_tray", 5], ["hydro_tray", 6], ["hydro_tray", 7]], "perW": true,
+    "desc": "Грядки-лотки под лампами и бак с питательным раствором.", "comfort": 12,
+    "upgrades": [{ "cost": { "parts": 4, "chem": 2 }, "desc": "Капельный полив: вода расходуется на 30% меньше" }, { "cost": { "parts": 6, "scrap": 4 }, "desc": "Натриевые лампы: рост +25%" }]
+  },
+  "mess": {
+    "name": "Столовая", "w": [6, 8], "cost": { "scrap": 8, "wood": 10 }, "work": 45, "light": true,
+    "objs": [["notice_board", 0], ["dining_table", 1], ["radio", 3], ["game_table", 4], ["game_shelf", 5]],
+    "desc": "Общий стол, радио, Доска дел, Игровой стол. Совместная еда даёт бонус.", "comfort": 15, "social": 1
+  },
+  "kitchen": {
+    "name": "Кухня", "w": [4, 4], "cost": { "scrap": 10, "wood": 4, "parts": 3 }, "work": 45, "light": true,
+    "objs": [["stove", 0], ["sink", 1], ["kettle", 2], ["trash_bin", 3]],
+    "desc": "Плита для готовки, мойка, чайник.", "comfort": 5,
+    "upgrades": [{ "cost": { "parts": 4, "scrap": 4 }, "desc": "Вторая конфорка: готовка быстрее" }]
+  },
+  "med": {
+    "name": "Медпункт", "w": [4, 4], "cost": { "scrap": 8, "cloth": 6, "meds": 2 }, "work": 50, "light": true,
+    "objs": [["med_bed", 0], ["med_cabinet", 2], ["med_bed", 3]],
+    "desc": "Лечение ранений, болезней и радиации.", "comfort": 0
+  },
+  "workshop": {
+    "name": "Мастерская", "w": [4, 5], "cost": { "scrap": 14, "wood": 6, "parts": 4 }, "work": 55, "light": true,
+    "objs": [["workbench", 0], ["tool_rack", 2], ["workbench", 3]],
+    "desc": "Крафт, ремонт снаряжения, исследования.", "comfort": 0
+  },
+  "chemlab": {
+    "name": "Химлаборатория", "w": [4, 4], "cost": { "scrap": 12, "parts": 6, "chem": 4 }, "work": 60, "light": true,
+    "objs": [["chem_bench", 0], ["still", 2]],
+    "desc": "Химикаты, лекарства, самогон, питательный раствор.", "comfort": -5
+  },
+  "mushroom": {
+    "name": "Грибная ферма", "w": [4, 6], "cost": { "wood": 8, "cloth": 2 }, "work": 40, "light": false,
+    "objs": [["compost", 0], ["mushroom_bed", 1], ["mushroom_bed", 2], ["mushroom_bed", 3], ["mushroom_bed", 4], ["mushroom_bed", 5]], "perW": true,
+    "desc": "Грибы растут в темноте на компосте. Энергии не требует.", "comfort": -5
+  },
+  "rabbits": {
+    "name": "Крольчатник", "w": [3, 4], "cost": { "wood": 10, "scrap": 4 }, "work": 40, "light": true,
+    "objs": [["rabbit_hutch", 0], ["rabbit_hutch", 2]],
+    "desc": "Кролики: мясо, если есть корм.", "comfort": -5
+  },
+  "waterworks": {
+    "name": "Водоочистка", "w": [4, 4], "cost": { "scrap": 14, "parts": 8 }, "work": 60, "light": true,
+    "objs": [["water_filter", 0], ["hand_pump", 2], ["water_tank", 3]],
+    "desc": "Вторая линия очистки воды и насос.", "comfort": -5
+  },
+  "genroom": {
+    "name": "Генераторная", "w": [4, 4], "cost": { "scrap": 20, "parts": 10 }, "work": 70, "light": true,
+    "objs": [["diesel_gen", 0], ["bike_gen", 3]],
+    "desc": "Дизель-генератор (топливо, шум, Заметность) и второй велосипед.", "comfort": -15
+  },
+  "batteries": {
+    "name": "Аккумуляторная", "w": [3, 3], "cost": { "scrap": 10, "parts": 8, "chem": 3 }, "work": 50, "light": true,
+    "objs": [["battery", 0], ["battery", 1], ["battery", 2]],
+    "desc": "Банки аккумуляторов: +8 кВт·ч каждая.", "comfort": -5
+  },
+  "radioroom": {
+    "name": "Радиорубка", "w": [4, 4], "cost": { "scrap": 12, "parts": 10 }, "work": 60, "light": true,
+    "objs": [["radio_station", 0], ["radio", 2], ["research_desk", 3]],
+    "desc": "Связь с отрядом в вылазке, улучшенный приёмник, исследования.", "comfort": 0
+  },
+  "armory": {
+    "name": "Арсенал", "w": [3, 3], "cost": { "scrap": 12, "wood": 4 }, "work": 40, "light": true,
+    "objs": [["weapon_rack", 0], ["ammo_bench", 2]],
+    "desc": "Хранение и ремонт оружия, изготовление патронов.", "comfort": -5
+  },
+  "range": {
+    "name": "Тир", "w": [5, 6], "cost": { "wood": 8, "scrap": 6 }, "work": 40, "light": true,
+    "objs": [["target", 4], ["pullup_bar", 0], ["darts", 1]],
+    "desc": "Тренировка стрельбы и ближнего боя.", "comfort": 0
+  },
+  "rec": {
+    "name": "Комната отдыха", "w": [5, 7], "cost": { "wood": 12, "cloth": 6 }, "work": 50, "light": true,
+    "objs": [["armchair", 0], ["bookshelf", 1], ["piano", 2], ["drawing_wall", 3], ["tape_player", 4], ["game_table", 5]],
+    "desc": "Гитара, пианино, книги, магнитофон, стена для рисунков.", "comfort": 25, "social": 1
+  },
+  "chapel": {
+    "name": "Часовня", "w": [3, 3], "cost": { "wood": 10, "cloth": 2 }, "work": 40, "light": true,
+    "objs": [["altar", 1]],
+    "desc": "Тишина и свечи. +Рассудок, памятники погибшим.", "comfort": 20
+  },
+  "brig": {
+    "name": "Карцер", "w": [2, 2], "cost": { "scrap": 12 }, "work": 30, "light": true,
+    "objs": [["cell_bars", 0]],
+    "desc": "Пленные и буйные.", "comfort": -20
+  },
+  "lift": {
+    "name": "Лифт-подъёмник", "w": [2, 2], "cost": { "scrap": 18, "parts": 6 }, "work": 60, "light": true,
+    "objs": [["dirt_chute", 0]],
+    "desc": "Грунт можно сбрасывать здесь, а не таскать к Шлюзу.", "comfort": -5, "power": 0.2
+  },
+  "support": {
+    "name": "Опора", "w": [1, 1], "cost": { "scrap": 4, "wood": 4 }, "work": 15, "light": false,
+    "objs": [["pillar", 0]],
+    "desc": "Держит свод. Без опор в широких пролётах бывают обвалы.", "comfort": 0, "support": true
+  },
+  "corridor": {
+    "name": "Коридор", "w": [1, 10], "cost": { "wood": 1 }, "work": 5, "light": true, "perCell": true,
+    "objs": [],
+    "desc": "Проход. Стоимость за клетку.", "comfort": -5
+  },
+  "shaft": {
+    "name": "Шахта с лестницей", "w": [1, 1], "cost": { "wood": 3, "scrap": 2 }, "work": 10, "light": true,
+    "objs": [["ladder", 0]],
+    "desc": "Вертикальный проход между уровнями. Лестница ставится сразу после выкапывания.", "comfort": 0, "shaft": true
+  },
+  "defense": {
+    "name": "Оборонительный коридор", "w": [3, 6], "cost": { "scrap": 14, "wood": 6 }, "work": 50, "light": true,
+    "objs": [["sandbags", 0], ["loophole", 2]],
+    "desc": "Мешки с песком (укрытие) и бойницы.", "comfort": -10
+  },
+  "turretroom": {
+    "name": "Турельная", "w": [2, 2], "cost": { "scrap": 20, "parts": 12, "ammo": 10 }, "work": 70, "light": true,
+    "objs": [["turret", 0]],
+    "desc": "Автоматическая турель стреляет по налётчикам в соседних комнатах.", "comfort": -10, "power": 0.2
+  }
+}

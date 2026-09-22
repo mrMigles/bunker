@@ -1,0 +1,27 @@
+{
+  "name": "glubzhe",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @bunker/server --filter @bunker/client dev",
+    "build": "pnpm --filter @bunker/client build",
+    "start": "pnpm --filter @bunker/server start",
+    "test": "vitest run",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint packages",
+    "format": "prettier --write packages",
+    "sim": "pnpm --filter @bunker/server sim --"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.2",
+    "eslint": "^10.11.0",
+    "prettier": "^3.9.8",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^5.0.1"
+  }
+}

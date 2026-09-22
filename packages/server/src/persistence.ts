@@ -1,0 +1,78 @@
+import Database from "better-sqlite3";
+import fs from "node:fs";
+import path from "node:path";
+import type { World } from "@bunker/shared";
+
+const DATA_DIR = process.env.DATA_DIR || path.resolve(process.cwd(), "data");
+fs.mkdirSync(DATA_DIR, { recursive: true });
+const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, "saves.sqlite");
+
+const db = new Database(DB_PATH);
+db.pragma("journal_mode = WAL");
+db.exec(`
+  CREATE TABLE IF NOT EXISTS saves (
+    code TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    day INTEGER NOT NULL,
+    phase TEXT NOT NULL,
+    players TEXT NOT NULL,
+    updated INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS legacy (
+    name TEXT PRIMARY KEY,
+    points INTEGER NOT NULL,
+    unlocks TEXT NOT NULL
+  );
+`);
+
+const stmtSave = db.prepare(
+  "INSERT INTO saves(code, data, day, phase, players, updated) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(code) DO UPDATE SET data=excluded.data, day=excluded.day, phase=excluded.phase, players=excluded.players, updated=excluded.updated",
+);
+const stmtLoad = db.prepare("SELECT data FROM saves WHERE code = ?");
+const stmtList = db.prepare("SELECT code, day, phase, players, updated FROM saves ORDER BY updated DESC LIMIT ?");
+const stmtDel = db.prepare("DELETE FROM saves WHERE code = ?");
+const stmtLegacyGet = db.prepare("SELECT points, unlocks FROM legacy WHERE name = ?");
+const stmtLegacySet = db.prepare("INSERT INTO legacy(name, points, unlocks) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET points=excluded.points, unlocks=excluded.unlocks");
+
+export function serializeWorld(w: World): string {
+  const { fx: _fx, ...rest } = w;
+  return JSON.stringify(rest);
+}
+
+export function saveWorld(w: World) {
+  if (w.phase === "lobby") return;
+  const players = Object.values(w.players).map((p) => p.name);
+  stmtSave.run(w.code, serializeWorld(w), w.day, w.phase, JSON.stringify(players), Date.now());
+}
+
+export function loadWorld(code: string): World | null {
+  const row = stmtLoad.get(code) as { data: string } | undefined;
+  if (!row) return null;
+  try {
+    return JSON.parse(row.data) as World;
+  } catch {
+    return null;
+  }
+}
+
+export function hasSave(code: string) {
+  return !!stmtLoad.get(code);
+}
+
+export function listSaves(limit = 20) {
+  return stmtList.all(limit) as { code: string; day: number; phase: string; players: string; updated: number }[];
+}
+
+export function deleteSave(code: string) {
+  stmtDel.run(code);
+}
+
+export function getLegacy(name: string) {
+  const row = stmtLegacyGet.get(name) as { points: number; unlocks: string } | undefined;
+  return row ? { points: row.points, unlocks: JSON.parse(row.unlocks) as string[] } : { points: 0, unlocks: [] as string[] };
+}
+
+export function addLegacy(name: string, points: number) {
+  const cur = getLegacy(name);
+  stmtLegacySet.run(name, cur.points + points, JSON.stringify(cur.unlocks));
+}

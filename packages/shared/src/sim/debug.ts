@@ -1,0 +1,48 @@
+import type { World } from "../types";
+import { registerCmd } from "./commands";
+import { startNight } from "./time";
+import { fx, log } from "./util";
+
+/** Dev-only commands (the server rejects `debug*` commands in production). */
+export const debugOps: Record<string, (w: World, arg: any, pid: string) => string | void> = {
+  hour: (w, h) => {
+    w.hour = Math.max(6, Math.min(21.99, Number(h) || 12));
+  },
+  night: (w) => {
+    if (w.phase === "day") startNight(w);
+  },
+  res: (w, a) => {
+    const k = String(a?.k ?? "food_can");
+    w.res[k] = (w.res[k] ?? 0) + (Number(a?.n) || 10);
+  },
+  rich: (w) => {
+    for (const k of ["food_can", "water", "parts", "scrap", "wood", "cloth", "chem", "meds", "ammo", "fuel"]) w.res[k] = (w.res[k] ?? 0) + 50;
+    w.res.pickaxe = (w.res.pickaxe ?? 0) + 2;
+    w.res.drill = (w.res.drill ?? 0) + 1;
+    w.power.battery = w.power.cap;
+  },
+  heal: (w) => {
+    for (const c of Object.values(w.chars)) if (c.status !== "dead") Object.assign(c.needs, { food: 100, water: 100, energy: 100, sanity: 100, health: 100, rad: 0 });
+  },
+  tech: (w, t) => {
+    if (t && !w.tech.includes(t)) w.tech.push(String(t));
+  },
+  alltech: (w) => {
+    for (const t of ["tech_turret", "tech_diesel", "tech_chem", "tech_radio", "tech_lift"]) if (!w.tech.includes(t)) w.tech.push(t);
+  },
+  speed: (w, s) => {
+    w.speed = Math.max(0.25, Math.min(20, Number(s) || 1));
+  },
+  notice: (w, n) => {
+    w.notice = Number(n) || 0;
+  },
+};
+
+registerCmd("debug", (w, p, cmd) => {
+  const op = debugOps[String(cmd.op)];
+  if (!op) return "Нет такой debug-команды: " + Object.keys(debugOps).join(", ");
+  const r = op(w, cmd.arg, p.id);
+  log(w, `[debug] ${p.name}: ${cmd.op} ${cmd.arg !== undefined ? JSON.stringify(cmd.arg) : ""}`, "system");
+  fx(w, { k: "toast", to: p.id, text: "debug: " + cmd.op });
+  return r;
+});

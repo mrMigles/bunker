@@ -1,0 +1,13 @@
+{
+  "lettuce":    { "name": "Салат",      "days": 2.0, "yield": [4, 6], "item": "lettuce",    "seeds": [1, 2], "water": 1.0, "nutr": 0.8, "light": 1.0, "pollinate": false, "prune": false, "desc": "Быстро, но мало еды." },
+  "potato":     { "name": "Картофель",  "days": 4.0, "yield": [7, 10], "item": "potato",     "seeds": [1, 3], "water": 1.0, "nutr": 1.0, "light": 0.8, "pollinate": false, "prune": false, "desc": "Сытно и надёжно. Семенной клубень — из урожая." },
+  "tomato":     { "name": "Томаты",     "days": 4.5, "yield": [6, 9], "item": "tomato",     "seeds": [1, 2], "water": 1.3, "nutr": 1.2, "light": 1.2, "pollinate": true,  "prune": true,  "desc": "Нужно опылять кисточкой и подрезать пасынки." },
+  "soy":        { "name": "Соя",        "days": 5.0, "yield": [6, 8], "item": "soy",        "seeds": [1, 3], "water": 1.0, "nutr": 0.7, "light": 1.0, "pollinate": false, "prune": false, "desc": "Белок. Обогащает раствор." },
+  "carrot":     { "name": "Морковь",    "days": 3.5, "yield": [6, 8], "item": "carrot",     "seeds": [1, 2], "water": 1.0, "nutr": 0.9, "light": 0.9, "pollinate": false, "prune": false, "desc": "Неприхотлива." },
+  "peas":       { "name": "Горох",      "days": 3.5, "yield": [5, 8], "item": "peas",       "seeds": [1, 3], "water": 1.1, "nutr": 0.6, "light": 1.0, "pollinate": false, "prune": true,  "desc": "Вьётся — нужна подвязка (обрезка)." },
+  "herbs":      { "name": "Травы для чая", "days": 2.5, "yield": [3, 5], "item": "herbs",   "seeds": [1, 2], "water": 0.8, "nutr": 0.6, "light": 1.0, "pollinate": false, "prune": true,  "desc": "Чай успокаивает: +Рассудок." },
+  "tobacco":    { "name": "Табак",      "days": 5.0, "yield": [3, 5], "item": "tobacco",    "seeds": [1, 2], "water": 1.0, "nutr": 1.0, "light": 1.2, "pollinate": false, "prune": true,  "desc": "Для курильщиков и на обмен." },
+  "hops":       { "name": "Хмель",      "days": 5.0, "yield": [3, 5], "item": "hops",       "seeds": [1, 2], "water": 1.2, "nutr": 1.0, "light": 1.1, "pollinate": false, "prune": true,  "desc": "Для пива в Химлаборатории." },
+  "strawberry": { "name": "Клубника",   "days": 5.5, "yield": [3, 6], "item": "strawberry", "seeds": [0, 1], "water": 1.3, "nutr": 1.2, "light": 1.3, "pollinate": true,  "prune": false, "desc": "Редкие семена. Праздничная еда, огромный +Рассудок." },
+  "sunflower":  { "name": "Подсолнух",  "days": 6.0, "yield": [4, 6], "item": "sunflower",  "seeds": [1, 3], "water": 1.2, "nutr": 1.0, "light": 1.4, "pollinate": false, "prune": false, "desc": "Семечки и масло для кухни." }
+}
