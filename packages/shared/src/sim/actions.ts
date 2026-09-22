@@ -285,7 +285,12 @@ export function completeChore(w: World, kind: string, t: Target, c?: Char) {
   for (const id in w.chores) {
     const ch = w.chores[id];
     if (ch.kind !== kind) continue;
-    const match = (t.type === "obj" && ch.obj === t.id) || (t.type === "room" && ch.room === t.id) || (t.type === "item" && ch.item === t.id) || (t.type === "slot" && String(ch.cell) === t.id);
+    const match =
+      (t.type === "obj" && ch.obj === t.id) ||
+      (t.type === "room" && ch.room === t.id) ||
+      (t.type === "item" && ch.item === t.id) ||
+      (t.type === "slot" && String(ch.cell) === t.id) ||
+      (t.type === "char" && ch.char === t.id);
     if (match) {
       delete w.chores[id];
       if (c) {

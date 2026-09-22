@@ -10,6 +10,7 @@ export interface ProfDef {
   desc: string;
   likes: string[]; // leisure preferences (object kinds)
   hat: number;
+  npcOnly?: boolean;
 }
 
 export const PROFS: Record<string, ProfDef> = {
@@ -25,6 +26,7 @@ export const PROFS: Record<string, ProfDef> = {
   farmer: { name: "Фермер", icon: "🌾", skill: "cooking", stat: "vyn", ability: "pitchfork", abilityName: "Вилы наперевес", desc: "Растения растут лучше под его рукой.", likes: ["armchair", "radio"], hat: 10 },
   priest: { name: "Священник", icon: "🕯️", skill: "medicine", stat: "har", ability: "inspire", abilityName: "Вдохновение", desc: "Поддерживает рассудок группы.", likes: ["altar", "radio"], hat: 11 },
   conman: { name: "Мошенник", icon: "🃏", skill: "stealth", stat: "har", ability: "negotiate", abilityName: "Переговоры", desc: "Торгуется, врёт, жульничает в карты.", likes: ["game_table", "darts"], hat: 12 },
+  child: { name: "Ребёнок", icon: "🧒", skill: "stealth", stat: "lov", ability: "hide", abilityName: "Спрятаться", desc: "Маленький и шустрый. Всем поднимает настроение.", likes: ["pet_bed", "drawing_wall", "radio"], hat: 0, npcOnly: true },
 };
 
 export interface TraitDef {

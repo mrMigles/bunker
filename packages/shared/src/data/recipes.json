@@ -1,0 +1,14 @@
+{
+  "cold_can":        { "name": "Консерва холодная",        "icon": "🥫", "in": { "food_can": 1 },                      "out": 1, "nut": 1.0, "sanity": -2, "desc": "Прямо из банки. Грустно." },
+  "can_stew":        { "name": "Тушёнка по-бункерному",    "icon": "🍲", "in": { "food_can": 2, "potato": 2 },         "out": 4, "nut": 0.8, "sanity": 4,  "desc": "Две банки и картошка — на четверых." },
+  "potato_stew":     { "name": "Картофельное рагу",        "icon": "🥘", "in": { "potato": 3, "carrot": 1 },           "out": 3, "nut": 0.9, "sanity": 5,  "desc": "Горячо, сытно, почти как дома." },
+  "salad":           { "name": "Салат из гидропоники",     "icon": "🥗", "in": { "lettuce": 2, "tomato": 1 },          "out": 2, "nut": 0.6, "sanity": 6,  "desc": "Зелень! Под землёй!" },
+  "mushroom_soup":   { "name": "Грибной суп",              "icon": "🍜", "in": { "mushroom": 3, "potato": 1 },         "out": 3, "nut": 0.6, "sanity": 4,  "desc": "Пахнет лесом, которого больше нет." },
+  "rat_skewer":      { "name": "Крысиный шашлык",          "icon": "🍢", "in": { "rat": 2 },                            "out": 2, "nut": 0.55, "sanity": 1, "desc": "Не спрашивай. Просто ешь." },
+  "veggie_mash":     { "name": "Овощное пюре",             "icon": "🥣", "in": { "carrot": 2, "peas": 2 },             "out": 3, "nut": 0.65, "sanity": 3, "desc": "Детская еда. Всем нравится." },
+  "soy_cutlets":     { "name": "Соевые котлеты",           "icon": "🍘", "in": { "soy": 3 },                            "out": 3, "nut": 0.7, "sanity": 3,  "desc": "Почти мясо. Если не присматриваться." },
+  "rabbit_roast":    { "name": "Кролик с картошкой",       "icon": "🍗", "in": { "meat": 1, "potato": 2 },             "out": 3, "nut": 0.9, "sanity": 8,  "desc": "Праздничное блюдо подземелья." },
+  "strawberry_cake": { "name": "Клубничный торт",          "icon": "🎂", "in": { "strawberry": 3, "sunflower": 1, "food_can": 1 }, "out": 5, "nut": 0.6, "sanity": 16, "desc": "Праздник. Кто-то плачет от счастья." },
+  "tomato_soup":     { "name": "Томатный суп",             "icon": "🍅", "in": { "tomato": 3, "potato": 1 },           "out": 3, "nut": 0.6, "sanity": 5,  "desc": "Красный, как довоенные флаги." },
+  "sunflower_bread": { "name": "Лепёшки на масле",         "icon": "🫓", "in": { "sunflower": 2, "peas": 1 },          "out": 3, "nut": 0.6, "sanity": 4,  "desc": "Хрустят. Пахнут детством." }
+}

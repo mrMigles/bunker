@@ -24,12 +24,12 @@ registerCmd("aquarium", (w, p, cmd) => {
 });
 
 onTick("skip-time", "day", (w) => {
-  // "Скоротать время": all living players resting (or watching the aquarium) → ×3
-  const active = Object.values(w.players).filter((p) => p.online && p.char && w.chars[p.char]?.status === "ok");
+  // "Скоротать время": all living players resting → ×3. Aquarium watchers run at normal speed
+  // (it is a "leave it on the second monitor" mode) but don't block the others from skipping.
+  const active = Object.values(w.players).filter((p) => p.online && p.char && w.chars[p.char]?.status === "ok" && !p.aquarium);
   let resting = active.length > 0;
   for (const p of active) {
     const c = w.chars[p.char!];
-    if (p.aquarium) continue;
     if (!c.task || !REST_ACTIONS.has(c.task.action)) resting = false;
   }
   if (w.mods.combat?.active || w.mods.expedition?.active || w.vote) resting = false;

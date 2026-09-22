@@ -429,6 +429,39 @@ export function buildObject(o: any): THREE.Group {
       g.add(box(0.95, 1.9, 0.1, 0x1a1a1a, 0, 0, -1.5));
       g.add(box(0.9, 0.1, 1.2, 0x5a4a3a, 0, 0, -0.9));
       break;
+    case "rug":
+      g.add(box(1.4, 0.02, 1.0, 0x8a2a2a, 0, 0.001, -0.6));
+      g.add(box(1.2, 0.025, 0.8, 0xb8864a, 0, 0.001, -0.6));
+      break;
+    case "poster": {
+      const cols = [0xc8553d, 0x3d6b8c, 0x5a7d4a, 0xc9a227];
+      const col = cols[(o.x * 7 + o.lv) % cols.length];
+      g.add(box(0.6, 0.8, 0.02, 0xe8dcc0, 0, 0.8, -1.52));
+      g.add(box(0.5, 0.35, 0.025, col, 0, 1.1, -1.51));
+      g.add(box(0.45, 0.06, 0.025, 0x2a2320, 0, 0.92, -1.51));
+      break;
+    }
+    case "plant":
+      g.add(cyl(0.16, 0.3, 0xa0522d, 0, 0, Z + 0.4, 8, 0.12));
+      for (let i = 0; i < 5; i++) {
+        const lf = box(0.3, 0.06, 0.14, PAL.plant, Math.cos(i * 1.3) * 0.12, 0.35 + i * 0.12, Z + 0.4);
+        lf.rotation.z = (i % 2 ? 1 : -1) * 0.6;
+        g.add(lf);
+      }
+      break;
+    case "lamp":
+      g.add(cyl(0.02, 1.3, 0x333333, 0, 0, Z + 0.3, 6));
+      g.add(cyl(0.12, 0.22, 0xe8c080, 0, 1.3, Z + 0.3, 8, 0.2));
+      g.add(ball(0.06, mat(0xfff0c0, { emissive: 0xffb050 }), 0, 1.38, Z + 0.3));
+      break;
+    case "keepsake": {
+      g.add(box(0.8, 0.05, 0.3, PAL.wood, 0, 1.2, Z - 0.3));
+      g.add(box(0.05, 0.25, 0.25, PAL.woodDark, -0.35, 0.95, Z - 0.3));
+      g.add(box(0.05, 0.25, 0.25, PAL.woodDark, 0.35, 0.95, Z - 0.3));
+      const col = { album: 0x7a2e3a, iron: 0x888888, teddy: 0x9a6a3a, gnome: 0xc8553d, radio_portable: 0x3a3a3a, guitar: 0x8b5a2b } as Record<string, number>;
+      g.add(box(0.25, 0.28, 0.2, col[o.st?.item] ?? 0x999999, 0, 1.25, Z - 0.3));
+      break;
+    }
     default:
       g.add(box(0.6, 0.6, 0.5, PAL.concrete, 0, 0, Z));
   }

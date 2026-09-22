@@ -1,0 +1,44 @@
+[
+  {
+    "id": "captured_raider", "cat": "moral", "phase": "night", "weight": 0, "tags": ["moral"],
+    "conditions": { "flagGte": { "prisoner": 1 } },
+    "title": "Пленный налётчик",
+    "text": "Связанный налётчик сидит в углу. Молодой, злой и голодный. «Я просто хотел есть», — бормочет он.",
+    "options": [
+      { "label": "Казнить", "mood": ["brave"], "effects": [ { "clearFlag": "prisoner" }, { "sanityAll": -12 }, { "faction": { "ratking": -10 } } ], "text": "Тишина после выстрела ещё долго звенит в ушах." },
+      { "label": "Отпустить", "mood": ["kind"], "effects": [ { "clearFlag": "prisoner" }, { "karma": 2 }, { "notice": 6 } ], "text": "Он уходит, не оглядываясь. Запомнит ли дорогу?" },
+      { "label": "Завербовать", "check": { "stat": "har", "dc": 13 }, "effects": [ { "clearFlag": "prisoner" }, { "addNpc": "conman" } ], "text": "«Ладно. Еда — это аргумент». Новый жилец.",
+        "fail": [ { "clearFlag": "prisoner" }, { "res": { "food_can": -3 } } ], "failText": "Ночью он сбежал, прихватив три банки." }
+    ]
+  },
+  {
+    "id": "neighbor_water", "cat": "moral", "phase": "night", "weight": 5, "tags": ["moral"],
+    "conditions": { "minDay": 5 },
+    "title": "Соседний бункер просит воды",
+    "text": "По трубе простукивают морзянку: «ВОДЫ НЕТ ТРЕТИЙ ДЕНЬ. ДЕТИ. ПОМОГИТЕ». Сосед через стену породы.",
+    "options": [
+      { "label": "Передать 6 воды", "cost": { "water": 6 }, "mood": ["kind"], "effects": [ { "karma": 2 }, { "sanityAll": 4 }, { "timer": { "days": 3, "event": "neighbor_thanks" } } ], "text": "В ответ: «СПАСИБО. НЕ ЗАБУДЕМ»." },
+      { "label": "Передать 2 воды", "cost": { "water": 2 }, "effects": [ { "karma": 1 } ], "text": "«СПАСИБО» — и тишина." },
+      { "label": "Не отвечать", "mood": ["greedy"], "effects": [ { "sanityAll": -8 } ], "text": "Стук продолжается ещё два дня. Потом прекращается." }
+    ]
+  },
+  {
+    "id": "neighbor_thanks", "cat": "moral", "phase": "night", "weight": 0, "tags": ["good"],
+    "conditions": {},
+    "title": "Ответный подарок",
+    "text": "У гермодвери — узелок. Внутри семена, немного лекарств и записка детским почерком: «Спасибо за воду».",
+    "options": [
+      { "label": "Принять", "effects": [ { "res": { "meds": 2, "seed_strawberry": 1, "seed_herbs": 2 } }, { "sanityAll": 8 } ], "text": "Добро возвращается." }
+    ]
+  },
+  {
+    "id": "trade_person", "cat": "moral", "phase": "night", "weight": 3, "tags": ["moral", "dark"],
+    "conditions": { "minDay": 8, "popGte": 5 },
+    "title": "Предложение Караванщиков",
+    "text": "Торговец предлагает ящик медикаментов в обмен на «работника». «Не волнуйтесь, кормить будем. Иногда».",
+    "options": [
+      { "label": "Отказаться", "mood": ["kind"], "effects": [ { "faction": { "caravan": -5 } } ], "text": "Торговец пожимает плечами и уезжает." },
+      { "label": "Согласиться (уходит бот-жилец)", "mood": ["greedy"], "effects": [ { "removeBot": true }, { "res": { "meds": 8, "medkit": 1 } }, { "sanityAll": -20 } ], "text": "Лекарств теперь много. Смотреть друг другу в глаза — сложно." }
+    ]
+  }
+]

@@ -72,14 +72,8 @@ function hasCompanyStoryteller(w: World, c: Char) {
   return false;
 }
 
-leisure("listen_radio", ["radio"], "📻 Послушать радио", "radio", 8, {
-  social: true,
-  seat: true,
-  extra: (x) => {
-    x.w.radio.on = true;
-  },
-});
-leisure("sit", ["armchair"],"🛋 Посидеть в кресле", "sit", 6, { seat: true, energy: 3 });
+// listen_radio lives in radio.ts
+leisure("sit", ["armchair"], "🛋 Посидеть в кресле", "sit", 6, { seat: true, energy: 3 });
 leisure("chat_table", ["dining_table"], "💬 Посидеть за столом, поболтать", "sit", 5, { social: true });
 leisure("read_book", ["bookshelf"], "📖 Почитать книгу", "read", 7, {
   extra: (x, h) => {

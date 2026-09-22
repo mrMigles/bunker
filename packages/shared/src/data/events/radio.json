@@ -1,0 +1,74 @@
+[
+  {
+    "id": "radio_survivors", "cat": "radio", "phase": "night", "weight": 6,
+    "conditions": { "minDay": 3 },
+    "title": "Сигнал выживших",
+    "text": "Сквозь шипение: «…говорит бункер «Черёмуха», нас семеро, есть лекарства, нет воды. Кто слышит — ответьте…»",
+    "options": [
+      { "label": "Ответить и договориться об обмене", "cost": { "water": 4 }, "effects": [ { "res": { "meds": 4 } }, { "notice": 5 }, { "karma": 1 } ], "text": "Обмен через тайник на пустыре. Честные люди." },
+      { "label": "Записать частоту на будущее", "effects": [ { "revealNode": "bunker" } ], "text": "Координаты «Черёмухи» теперь на карте." },
+      { "label": "Молчать", "effects": [], "text": "Эфир затихает." }
+    ]
+  },
+  {
+    "id": "radio_military", "cat": "radio", "phase": "night", "weight": 5,
+    "conditions": { "minDay": 4 },
+    "title": "Военная передача",
+    "text": "Сухой голос диктора «Порядка» зачитывает координаты «пунктов гуманитарной выдачи». Между строк — расписание патрулей.",
+    "options": [
+      { "label": "Записать координаты склада", "effects": [ { "revealNode": "checkpoint" }, { "notice": 3 } ], "text": "На карте пустошей появился военный блокпост." },
+      { "label": "Выключить пропаганду", "effects": [ { "sanityAll": 2 } ], "text": "Тишина приятнее." }
+    ]
+  },
+  {
+    "id": "radio_trap", "cat": "radio", "phase": "night", "weight": 4, "tags": ["bad"],
+    "conditions": { "minDay": 5 },
+    "title": "Сигнал о помощи",
+    "text": "Женский голос, сбиваясь, просит помощи: «Мы в школе на Кирпичной, дети, еды нет…» Что-то в голосе фальшивое.",
+    "options": [
+      { "label": "Ответить: «Мы в бункере под…»", "effects": [ { "notice": 25 }, { "startRaid": "raiders" } ], "text": "На том конце щёлкают тумблером. Кажется, вы только что назвали адрес бандитам." },
+      { "label": "Проверить позывной (Радио)", "check": { "skill": "radio", "stat": "int", "dc": 12 }, "effects": [ { "faction": { "ratking": -5 } } ], "text": "Позывной принадлежит банде Крысиного короля. Ловушка раскрыта.",
+        "fail": [ { "notice": 10 } ], "failText": "Непонятно. Но эфир вас засёк." },
+      { "label": "Не отвечать", "effects": [], "text": "Голос повторяет просьбу до утра." }
+    ]
+  },
+  {
+    "id": "radio_music", "cat": "radio", "phase": "night", "weight": 5, "tags": ["good", "calm"],
+    "conditions": { "minDay": 2 },
+    "title": "Музыка из ниоткуда",
+    "text": "На пустой частоте вдруг — вальс. Старая пластинка, треск иглы. Кто-то там, наверху, ставит музыку для всех.",
+    "options": [
+      { "label": "Танцевать!", "effects": [ { "sanityAll": 10 }, { "energyAll": -5 } ], "text": "Даже самые угрюмые кружатся между койками." },
+      { "label": "Слушать молча", "effects": [ { "sanityAll": 6 } ], "text": "Тихий вальс под землёй." }
+    ]
+  },
+  {
+    "id": "radio_borya", "cat": "radio", "phase": "night", "weight": 5, "tags": ["calm"],
+    "conditions": { "minDay": 3 },
+    "title": "Бункерный Боря передаёт привет",
+    "text": "«Привет всем, кто под землёй! Особый привет ребятам, у которых из трубы по утрам идёт дымок, — я вас вижу! Шучу. Или нет?»",
+    "options": [
+      { "label": "Посмеяться", "effects": [ { "sanityAll": 5 } ], "text": "Боря — единственный комик на сто километров." },
+      { "label": "Проверить маскировку трубы", "cost": { "scrap": 2 }, "effects": [ { "notice": -8 } ], "text": "Вентиляцию прикрыли щитком." }
+    ]
+  },
+  {
+    "id": "radio_numbers", "cat": "radio", "phase": "night", "weight": 6, "tags": ["ark"],
+    "conditions": { "minDay": 3, "notFlag": "numbers_heard" },
+    "title": "Номерная станция",
+    "text": "«Семь… четыре… ноль… Ковчег… семь… четыре… ноль…» Детский голос, повторяющийся по кругу. Слово «Ковчег» режет слух.",
+    "options": [
+      { "label": "Записать цифры", "effects": [ { "setFlag": "numbers_heard" }, { "flag": { "ark": 1 } }, { "timer": { "days": 2, "event": "ark_2" } } ], "text": "Цифры на стене мелом: 740. Что это значит?" },
+      { "label": "Выключить — жутко", "effects": [ { "sanityAll": -2 }, { "timer": { "days": 4, "event": "radio_numbers_again" } } ], "text": "Тишина. Но цифры застряли в голове." }
+    ]
+  },
+  {
+    "id": "radio_numbers_again", "cat": "radio", "phase": "night", "weight": 0, "tags": ["ark"],
+    "conditions": { "notFlag": "numbers_heard" },
+    "title": "Номерная станция снова",
+    "text": "Опять цифры. Опять «Ковчег». Кажется, передача не прекращается никогда.",
+    "options": [
+      { "label": "На этот раз записать", "effects": [ { "setFlag": "numbers_heard" }, { "flag": { "ark": 1 } }, { "timer": { "days": 2, "event": "ark_2" } } ], "text": "740. Записано." }
+    ]
+  }
+]

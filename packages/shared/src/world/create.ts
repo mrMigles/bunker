@@ -76,6 +76,7 @@ export function createWorld(code: string, seed: number, settings: Partial<Settin
     ending: null,
     temp: 0,
     weather: { today: "ash", forecast: ["ash", "clear"] },
+    history: [],
   };
   genTerrain(w);
   buildStartBunker(w);
@@ -181,8 +182,9 @@ export function makeCard(rng: Rng, taken: Set<string> = new Set(), allowHostile 
   const first = rng.pick(gender === 0 ? NAMES_M : NAMES_F);
   let sur = rng.pick(SURNAMES);
   if (gender === 1) sur = feminize(sur);
-  const profKeys = Object.keys(PROFS).filter((p) => !taken.has(p));
-  const prof = rng.pick(profKeys.length ? profKeys : Object.keys(PROFS));
+  const allProfs = Object.keys(PROFS).filter((p) => !PROFS[p].npcOnly);
+  const profKeys = allProfs.filter((p) => !taken.has(p));
+  const prof = rng.pick(profKeys.length ? profKeys : allProfs);
   const goals = Object.keys(GOALS).filter((g) => allowHostile || !GOALS[g].hostile);
   const stats = { sil: rng.int(1, 4), lov: rng.int(1, 4), int: rng.int(1, 4), vyn: rng.int(1, 4), har: rng.int(1, 4) };
   const pd = PROFS[prof];

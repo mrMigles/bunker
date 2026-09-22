@@ -1,0 +1,63 @@
+[
+  {
+    "id": "ark_2", "cat": "ark", "phase": "night", "weight": 0, "tags": ["ark"],
+    "conditions": { "flag": "numbers_heard" },
+    "title": "Цифры складываются",
+    "text": "Номерная станция снова в эфире. Теперь цифр больше: «740… 12… 88… Ковчег ждёт выживших… 740…» Похоже на частоту и координаты.",
+    "options": [
+      { "label": "Расшифровать (Радио)", "check": { "skill": "radio", "stat": "int", "dc": 12 }, "effects": [ { "flag": { "ark": 1 } }, { "setFlag": "ark_freq" }, { "timer": { "days": 3, "event": "ark_3" } } ], "text": "Это частота! 74.0 МГц — но рация не дотягивает. Нужна дальняя рация.",
+        "fail": [ { "timer": { "days": 2, "event": "ark_2" } } ], "failText": "Цифры путаются. Надо слушать ещё." },
+      { "label": "Отложить", "effects": [ { "timer": { "days": 3, "event": "ark_2" } } ], "text": "Цифры записаны. Потом." }
+    ]
+  },
+  {
+    "id": "ark_3", "cat": "ark", "phase": "night", "weight": 0, "tags": ["ark"],
+    "conditions": { "flag": "ark_freq" },
+    "title": "Голос Ковчега",
+    "text": "На 74.0 сквозь помехи прорывается живой голос: «…Ковчег… Северный горный узел… принимаем всех… нужна связь… повторяю…» Чтобы ответить, нужна дальняя рация: радиорубка и три детали.",
+    "options": [
+      { "label": "Начать собирать дальнюю рацию", "effects": [ { "flag": { "ark": 1 } }, { "setFlag": "ark_goal" }, { "tech": "tech_radio" }, { "revealNode": "radiotower" } ], "text": "Цель ясна: радиорубка и три детали дальней рации. Одна — на радиовышке." }
+    ]
+  },
+  {
+    "id": "ark_4", "cat": "ark", "phase": "night", "weight": 0, "tags": ["ark"],
+    "conditions": { "flag": "ark_goal", "flagGte": { "radio_parts": 3 }, "hasRoom": "radioroom" },
+    "title": "Связь с Ковчегом",
+    "text": "Дальняя рация хрипит, щёлкает — и оживает. «Ковчег слушает. Назовите себя». На вас смотрят все жильцы.",
+    "options": [
+      { "label": "Назвать бункер и число жильцов", "effects": [ { "flag": { "ark": 1 } }, { "setFlag": "ark_contact" }, { "timer": { "days": 2, "event": "ark_5" } } ], "text": "«Принято. Ждите координаты сбора. Держитесь»." },
+      { "label": "Проверить, кто они (Радио)", "check": { "skill": "radio", "dc": 14 }, "effects": [ { "flag": { "ark": 1 } }, { "setFlag": "ark_contact" }, { "setFlag": "ark_verified" }, { "timer": { "days": 2, "event": "ark_5" } } ], "text": "Позывные сходятся с довоенным реестром. Ковчег — настоящий.",
+        "fail": [ { "setFlag": "ark_contact" }, { "timer": { "days": 2, "event": "ark_5" } } ], "failText": "Непонятно, но выбора нет." }
+    ]
+  },
+  {
+    "id": "ark_5", "cat": "ark", "phase": "night", "weight": 0, "tags": ["ark"],
+    "conditions": { "flag": "ark_contact" },
+    "title": "Координаты сбора",
+    "text": "«Точка сбора — в горах, в трёх днях пути. Караван уходит через неделю. Возьмите всех, кто может идти. Остальным — удачи».",
+    "options": [
+      { "label": "Готовить экспедицию к Ковчегу", "effects": [ { "setFlag": "ark_ready" }, { "revealNode": "ark" } ], "text": "На карте пустошей — точка Ковчега. Нужна финальная экспедиция всех живых." },
+      { "label": "Остаться. Бункер — наш дом", "effects": [ { "setFlag": "stay_home" } ], "text": "Кто-то плачет, кто-то облегчённо выдыхает. Путь к самодостаточности открыт." }
+    ]
+  },
+  {
+    "id": "ark_rumor", "cat": "ark", "phase": "night", "weight": 3, "tags": ["ark", "calm"],
+    "conditions": { "minDay": 6, "notFlag": "numbers_heard" },
+    "title": "Слухи о Ковчеге",
+    "text": "Караванщик за чашкой кипятка шепчет: «Говорят, в горах есть Ковчег. Город без радиации. Его голос можно поймать, если слушать цифры»",
+    "options": [
+      { "label": "Слушать эфир внимательнее", "effects": [ { "timer": { "days": 1, "event": "radio_numbers_again" } } ], "text": "Кто-то ставит будильник на полночь — эфир." }
+    ]
+  },
+  {
+    "id": "faction_flash", "cat": "ark", "phase": "night", "weight": 3, "tags": ["social"],
+    "conditions": { "minDay": 7 },
+    "title": "Проповедник Детей Вспышки",
+    "text": "Голос через дверь: «Вспышка очистила мир! Присоединяйтесь к нам — и никто из вас не будет голоден». Звучит почти убедительно.",
+    "options": [
+      { "label": "Выслушать и угостить", "cost": { "food": 1 }, "effects": [ { "faction": { "flash": 15 } } ], "text": "Проповедник уходит довольным и оставляет листовку." },
+      { "label": "Прогнать", "effects": [ { "faction": { "flash": -10 } } ], "text": "«Вспышка всё видит!»" },
+      { "label": "Заключить союз с Детьми Вспышки", "req": { "factionGte": { "flash": 40 } }, "effects": [ { "setFlag": "join_faction" } ], "text": "Вы теперь — часть общины. Это тоже конец истории." }
+    ]
+  }
+]

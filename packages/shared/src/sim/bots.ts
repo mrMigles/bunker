@@ -232,6 +232,7 @@ function choreTarget(w: World, ch: Chore): { tt: TargetType; t: string } | null 
   if (ch.room) return { tt: "room", t: ch.room };
   if (ch.item) return { tt: "item", t: ch.item };
   if (ch.cell !== undefined) return { tt: "slot", t: String(ch.cell) };
+  if (ch.char) return { tt: "char", t: ch.char };
   return null;
 }
 

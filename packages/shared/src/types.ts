@@ -175,6 +175,7 @@ export interface Chore {
   room?: string;
   item?: string;
   cell?: number;
+  char?: string;
   urgency: number; // 0..1
   by?: string; // reserved by char id
   pinnedBy?: string;
@@ -352,6 +353,7 @@ export interface World {
   ending: { kind: string; text: string } | null;
   temp: number; // outside temperature factor
   weather: { today: string; forecast: string[] };
+  history: { day: number; id: string; choice: number }[]; // resolved events, for chronicle & tests
   /** transient effects queue, drained by the server each tick; never saved or diffed */
   fx?: Fx[];
 }

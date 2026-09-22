@@ -1,0 +1,105 @@
+[
+  {
+    "id": "door_doctor", "cat": "door", "phase": "night", "weight": 8, "tags": ["stranger"],
+    "conditions": { "minDay": 2, "notFlag": "doctor_joined" },
+    "title": "Стук в гермодверь",
+    "text": "Три размеренных удара. Хриплый голос: «Я врач. Была больница на Проспекте Созидания — больше нет. У меня сумка с лекарствами и пустой желудок».",
+    "options": [
+      { "label": "Впустить", "mood": ["kind"], "effects": [ { "addNpc": "doctor" }, { "setFlag": "doctor_joined" }, { "res": { "meds": 3 } } ], "text": "Врач раскладывает бинты на столе, будто всю жизнь здесь жил.",
+        "risk": { "chance": 0.1, "effects": [ { "sickRandom": 30 } ], "text": "Кашель у врача оказался не простудой…" } },
+      { "label": "Обменять еду на лекарства через щель", "mood": ["cautious"], "cost": { "food": 2 }, "effects": [ { "res": { "meds": 4 } } ], "text": "Сумка с лекарствами проскальзывает в щель. Шаги удаляются." },
+      { "label": "Не открывать", "mood": ["cautious", "greedy"], "effects": [ { "sanityAll": -4 } ], "text": "Стук долго не стихает." }
+    ]
+  },
+  {
+    "id": "door_soldier", "cat": "door", "phase": "night", "weight": 7, "tags": ["stranger"],
+    "conditions": { "minDay": 3, "notFlag": "soldier_joined" },
+    "title": "Раненый солдат",
+    "text": "За дверью — солдат «Порядка» с простреленным плечом. «Отстал от патруля. Дайте отлежаться — отплачу». На поясе у него пистолет.",
+    "options": [
+      { "label": "Впустить и перевязать (1 медикамент)", "cost": { "meds": 1 }, "mood": ["kind", "brave"], "effects": [ { "addNpc": "soldier" }, { "setFlag": "soldier_joined" }, { "res": { "pistol": 1, "ammo": 6 } }, { "faction": { "order": 10 } } ], "text": "Солдат благодарно кивает и кладёт пистолет на стол. «Он ваш»." },
+      { "label": "Забрать оружие, прогнать", "mood": ["greedy"], "check": { "stat": "sil", "dc": 12 }, "effects": [ { "res": { "pistol": 1, "ammo": 4 } }, { "faction": { "order": -20 } }, { "notice": 8 } ], "text": "Оружие теперь ваше. «Порядок» такое запомнит.",
+        "fail": [ { "injureRandom": "arm" }, { "faction": { "order": -15 } } ], "failText": "Солдат отбивается и уходит, но успевает ранить одного из вас." },
+      { "label": "Не открывать", "mood": ["cautious"], "effects": [ { "sanityAll": -2 } ], "text": "Утром у двери — только кровавый след." }
+    ]
+  },
+  {
+    "id": "knock_at_door_child", "cat": "door", "phase": "night", "weight": 9, "tags": ["stranger"],
+    "conditions": { "minDay": 3, "notFlag": "child_taken" },
+    "title": "Детский голос",
+    "text": "Кто-то слабо стучит в гермодверь. Детский голос просит впустить. Говорит, что мама «ушла за водой» три дня назад.",
+    "options": [
+      { "label": "Открыть", "mood": ["kind"], "effects": [ { "addNpc": "child" }, { "setFlag": "child_taken" }, { "sanityAll": 5 } ], "text": "Девочка с плюшевым зайцем засыпает прямо на скамейке.",
+        "risk": { "chance": 0.15, "effects": [ { "startRaid": "raiders_trap" } ], "text": "За ребёнком в темноте мелькают силуэты. Это была приманка!" } },
+      { "label": "Дать еды через щель", "cost": { "food": 2 }, "mood": ["cautious"], "effects": [ { "karma": 1 } ], "text": "Тихое «спасибо» — и шаги по лестнице." },
+      { "label": "Промолчать", "mood": ["greedy"], "effects": [ { "sanityAll": -10 } ], "text": "Всю ночь кажется, что стук продолжается." }
+    ]
+  },
+  {
+    "id": "door_trader", "cat": "door", "phase": "night", "weight": 8,
+    "conditions": { "minDay": 2 },
+    "title": "Торговец с тележкой",
+    "text": "«Караванщики! Честная торговля с доставкой к двери!» — бодро кричит голос. Слышно, как скрипит тележка.",
+    "options": [
+      { "label": "Консервы за металлолом (−10 🔩, +4 🥫)", "cost": { "scrap": 10 }, "effects": [ { "res": { "food_can": 4 } }, { "faction": { "caravan": 3 } } ], "text": "Сделка. Торговец пересчитывает железки на свет." },
+      { "label": "Запчасти за еду (−3 еды, +5 ⚙️)", "cost": { "food": 3 }, "effects": [ { "res": { "parts": 5 } }, { "faction": { "caravan": 3 } } ], "text": "Запчасти звенят в мешке." },
+      { "label": "Семена за ткань (−4 🧵)", "cost": { "cloth": 4 }, "effects": [ { "res": { "seed_tomato": 2, "seed_soy": 2, "seed_peas": 1 } } ], "text": "Пакетики с семенами подписаны каллиграфическим почерком." },
+      { "label": "Отказаться", "effects": [], "text": "«Ваша потеря!» Тележка уезжает." }
+    ]
+  },
+  {
+    "id": "door_tax", "cat": "door", "phase": "night", "weight": 5,
+    "conditions": { "minDay": 6, "flagGte": { "notice_seen": 1 } },
+    "title": "Налоговый инспектор «Порядка»",
+    "text": "«Именем Временного Порядка! Бункер обязан сдать десятину: пять пайков и воду». За инспектором двое с автоматами.",
+    "options": [
+      { "label": "Заплатить (−5 еды, −5 воды)", "cost": { "food": 5, "water": 5 }, "effects": [ { "faction": { "order": 15 } }, { "notice": -10 } ], "text": "Квитанция с печатью. «Порядок» доволен." },
+      { "label": "Торговаться (ХАР)", "check": { "stat": "har", "skill": "stealth", "dc": 14 }, "effects": [ { "res": { "food_can": -2 } }, { "faction": { "order": 5 } } ], "text": "Сошлись на двух банках и обещании «лояльности».",
+        "fail": [ { "res": { "food_can": -6 } }, { "faction": { "order": -5 } } ], "failText": "Инспектор обиделся и забрал больше." },
+      { "label": "Послать", "mood": ["brave"], "effects": [ { "faction": { "order": -25 } }, { "startRaid": "order_patrol" } ], "text": "«Вы об этом пожалеете». Шаги удаляются." }
+    ]
+  },
+  {
+    "id": "door_dog", "cat": "door", "phase": "night", "weight": 6,
+    "conditions": { "minDay": 2, "noPet": true },
+    "title": "Скулёж у двери",
+    "text": "Снаружи кто-то скулит и царапает металл. Через перископ видно: худая рыжая собака с ошейником.",
+    "options": [
+      { "label": "Впустить собаку", "cost": { "food": 1 }, "mood": ["kind"], "effects": [ { "pet": "dog" }, { "sanityAll": 6 } ], "text": "Пёс обнюхивает каждого и выбирает место у генератора." },
+      { "label": "Не открывать", "effects": [ { "sanityAll": -3 } ], "text": "Скулёж стихает к утру." }
+    ]
+  },
+  {
+    "id": "door_fever", "cat": "door", "phase": "night", "weight": 6, "tags": ["stranger"],
+    "conditions": { "minDay": 4 },
+    "title": "Человек с лихорадкой",
+    "text": "Мужчина за дверью тяжело дышит и бредит. Лоб горячий даже через щель. Эпидемия?",
+    "options": [
+      { "label": "Впустить в карантин (нужен Медпункт)", "req": { "hasRoom": "med" }, "cost": { "meds": 2 }, "mood": ["kind"], "effects": [ { "addNpc": "random" }, { "karma": 2 } ], "text": "Три дня под одеялом — и он жив. Зовут его теперь «Счастливчик»." },
+      { "label": "Впустить без карантина", "mood": ["kind"], "effects": [ { "addNpc": "random" }, { "sickRandom": 40 }, { "sickRandom": 30 } ], "text": "Лихорадка идёт по бункеру." },
+      { "label": "Дать лекарство через щель", "cost": { "meds": 1 }, "effects": [ { "karma": 1 } ], "text": "Он уходит, держась за стену." },
+      { "label": "Не открывать", "effects": [ { "sanityAll": -3 } ], "text": "Утром у двери никого." }
+    ]
+  },
+  {
+    "id": "door_grandma", "cat": "door", "phase": "night", "weight": 5, "tags": ["stranger"],
+    "conditions": { "minDay": 5, "notFlag": "grandma" },
+    "title": "Бабушка с котом",
+    "text": "«Милые, пустите старуху. Я вяжу, пеку и знаю сорок два способа приготовить крысу». В корзинке недовольно мяукает кот.",
+    "options": [
+      { "label": "Впустить обоих", "mood": ["kind"], "effects": [ { "addNpc": "cook" }, { "setFlag": "grandma" }, { "petIfNone": "cat" }, { "recipe": "rat_skewer" } ], "text": "К утру в бункере пахнет чем-то почти съедобным." },
+      { "label": "Взять только кота", "effects": [ { "petIfNone": "cat" }, { "sanityAll": -6 } ], "text": "Бабушка молча уходит. Кот смотрит укоризненно." },
+      { "label": "Отказать", "effects": [ { "sanityAll": -5 } ], "text": "«Бог вам судья», — доносится из-за двери." }
+    ]
+  },
+  {
+    "id": "day_knock", "cat": "door", "phase": "day", "weight": 5, "tags": ["stranger"],
+    "conditions": { "minDay": 4 },
+    "title": "Днём у шлюза",
+    "text": "У шлюза кто-то оставил записку: «Нас двое. Умеем чинить. Вернёмся вечером». Голосуйте, пока день.",
+    "options": [
+      { "label": "Оставить дверь открытой вечером", "effects": [ { "addNpc": "engineer" } ], "text": "Вечером в шлюз заходит усталый механик с ящиком инструментов.", "risk": { "chance": 0.2, "effects": [ { "res": { "food_can": -3, "parts": -2 } } ], "text": "Заодно исчезли три банки и запчасти…" } },
+      { "label": "Запереться", "effects": [], "text": "Никто не пришёл. Или пришёл и ушёл." }
+    ]
+  }
+]

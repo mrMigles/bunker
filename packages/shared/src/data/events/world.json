@@ -1,0 +1,98 @@
+[
+  {
+    "id": "rad_storm", "cat": "world", "phase": "night", "weight": 5, "tags": ["bad"],
+    "conditions": { "minDay": 4 },
+    "title": "Радиоактивная буря",
+    "text": "Счётчик у шлюза трещит без остановки. По радио: буря продлится два дня. Выходить наружу — самоубийство.",
+    "options": [
+      { "label": "Задраить всё и переждать", "effects": [ { "weather": "storm" }, { "setFlag": "storm_lock" }, { "flagDays": { "storm_until": 2 } } ], "text": "Два дня без вылазок." },
+      { "label": "Проложить щели тканью (−3 🧵)", "cost": { "cloth": 3 }, "effects": [ { "weather": "storm" }, { "radAll": -5 } ], "text": "Пыль не пройдёт." }
+    ]
+  },
+  {
+    "id": "quake", "cat": "world", "phase": "night", "weight": 4, "tags": ["bad"],
+    "conditions": { "minDay": 5 },
+    "title": "Землетрясение",
+    "text": "Толчок. Ещё один. С потолка сыплется бетонная крошка, скрипят опоры. Земля неспокойна после взрывов.",
+    "options": [
+      { "label": "Всем в самую прочную комнату", "effects": [ { "quake": 1 } ], "text": "Переждали. Но своды надо проверить." },
+      { "label": "Укреплять опоры всю ночь (−4 🪵)", "cost": { "wood": 4 }, "effects": [ { "quake": 0.4 }, { "energyAll": -15 } ], "text": "Стены держат." }
+    ]
+  },
+  {
+    "id": "flooding", "cat": "world", "phase": "night", "weight": 3, "tags": ["bad"],
+    "conditions": { "minDay": 6, "levelsGte": 3 },
+    "title": "Грунтовые воды",
+    "text": "Вода поднялась после дождей. Нижние уровни начинает подтапливать.",
+    "options": [
+      { "label": "Откачивать всю ночь", "effects": [ { "energyAll": -12 }, { "res": { "water_dirty": 6 } } ], "text": "Зато теперь есть что фильтровать." },
+      { "label": "Отсечь нижний уровень", "effects": [ { "flood": 60 } ], "text": "Нижние комнаты под водой." }
+    ]
+  },
+  {
+    "id": "nuclear_winter", "cat": "world", "phase": "night", "weight": 3, "tags": ["bad"],
+    "conditions": { "minDay": 8, "notFlag": "winter" },
+    "title": "Ядерная зима",
+    "text": "Температура падает. На трубах иней. Без отопления растения погибнут, а люди простынут.",
+    "options": [
+      { "label": "Жечь дерево (−6 🪵)", "cost": { "wood": 6 }, "effects": [ { "setFlag": "winter" } ], "text": "Буржуйка потрескивает." },
+      { "label": "Утеплиться тканью (−5 🧵)", "cost": { "cloth": 5 }, "effects": [ { "setFlag": "winter" } ], "text": "Все в одеялах, как капуста." },
+      { "label": "Терпеть", "effects": [ { "setFlag": "winter" }, { "sickRandom": 25 }, { "healthAll": -8 } ], "text": "Кашель по всему бункеру." }
+    ]
+  },
+  {
+    "id": "mutant_migration", "cat": "world", "phase": "night", "weight": 3, "tags": ["bad"],
+    "conditions": { "minDay": 7 },
+    "title": "Миграция мутантов",
+    "text": "Через перископ видно: по улице движется стая светящихся тварей. Они что-то ищут у люков.",
+    "options": [
+      { "label": "Погасить весь свет", "effects": [ { "notice": -15 }, { "sanityAll": -4 } ], "text": "Ночь в полной темноте. Стая уходит." },
+      { "label": "Приготовиться к обороне", "effects": [ { "startRaid": "mutants" } ], "text": "Они заметили движение. Готовьтесь!" }
+    ]
+  },
+  {
+    "id": "clear_sky", "cat": "world", "phase": "night", "weight": 4, "tags": ["good", "calm"],
+    "conditions": { "minDay": 3 },
+    "title": "Звёзды",
+    "text": "В перископ видно чистое небо. Впервые с начала войны — звёзды. Кто-то плачет.",
+    "options": [
+      { "label": "Смотреть по очереди", "effects": [ { "sanityAll": 8 } ], "text": "Каждый возвращается от перископа немного другим." },
+      { "label": "Поставить солнечные панели завтра", "effects": [ { "weather": "clear" }, { "setFlag": "solar_hint" } ], "text": "Прогноз обещает солнце." }
+    ]
+  },
+  {
+    "id": "day_leak", "cat": "world", "phase": "day", "weight": 6, "tags": ["bad", "quick"],
+    "conditions": { "minDay": 2, "hasRoom": "hydro" },
+    "title": "Протечка в Гидропонике!",
+    "text": "Лопнул шланг — раствор хлещет на пол!",
+    "auto": [ { "leak": "hydro" } ]
+  },
+  {
+    "id": "day_overheat", "cat": "world", "phase": "day", "weight": 5, "tags": ["bad", "quick"],
+    "conditions": { "minDay": 3 },
+    "title": "Генератор перегрелся",
+    "text": "Из генератора валит дым и пахнет палёной резиной.",
+    "auto": [ { "wearObj": { "bike_gen": -45 } } ]
+  },
+  {
+    "id": "day_tripwire", "cat": "world", "phase": "day", "weight": 3, "tags": ["bad", "quick"],
+    "conditions": { "minDay": 6, "notice": 30 },
+    "title": "Сработала растяжка у шлюза",
+    "text": "Бахнуло у шлюза. Кто-то снаружи наткнулся на растяжку — и убежал. Значит, вас ищут.",
+    "auto": [ { "notice": 6 }, { "setFlag": "notice_seen" } ]
+  },
+  {
+    "id": "day_wiring", "cat": "world", "phase": "day", "weight": 4, "tags": ["bad", "quick"],
+    "conditions": { "minDay": 3 },
+    "title": "Искрит проводка",
+    "text": "В коридоре трещит и искрит проводка. Надо починить, пока не загорелось.",
+    "auto": [ { "wiring": true } ]
+  },
+  {
+    "id": "day_bulb", "cat": "world", "phase": "day", "weight": 4, "tags": ["quick"],
+    "conditions": { "minDay": 2 },
+    "title": "Перегорела лампа",
+    "text": "Хлоп — и в одной из комнат темно.",
+    "auto": [ { "bulb": true } ]
+  }
+]

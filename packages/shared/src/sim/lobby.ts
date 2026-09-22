@@ -145,6 +145,10 @@ export function startGame(w: World) {
   const ids = Object.keys(w.chars);
   for (const a of ids) for (const b of ids) if (a !== b) w.chars[a].rel[b] = rng.int(-5, 10);
   w.elder = players[0]?.id ?? null;
+  // common kitchen knowledge; a professional cook knows more
+  for (const r of ["can_stew", "rat_skewer"]) if (!w.recipes.includes(r)) w.recipes.push(r);
+  if (Object.values(w.chars).some((c) => c.card.prof === "cook")) for (const r of ["potato_stew", "mushroom_soup", "salad"]) if (!w.recipes.includes(r)) w.recipes.push(r);
+  if (Object.values(w.chars).some((c) => c.card.prof === "farmer")) for (const r of ["veggie_mash", "soy_cutlets"]) if (!w.recipes.includes(r)) w.recipes.push(r);
   for (const p of players) p.ready = false;
   if (w.settings.skipPrologue) beginDay(w);
   else {

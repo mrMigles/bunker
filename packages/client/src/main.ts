@@ -7,6 +7,7 @@ import { Hud } from "./ui/hud";
 import { LobbyUI } from "./ui/lobby";
 import { showMenu } from "./ui/menu";
 import { GameUI } from "./ui/game";
+import { installExtras } from "./ui/extras";
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const renderer = new WorldRenderer(canvas);
@@ -35,7 +36,10 @@ function route() {
       lobby = null;
     }
     if (!hud) hud = new Hud(renderer);
-    if (!game) game = new GameUI(renderer, hud);
+    if (!game) {
+      game = new GameUI(renderer, hud);
+      installExtras(game);
+    }
   }
 }
 

@@ -1,0 +1,108 @@
+[
+  {
+    "id": "rats_ate", "cat": "internal", "phase": "night", "weight": 7, "tags": ["bad"],
+    "conditions": { "minDay": 2, "resGte": { "food": 4 } },
+    "title": "Крысы в кладовой",
+    "text": "Утром в кладовой — прогрызенные мешки и следы маленьких лапок. Крысы добрались до запасов.",
+    "options": [
+      { "label": "Поставить крысоловки (−2 🔩)", "cost": { "scrap": 2 }, "effects": [ { "res": { "food_can": -1 } }, { "res": { "rat": 2 } } ], "text": "Потеряли банку, зато поймали двух крыс. Крысятина — тоже мясо." },
+      { "label": "Перебрать всё вручную", "effects": [ { "res": { "food_can": -2 } }, { "energyAll": -10 } ], "text": "Ночь без сна, но большую часть спасли." },
+      { "label": "Смириться", "effects": [ { "res": { "food_can": -3 } } ], "text": "Крысы тоже хотят жить." }
+    ]
+  },
+  {
+    "id": "pipe_burst", "cat": "internal", "phase": "night", "weight": 6, "tags": ["bad"],
+    "conditions": { "minDay": 3 },
+    "title": "Прорыв трубы",
+    "text": "Ночью что-то хлопнуло в техотсеке — и зашипело. Труба водоочистки лопнула, вода течёт на пол.",
+    "options": [
+      { "label": "Чинить немедленно (Ремонт)", "check": { "skill": "repair", "stat": "int", "dc": 11 }, "effects": [ { "res": { "parts": -1 } } ], "text": "Хомут, изолента и крепкое слово. Держит!",
+        "fail": [ { "res": { "water": -4, "parts": -2 } }, { "flood": 30 } ], "failText": "Не вышло: вода залила пол, пришлось менять секцию." },
+      { "label": "Перекрыть и чинить утром", "effects": [ { "res": { "water": -3 } }, { "breakObj": "water_filter" } ], "text": "Водоочистка стоит до ремонта." }
+    ]
+  },
+  {
+    "id": "panel_fire", "cat": "internal", "phase": "night", "weight": 4, "tags": ["bad"],
+    "conditions": { "minDay": 4 },
+    "title": "Искры в щитке",
+    "text": "Запах горелой изоляции. Из электрощитка сыплются искры, по проводке бежит огонёк.",
+    "options": [
+      { "label": "Обесточить и тушить", "effects": [ { "power": -2 }, { "res": { "parts": -1 } } ], "text": "Аккумулятор просел, но пожара нет." },
+      { "label": "Рискнуть — Электрик справится (ЛОВ)", "check": { "stat": "lov", "skill": "repair", "dc": 13 }, "effects": [], "text": "Ловкое движение отвёрткой — и тишина.",
+        "fail": [ { "fire": "tech" } ], "failText": "Щиток вспыхнул! Пожар в техотсеке!" }
+    ]
+  },
+  {
+    "id": "night_eater", "cat": "internal", "phase": "night", "weight": 5, "tags": ["bad", "social"],
+    "conditions": { "minDay": 3, "resGte": { "food": 3 } },
+    "title": "Кто-то ест по ночам",
+    "text": "Утром в кладовой не хватает двух банок. На полу — крошки и чей-то след. Кто-то тайно ест по ночам.",
+    "options": [
+      { "label": "Повесить замок на кладовую (−3 🔩)", "cost": { "scrap": 3 }, "effects": [ { "res": { "food_can": -2 } }, { "setFlag": "pantry_lock" } ], "text": "Замок висит. Все смотрят друг на друга с подозрением." },
+      { "label": "Устроить допрос", "effects": [ { "res": { "food_can": -2 } }, { "sanityAll": -5 }, { "revealGlutton": true } ], "text": "Долгий разговор. Подозрения…" },
+      { "label": "Не поднимать шум", "effects": [ { "res": { "food_can": -2 } } ], "text": "Может, показалось." }
+    ]
+  },
+  {
+    "id": "bed_quarrel", "cat": "internal", "phase": "night", "weight": 5, "tags": ["social"],
+    "conditions": { "minDay": 2, "bedsShort": true },
+    "title": "Ссора из-за койки",
+    "text": "«Это МОЯ койка!» — «А я вчера спал на полу!» Двое вот-вот подерутся.",
+    "options": [
+      { "label": "Составить график очереди", "effects": [ { "sanityAll": 2 } ], "text": "Расписание на стене. Бюрократия спасает мир." },
+      { "label": "Жребий", "effects": [ { "sanityRandom": -8 }, { "sanityRandom": 4 } ], "text": "Кому-то повезло. Кому-то — нет." },
+      { "label": "Строим ещё койки! (−4 🪵 −2 🧵)", "cost": { "wood": 4, "cloth": 2 }, "effects": [ { "addBed": true } ], "text": "Новые нары в жилом отсеке." }
+    ]
+  },
+  {
+    "id": "found_tape", "cat": "internal", "phase": "night", "weight": 5, "tags": ["good", "calm"],
+    "conditions": { "minDay": 2 },
+    "title": "Старая кассета",
+    "text": "За вентиляционной решёткой нашлась кассета. Подпись карандашом: «Для тех, кто придёт после нас».",
+    "options": [
+      { "label": "Послушать всем вместе", "effects": [ { "tape": "diary" }, { "sanityAll": 5 } ], "text": "Голос прошлого жильца: «Если слышите это — значит, бункер держит. Не бросайте огород»." },
+      { "label": "Отложить на потом", "effects": [ { "tape": "diary" } ], "text": "Кассета ждёт на полке." }
+    ]
+  },
+  {
+    "id": "missing_meds", "cat": "internal", "phase": "night", "weight": 4, "tags": ["bad", "social"],
+    "conditions": { "minDay": 4, "resGte": { "meds": 2 } },
+    "title": "Пропали лекарства",
+    "text": "Из аптечного ящика исчезли две упаковки таблеток. Кто-то их взял — или они просто закончились?",
+    "options": [
+      { "label": "Обыскать всех", "effects": [ { "res": { "meds": -1 } }, { "sanityAll": -4 } ], "text": "Одну упаковку нашли в чужой подушке. Неловко." },
+      { "label": "Списать на учёт", "effects": [ { "res": { "meds": -2 } } ], "text": "Бывает." }
+    ]
+  },
+  {
+    "id": "nightmares", "cat": "internal", "phase": "night", "weight": 4, "tags": ["bad"],
+    "conditions": { "minDay": 5, "avgSanityLt": 50 },
+    "title": "Кошмары",
+    "text": "Кто-то кричит во сне. Потом ещё один. Стены давят, а ночь тянется бесконечно.",
+    "options": [
+      { "label": "Всем чай и разговоры до утра", "cost": { "herbs": 1 }, "effects": [ { "sanityAll": 8 }, { "energyAll": -10 } ], "text": "Разговоры до рассвета. Легче." },
+      { "label": "Выпить самогона", "cost": { "moonshine": 1 }, "effects": [ { "sanityAll": 10 }, { "healthAll": -3 } ], "text": "«За тех, кто наверху!»" },
+      { "label": "Терпеть", "effects": [ { "sanityAll": -3 } ], "text": "Утро приходит, как всегда." }
+    ]
+  },
+  {
+    "id": "harvest_party", "cat": "internal", "phase": "night", "weight": 4, "tags": ["good", "calm", "holiday"],
+    "conditions": { "minDay": 4, "flagGte": { "harvests": 3 } },
+    "title": "Праздник первого урожая",
+    "text": "Кто-то предлагает отметить первые урожаи. Настоящий праздник, с салатом и песнями.",
+    "options": [
+      { "label": "Праздновать! (−2 еды)", "cost": { "food": 2 }, "effects": [ { "party": true }, { "sanityAll": 12 } ], "text": "Песни у радио до хрипоты. Этот вечер запомнят все." },
+      { "label": "Не время для праздников", "effects": [ { "sanityAll": -2 } ], "text": "Экономия прежде всего." }
+    ]
+  },
+  {
+    "id": "day100", "cat": "internal", "phase": "night", "weight": 100, "tags": ["good", "holiday", "calm"],
+    "conditions": { "dayEq": 20, "once": true },
+    "title": "Двадцать дней под землёй",
+    "text": "Кто-то нацарапал на стене двадцатую палочку. Двадцать дней! Это надо отметить.",
+    "options": [
+      { "label": "Особый ужин (−3 еды)", "cost": { "food": 3 }, "effects": [ { "party": true }, { "sanityAll": 15 } ], "text": "Гирлянда из консервных крышек и тосты за каждого." },
+      { "label": "Скромно помолчать", "effects": [ { "sanityAll": 4 } ], "text": "Минута тишины — тоже праздник." }
+    ]
+  }
+]

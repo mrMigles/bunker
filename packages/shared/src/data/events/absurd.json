@@ -1,0 +1,62 @@
+[
+  {
+    "id": "roach_pet", "cat": "absurd", "phase": "night", "weight": 4, "tags": ["calm", "good"],
+    "conditions": { "minDay": 4, "noPet": true },
+    "title": "Таракан-мутант",
+    "text": "Из вентиляции вылез таракан размером с ботинок. Он не агрессивен. Он… машет усами? Кажется, он хочет дружить.",
+    "options": [
+      { "label": "Назвать Валерием и приручить", "effects": [ { "pet": "roach" }, { "sanityAll": 6 } ], "text": "Валерий ест объедки и спит в ботинке Шахтёра." },
+      { "label": "Прогнать шваброй", "effects": [], "text": "Валерий обиженно уползает." }
+    ]
+  },
+  {
+    "id": "karaoke", "cat": "absurd", "phase": "night", "weight": 4, "tags": ["calm", "good"],
+    "conditions": { "minDay": 3, "notFlag": "karaoke" },
+    "title": "Караоке-машина",
+    "text": "В старом ящике нашлась караоке-машина «Эстрада-2». Работает от аккумулятора. Микрофон только один.",
+    "options": [
+      { "label": "Устроить конкурс (−1 кВт·ч)", "effects": [ { "power": -1 }, { "sanityAll": 12 }, { "setFlag": "karaoke" } ], "text": "Военный поёт романс. Никто этого не забудет." },
+      { "label": "Разобрать на запчасти", "effects": [ { "res": { "parts": 3 } }, { "setFlag": "karaoke" } ], "text": "Прагматично. Грустно." }
+    ]
+  },
+  {
+    "id": "treasure_map", "cat": "absurd", "phase": "night", "weight": 4,
+    "conditions": { "minDay": 4, "hasProf": "conman", "notFlag": "treasure_map" },
+    "title": "Карта клада",
+    "text": "Мошенник достаёт засаленную бумажку: «Карта клада! Довоенный склад. Отдам группе всего за три пайка. Себе в убыток!»",
+    "options": [
+      { "label": "Купить карту (−3 еды)", "cost": { "food": 3 }, "effects": [ { "setFlag": "treasure_map" } ], "text": "Карта выглядит подозрительно новой.",
+        "risk": { "chance": 0.5, "effects": [ { "revealNode": "cache" } ], "text": "…но крестик на ней совпадает с настоящим складом!" } },
+      { "label": "Посмеяться над ним", "effects": [ { "sanityAll": 3 } ], "text": "Мошенник обижен, но не очень." }
+    ]
+  },
+  {
+    "id": "gnome_cult", "cat": "absurd", "phase": "night", "weight": 3, "tags": ["calm"],
+    "conditions": { "minDay": 5 },
+    "title": "Культ садового гнома",
+    "text": "Кто-то поставил в столовой садового гнома и подкладывает ему сухарики. Уже трое утверждают, что гном «приносит удачу».",
+    "options": [
+      { "label": "Поддержать традицию", "cost": { "food": 1 }, "effects": [ { "sanityAll": 5 }, { "setFlag": "gnome" } ], "text": "Гном в колпаке из фольги. Боги бункера довольны." },
+      { "label": "Выбросить гнома", "effects": [ { "sanityAll": -3 } ], "text": "На утро гном снова на месте. Кто это сделал?!" }
+    ]
+  },
+  {
+    "id": "vent_cat", "cat": "absurd", "phase": "night", "weight": 3, "tags": ["calm"],
+    "conditions": { "minDay": 3, "noPet": true },
+    "title": "Кот в вентиляции",
+    "text": "В вентиляции кто-то мяукает уже второй час. Если открутить решётку…",
+    "options": [
+      { "label": "Открутить решётку", "effects": [ { "pet": "cat" }, { "sanityAll": 5 } ], "text": "Серый кот с драным ухом. Живёт теперь здесь." },
+      { "label": "Оставить как есть", "effects": [ { "sanityAll": -2 } ], "text": "Мяуканье затихает. Хочется верить, что он нашёл выход." }
+    ]
+  },
+  {
+    "id": "rabbit_gift", "cat": "absurd", "phase": "night", "weight": 3, "tags": ["good"],
+    "conditions": { "minDay": 4, "hasRoom": "rabbits" },
+    "title": "Кролики в коробке",
+    "text": "Караванщик оставил у двери коробку. Внутри — два кролика и записка «Размножайте. Вернусь за процентами».",
+    "options": [
+      { "label": "Забрать кроликов", "effects": [ { "rabbits": 2 } ], "text": "Кролики обживают клетку." }
+    ]
+  }
+]

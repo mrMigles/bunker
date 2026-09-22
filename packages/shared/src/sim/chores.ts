@@ -59,7 +59,7 @@ type Want = Omit<Chore, "id" | "created" | "by">;
 export function refreshChores(w: World) {
   const want = new Map<string, Want>();
   const add = (c: Want) => {
-    const key = `${c.kind}:${c.obj ?? c.room ?? c.item ?? c.cell ?? ""}`;
+    const key = `${c.kind}:${c.obj ?? c.room ?? c.item ?? c.cell ?? c.char ?? ""}`;
     want.set(key, c);
   };
   const people = homeChars(w).length || 1;

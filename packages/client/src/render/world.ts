@@ -199,6 +199,7 @@ export class WorldRenderer {
         cv = new CharView(id, c.card.color, c.card.hat, Math.floor(vhash(id.length, id.charCodeAt(1)) * 5));
         cv.x = c.x;
         cv.y = c.y;
+        if (c.card.age < 14) cv.root.scale.setScalar(0.7);
         this.scene.add(cv.root);
         this.chars.set(id, cv);
       }

@@ -606,3 +606,187 @@ textarea {
 ::-webkit-scrollbar-thumb {
   background: #3a2f27;
 }
+
+/* ---------- newspaper ---------- */
+.newspaper {
+  background: #e3d6b8;
+  color: #2a2320;
+  font-family: var(--serif);
+  padding: 18px 22px;
+  max-width: 640px;
+  box-shadow: 3px 4px 0 #000, inset 0 0 60px rgba(120, 80, 30, 0.35);
+  position: relative;
+  user-select: text;
+}
+.newspaper:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.02) 0 2px, transparent 2px 4px);
+  pointer-events: none;
+}
+.np-head {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 3px double #2a2320;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.np-paper {
+  font-weight: bold;
+}
+.np-title {
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 1.15;
+  margin: 6px 0 10px;
+}
+.np-title.np-ad {
+  text-align: center;
+  border: 2px solid #2a2320;
+  padding: 6px;
+  font-style: italic;
+}
+.np-text {
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: justify;
+  margin-bottom: 8px;
+}
+.np-cartoon {
+  text-align: center;
+  margin: 8px 0;
+}
+.np-cartoon canvas {
+  border: 1px solid #2a2320;
+  max-width: 100%;
+}
+.np-foot {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.cw {
+  margin-top: 12px;
+  border-top: 1px solid #2a2320;
+  padding-top: 8px;
+}
+.cw-grid {
+  display: grid;
+  gap: 2px;
+}
+.cw-cell {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  background: #fff8e6;
+  border: 1px solid #2a2320;
+}
+.cw-cell input {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  font-family: var(--serif);
+  font-weight: bold;
+  font-size: 15px;
+  color: #2a2320;
+  padding: 0;
+  text-transform: uppercase;
+}
+.cw-n {
+  position: absolute;
+  left: 1px;
+  top: -1px;
+  font-size: 8px;
+}
+.cw-empty {
+  width: 28px;
+  height: 28px;
+}
+.cw-clues {
+  font-size: 13px;
+  margin: 0;
+  padding-left: 18px;
+}
+.cw-done {
+  color: #2d5a1e;
+  font-weight: bold;
+  margin-top: 6px;
+}
+
+/* ---------- radio & instruments ---------- */
+.radio-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 24px));
+  padding: 10px 14px;
+  background: linear-gradient(#3a2a1e, #22180f);
+  border-color: #6a4a2a;
+}
+.radio-name {
+  color: #f2d68a;
+  text-shadow: 0 0 6px rgba(242, 214, 138, 0.6);
+}
+.radio-scale {
+  position: relative;
+  height: 14px;
+  margin-top: 6px;
+  background: repeating-linear-gradient(90deg, #f2d68a33 0 1px, transparent 1px 10px);
+}
+.radio-marks span {
+  position: absolute;
+  top: -2px;
+  transform: translateX(-50%);
+  color: #f2d68a;
+  font-size: 11px;
+}
+.teletype {
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: #e8dcc0;
+  min-height: 54px;
+}
+.instr-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  padding: 10px 14px;
+}
+.instr-key {
+  width: 38px;
+  height: 58px;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 0 0 5px 5px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #555;
+}
+.instr-key.on {
+  background: var(--warm);
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #555;
+}
+.dayvote {
+  position: fixed;
+  right: 10px;
+  top: calc(44px + 30vh);
+  width: 340px;
+  padding: 10px;
+  font-size: 12px;
+  z-index: 15;
+}
