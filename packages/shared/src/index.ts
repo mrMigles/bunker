@@ -39,4 +39,7 @@ export * from "./sim/cozy";
 export * from "./sim/radio";
 export * from "./sim/lore";
 export * from "./sim/music";
+export { GAMES, registerGame, sameMove, tryMove, type BoardGame, type GameResult } from "./boardgames/framework";
+export * from "./boardgames/durak";
+export * from "./sim/tables";
 export * from "./sim/debug";

@@ -4,10 +4,13 @@ import { net } from "../net";
 import { GameUI } from "./game";
 import { CLIENT_SCREENS } from "./prompt";
 import { DayVoteUI, InstrumentUI, RadioUI } from "./radio";
+import { TableUI } from "./tableui";
 import { openBoard, openBooks, openCanvas, openCharacter, openClipping, openCook, openCraft, openPeriscope, openSettings } from "./screens";
 
 /** Hooks the 5b screens (radio, instruments, board, papers…) into the game UI. */
 export function installExtras(game: GameUI) {
+  const table = new TableUI(game.r);
+  game.table = table;
   const radio = new RadioUI();
   const instr = new InstrumentUI();
   const dayVote = new DayVoteUI();
@@ -39,6 +42,15 @@ export function installExtras(game: GameUI) {
   });
 
   GameUI.extraKeys.push((e) => {
+    if (table.active && e.code === "Escape") {
+      table.leave();
+      return true;
+    }
+    if (e.code === "KeyG") {
+      table.toggleSpectate();
+      return true;
+    }
+    if (table.active) return e.code !== "KeyC" && e.code !== "Enter";
     if (instr.handleKey(e)) return true;
     if (e.code === "KeyO") {
       openSettings(game.r);
@@ -57,7 +69,10 @@ export function installExtras(game: GameUI) {
     const v = net.pub;
     if (v) audio.setAmbient(Math.min(1, v.power.gen / 1.5));
   });
-  GameUI.extraPatch.push(() => dayVote.update());
+  GameUI.extraPatch.push(() => {
+    dayVote.update();
+    table.update();
+  });
 
   // click a character to inspect
   game.r.renderer.domElement.addEventListener("click", (e) => {

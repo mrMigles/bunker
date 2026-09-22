@@ -781,6 +781,48 @@ textarea {
   transform: translateY(2px);
   box-shadow: 0 1px 0 #555;
 }
+.table-ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+.table-ui > * {
+  pointer-events: auto;
+}
+.table-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  max-width: calc(100vw - 24px);
+}
+.table-status {
+  position: fixed;
+  left: 50%;
+  top: 48px;
+  transform: translateX(-50%);
+  background: rgba(15, 12, 10, 0.85);
+  padding: 6px 12px;
+  border-radius: 3px;
+  font-size: 13px;
+  text-align: center;
+}
+.table-talk {
+  position: fixed;
+  left: 12px;
+  top: 90px;
+  width: 280px;
+  font-size: 12px;
+  background: rgba(15, 12, 10, 0.6);
+  padding: 6px 8px;
+  border-radius: 3px;
+  pointer-events: none !important;
+}
 .dayvote {
   position: fixed;
   right: 10px;

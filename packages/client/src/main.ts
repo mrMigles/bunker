@@ -77,8 +77,10 @@ function loop(now: number) {
     pred = { x: net.pred.prevX + (net.pred.x - net.pred.prevX) * f, y: net.pred.prevY + (net.pred.y - net.pred.prevY) * f };
   }
   game?.frame(dt);
-  renderer.frame(dt, net.pub, net.priv?.char ?? null, pred);
-  hud?.updateLabels(net.priv?.char ?? null, game?.hoverChar ?? null);
+  const atTable = game?.table?.frame(dt);
+  if (!atTable) renderer.frame(dt, net.pub, net.priv?.char ?? null, pred);
+  hud?.labels.classList.toggle("hidden", !!atTable);
+  if (!atTable) hud?.updateLabels(net.priv?.char ?? null, game?.hoverChar ?? null);
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
