@@ -80,6 +80,7 @@ export class LobbyUI {
           mine?.ready ? "✔ Готов" : "Готов",
         ),
         isHost ? h("button.primary", { onclick: () => net.send({ k: "start" }) }, "▶ Начать") : h("span.dim", null, "Ждём хоста…"),
+        import.meta.env.DEV && isHost ? h("button", { title: "debug: бой 3×5 на тестовой арене", onclick: () => net.send({ k: "debugArena" }) }, "⚔ Тестовая арена") : null,
       ),
     );
     // settings

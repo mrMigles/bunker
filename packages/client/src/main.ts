@@ -67,6 +67,7 @@ setInterval(() => {
 
 // render loop
 let last = performance.now();
+let fpsAcc = 60;
 function loop(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
@@ -77,7 +78,10 @@ function loop(now: number) {
     pred = { x: net.pred.prevX + (net.pred.x - net.pred.prevX) * f, y: net.pred.prevY + (net.pred.y - net.pred.prevY) * f };
   }
   game?.frame(dt);
-  const atTable = game?.table?.frame(dt);
+  fpsAcc = fpsAcc * 0.95 + (dt > 0 ? 1 / dt : 60) * 0.05;
+  (window as any).__fps = fpsAcc;
+  const atSite = game?.combat?.frame(dt);
+  const atTable = atSite || game?.table?.frame(dt);
   if (!atTable) renderer.frame(dt, net.pub, net.priv?.char ?? null, pred);
   hud?.labels.classList.toggle("hidden", !!atTable);
   if (!atTable) hud?.updateLabels(net.priv?.char ?? null, game?.hoverChar ?? null);

@@ -18,6 +18,7 @@ export class GameUI {
   council: CouncilUI;
   aquarium = false;
   table: import("./tableui").TableUI | null = null;
+  combat: import("./combat").CombatUI | null = null;
   private lastPhase = "";
   static extraKeys: ((e: KeyboardEvent, g: GameUI) => boolean | void)[] = [];
   static extraFrame: ((dt: number, g: GameUI) => void)[] = [];
@@ -73,7 +74,7 @@ export class GameUI {
   }
 
   inputBlocked() {
-    return typing() || isModalOpen() || this.aquarium || !!this.table?.active;
+    return typing() || isModalOpen() || this.aquarium || !!this.table?.active || !!this.combat?.active;
   }
 
   keyDown(e: KeyboardEvent): boolean | void {

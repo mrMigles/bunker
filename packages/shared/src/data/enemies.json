@@ -1,0 +1,14 @@
+{
+  "marauder":  { "name": "Мародёр с трубой",     "icon": "🔧", "hp": 12, "armor": 0, "weapon": "pipe",    "lov": 2, "ap": 3, "tags": ["human"], "color": 6710886, "loot": { "scrap": [1, 3], "food_can": [0, 1] }, "ai": "brawler" },
+  "raider":    { "name": "Налётчик с обрезом",   "icon": "💥", "hp": 14, "armor": 0, "weapon": "shotgun", "lov": 2, "ap": 3, "tags": ["human"], "color": 9127187, "loot": { "ammo": [1, 4], "shotgun": [0, 1] }, "ai": "shooter" },
+  "sniper":    { "name": "Снайпер",              "icon": "🎯", "hp": 10, "armor": 0, "weapon": "rifle",   "lov": 3, "ap": 3, "tags": ["human"], "color": 4210752, "loot": { "ammo": [2, 5], "rifle": [0, 1] }, "ai": "sniper" },
+  "boss":      { "name": "Главарь банды",        "icon": "👑", "hp": 28, "armor": 1, "weapon": "pistol",  "lov": 3, "ap": 3, "tags": ["human", "leader"], "color": 9109504, "loot": { "ammo": [3, 6], "pistol": [1, 1], "meds": [0, 2] }, "ai": "leader" },
+  "dog":       { "name": "Дикая собака",         "icon": "🐕", "hp": 8,  "armor": 0, "weapon": "bite",    "lov": 5, "ap": 4, "tags": ["beast", "pack"], "color": 7031373, "loot": { "meat": [0, 1] }, "ai": "hunter" },
+  "rat":       { "name": "Крыса-мутант",         "icon": "🐀", "hp": 4,  "armor": 0, "weapon": "bite",    "lov": 4, "ap": 3, "tags": ["beast", "swarm"], "color": 5263440, "loot": { "rat": [0, 1] }, "ai": "hunter" },
+  "mole":      { "name": "Кротовик",             "icon": "🦔", "hp": 16, "armor": 1, "weapon": "claws",   "lov": 2, "ap": 3, "tags": ["beast", "burrow"], "color": 4865305, "loot": { "meat": [0, 2] }, "ai": "brawler" },
+  "glowing":   { "name": "Светящийся",           "icon": "☢", "hp": 18, "armor": 0, "weapon": "claws",   "lov": 2, "ap": 3, "tags": ["mutant", "aura", "fanatic"], "color": 10934351, "loot": { "chem": [1, 2] }, "ai": "brawler" },
+  "soldier":   { "name": "Солдат «Порядка»",     "icon": "🪖", "hp": 18, "armor": 2, "weapon": "rifle",   "lov": 3, "ap": 3, "tags": ["human", "disciplined"], "color": 4943686, "loot": { "ammo": [3, 6], "rifle": [0, 1], "armor": [0, 1] }, "ai": "shooter" },
+  "drone":     { "name": "Дрон-разведчик",       "icon": "🛸", "hp": 7,  "armor": 1, "weapon": "pistol",  "lov": 5, "ap": 3, "tags": ["machine", "flying"], "color": 7372944, "loot": { "parts": [2, 4] }, "ai": "shooter" },
+  "cultist":   { "name": "Сектант Вспышки",      "icon": "🔥", "hp": 13, "armor": 0, "weapon": "molotov", "lov": 3, "ap": 3, "tags": ["human", "fanatic"], "color": 15658734, "loot": { "chem": [1, 2], "cloth": [1, 2] }, "ai": "bomber" },
+  "bulldozer": { "name": "Бронированный Бульдозер", "icon": "🚜", "hp": 45, "armor": 4, "weapon": "ram",   "lov": 1, "ap": 3, "tags": ["machine", "boss", "breaker"], "color": 12887066, "loot": { "parts": [4, 8], "scrap": [8, 14], "fuel": [2, 4] }, "ai": "breaker" }
+}

@@ -42,4 +42,7 @@ export * from "./sim/music";
 export { GAMES, registerGame, sameMove, tryMove, type BoardGame, type GameResult } from "./boardgames/framework";
 export * from "./boardgames/durak";
 export * from "./sim/tables";
+export * from "./combat/combat";
+export * from "./combat/fields";
+export * from "./sim/battle";
 export * from "./sim/debug";

@@ -554,7 +554,7 @@ onTick("bots", "day", (w, dt) => {
   }
   for (const id in w.chars) {
     const c = w.chars[id];
-    if (c.status !== "ok") continue;
+    if (c.status !== "ok" || c.mind.plan === "combat") continue;
     if (c.ctrl) {
       const p = w.players[c.ctrl];
       if (p && p.online && !p.aquarium) continue; // a live player drives this one

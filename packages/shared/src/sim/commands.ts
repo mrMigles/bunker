@@ -27,7 +27,7 @@ export function applyInput(w: World, pid: string, inp: InputMsg) {
   if (!p?.char) return;
   const c = w.chars[p.char];
   if (!c || c.ctrl !== pid) return;
-  if (c.status !== "ok" || w.phase !== "day" || w.paused || p.aquarium) {
+  if (c.status !== "ok" || w.phase !== "day" || w.paused || p.aquarium || c.mind.plan === "combat") {
     c.seq = inp.seq;
     return;
   }

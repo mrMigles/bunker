@@ -36,7 +36,26 @@ export const debugOps: Record<string, (w: World, arg: any, pid: string) => strin
   notice: (w, n) => {
     w.notice = Number(n) || 0;
   },
+  event: (w, id) => {
+    const e = EVENT_BY_ID[String(id)];
+    if (!e) return "Нет события";
+    if (e.auto) {
+      for (const ef of e.auto) applyEffect(w, ef);
+      log(w, `⚠ ${e.title} ${e.text}`, "bad");
+      return;
+    }
+    if (w.phase === "night" && w.council) {
+      w.council.vote = makeVote(w, e, w.phaseT, 35);
+      w.council.step = "event";
+      w.council.stepEnds = w.phaseT + 35;
+    } else w.vote = makeVote(w, e, w.phaseT, 30);
+  },
+  games: (w) => {
+    for (const g of ["cards36", "cards52", "domino", "checkers", "chess", "backgammon", "dice", "lotto", "magnate", "wasteland", "mafia"]) if (!w.games.includes(g)) w.games.push(g);
+  },
 };
+
+import { EVENT_BY_ID, applyEffect, makeVote } from "./events";
 
 registerCmd("debug", (w, p, cmd) => {
   const op = debugOps[String(cmd.op)];

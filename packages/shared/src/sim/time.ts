@@ -14,6 +14,7 @@ export const nightHooks: { start: ((w: World) => void)[]; end: ((w: World) => vo
 export function timeMult(w: World) {
   let m = w.speed;
   if (w.mods.combat?.active && w.mods.combat.where === "expedition") m *= BAL.combatTimeMult;
+  if (w.mods.combat?.active && w.mods.combat.where !== "expedition") m = 0; // a fight inside the bunker freezes the clock
   return m;
 }
 

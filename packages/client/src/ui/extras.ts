@@ -5,12 +5,16 @@ import { GameUI } from "./game";
 import { CLIENT_SCREENS } from "./prompt";
 import { DayVoteUI, InstrumentUI, RadioUI } from "./radio";
 import { TableUI } from "./tableui";
+import { CombatUI } from "./combat";
+import { openDebug } from "./debug";
 import { openBoard, openBooks, openCanvas, openCharacter, openClipping, openCook, openCraft, openPeriscope, openSettings } from "./screens";
 
 /** Hooks the 5b screens (radio, instruments, board, papers…) into the game UI. */
 export function installExtras(game: GameUI) {
   const table = new TableUI(game.r);
   game.table = table;
+  const combat = new CombatUI(game.r);
+  game.combat = combat;
   const radio = new RadioUI();
   const instr = new InstrumentUI();
   const dayVote = new DayVoteUI();
@@ -42,6 +46,26 @@ export function installExtras(game: GameUI) {
   });
 
   GameUI.extraKeys.push((e) => {
+    if (e.code === "Backquote" && import.meta.env.DEV) {
+      openDebug(() => (window as any).__fps ?? 0);
+      return true;
+    }
+    if (combat.active) {
+      if (e.code === "Enter" || e.code === "Space") {
+        combat.sync(true);
+        return true;
+      }
+      if (e.code === "Escape") {
+        combat.mode = null;
+        return true;
+      }
+      if (e.code === "Backspace") {
+        combat.plan.pop();
+        combat.sync(false);
+        return true;
+      }
+      return e.code !== "KeyC";
+    }
     if (table.active && e.code === "Escape") {
       table.leave();
       return true;
@@ -72,6 +96,7 @@ export function installExtras(game: GameUI) {
   GameUI.extraPatch.push(() => {
     dayVote.update();
     table.update();
+    combat.update();
   });
 
   // click a character to inspect
