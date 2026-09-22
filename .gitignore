@@ -4,3 +4,5 @@ dist
 .DS_Store
 data/*.sqlite*
 coverage
+
+**/data/*.sqlite*
