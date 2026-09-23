@@ -126,7 +126,8 @@ export function reachable(w: World, x0: number, lv0: number, x1: number, lv1: nu
 export function slotAccess(w: World, x: number, lv: number): { x: number; lv: number } | null {
   if (walkable(w, x - 1, lv)) return { x: x - 1, lv };
   if (walkable(w, x + 1, lv)) return { x: x + 1, lv };
-  if (walkable(w, x, lv - 1)) return { x, lv: lv - 1 };
+  // never from the surface (lv -1): the only way out is the hatch
+  if (lv - 1 >= 0 && walkable(w, x, lv - 1)) return { x, lv: lv - 1 };
   if (walkable(w, x, lv + 1)) return { x, lv: lv + 1 };
   return null;
 }

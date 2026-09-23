@@ -50,6 +50,8 @@ export interface Expedition {
   log: string[];
   day0: number;
   ambushBonus?: boolean;
+  /** run by the residents themselves (no player in the squad) */
+  auto?: string;
 }
 
 // ---------------------------------------------------------------- helpers
@@ -104,6 +106,31 @@ function squadChars(w: World, e: Expedition): Char[] {
 
 // ---------------------------------------------------------------- prep at the terminal
 
+export function newExpedition(w: World): Expedition {
+  return {
+    active: true,
+    stage: "prep",
+    squad: [],
+    gear: {},
+    supplies: {},
+    loot: {},
+    node: "home",
+    route: [],
+    travelLeft: 0,
+    travelTotal: 0,
+    site: null,
+    tasks: {},
+    light: {},
+    prepT: 0,
+    coord: 0,
+    scanUntil: 0,
+    offlineT: 0,
+    recruits: 0,
+    log: [],
+    day0: w.day,
+  } satisfies Expedition;
+}
+
 defAction({
   id: "sortie",
   type: "obj",
@@ -120,28 +147,7 @@ defAction({
   done: ({ w, c }) => {
     const e = w.mods.expedition as Expedition | undefined;
     if (!e?.active) {
-      w.mods.expedition = {
-        active: true,
-        stage: "prep",
-        squad: [],
-        gear: {},
-        supplies: {},
-        loot: {},
-        node: "home",
-        route: [],
-        travelLeft: 0,
-        travelTotal: 0,
-        site: null,
-        tasks: {},
-        light: {},
-        prepT: 0,
-        coord: 0,
-        scanUntil: 0,
-        offlineT: 0,
-        recruits: 0,
-        log: [],
-        day0: w.day,
-      } satisfies Expedition;
+      w.mods.expedition = newExpedition(w);
       wmap(w);
     }
     if (c.ctrl) fx(w, { k: "news", to: c.ctrl, id: "expedition" });
@@ -238,6 +244,8 @@ registerCmd("expGo", (w, p, cmd) => {
   e.route = path.slice(1);
   startLeg(w, e);
 });
+
+export { startLeg as startLegPublic };
 
 function startLeg(w: World, e: Expedition) {
   const m = wmap(w);
@@ -442,11 +450,36 @@ function roadField(seed: number): Field {
 }
 
 export function roadFight(w: World, e: Expedition, enemies: string[], onEnd = "expedition", tag = "road") {
+  // the residents' own runs avoid set-piece fights: they hide, run, or take a beating
+  if (e.auto && tag === "road" && squadChars(w, e).every((c) => isBotDriven(w, c.id))) return autoSkirmish(w, e, enemies);
   const taken: Record<string, number> = {};
   const allies: UnitInit[] = squadChars(w, e).map((c, i) => squadUnit(w, e, c, 1 + i, 0, taken));
   const foes: UnitInit[] = enemies.map((t, i) => ({ id: "e" + i, side: "enemy", name: "", col: 12 - (i % 3), floor: 0, etype: t }));
   startBattle(w, roadField((rng(w).next() * 1e9) | 0), allies, foes, "expedition", { coordination: e.coord, onEnd, tag });
   e.coord = 0;
+}
+
+function autoSkirmish(w: World, e: Expedition, enemies: string[]) {
+  const R = rng(w);
+  const squad = squadChars(w, e);
+  const armed = ["pistol", "rifle", "shotgun", "pipe", "knife"].some((k) => (e.supplies[k] ?? 0) > 0);
+  const threat = enemies.length * (enemies.some((t) => ["raider", "marauder", "soldier"].includes(t)) ? 1.5 : 1) * (armed ? 0.6 : 1);
+  for (const c of squad) {
+    const dmg = R.int(8, 18) * threat;
+    // wounded, never killed outright: they crawl on
+    c.needs.health = clamp(c.needs.health - dmg, 8, 100);
+    c.needs.sanity = clamp(c.needs.sanity - 6);
+  }
+  const lost: string[] = [];
+  for (const k of Object.keys(e.loot))
+    if (R.chance(0.35)) {
+      const n = Math.ceil(e.loot[k] / 2);
+      e.loot[k] -= n;
+      lost.push(itemName(k));
+    }
+  const text = `Стычка в пути (${enemies.length} против ${squad.length}): отряд отбился, но потрёпан${lost.length ? `; бросили часть добычи (${lost.slice(0, 3).join(", ")})` : ""}.`;
+  elog(e, text);
+  log(w, `⚔ ${text}`, "bad");
 }
 
 /** Combat unit for a squad member: weapons come from the squad's supplies. */

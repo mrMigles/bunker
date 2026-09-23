@@ -90,6 +90,7 @@ registerCmd("settings", (w, p, c) => {
   if (n.short !== undefined) s.short = !!n.short;
   if (n.traitor !== undefined) s.traitor = !!n.traitor;
   if (n.skipPrologue !== undefined) s.skipPrologue = !!n.skipPrologue;
+  if (n.botInitiative !== undefined) s.botInitiative = !!n.botInitiative;
   if (n.combatTurnTime) s.combatTurnTime = Math.max(5, Math.min(90, Number(n.combatTurnTime)));
   if (n.tableTurnTime) s.tableTurnTime = Math.max(5, Math.min(120, Number(n.tableTurnTime)));
   if (n.tableLeave && ["bot", "pause"].includes(n.tableLeave)) s.tableLeave = n.tableLeave;

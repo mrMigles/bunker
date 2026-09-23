@@ -27,6 +27,7 @@ export const FURNITURE: Record<string, { name: string; icon: string; obj: string
   furn_drawing_wall: { name: "Стена для рисунков", icon: "🎨", obj: "drawing_wall", cost: { wood: 2, chem: 1 }, comfort: 3 },
   furn_rat_trap: { name: "Крысоловка", icon: "🪤", obj: "rat_trap", cost: { scrap: 1, wood: 1 }, comfort: 0 },
   furn_altar: { name: "Полка со свечами", icon: "🕯️", obj: "altar", cost: { wood: 3 }, comfort: 4 },
+  furn_bike: { name: "Генератор-велосипед", icon: "🚲", obj: "bike_gen", cost: { scrap: 3, parts: 3, wood: 4 }, comfort: -2 },
 };
 for (const k in FURNITURE) {
   const f = FURNITURE[k];

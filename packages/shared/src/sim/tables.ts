@@ -1,3 +1,4 @@
+import { sanityGainMult } from "./needs";
 import { GAMES, tryMove, type GameResult } from "../boardgames/framework";
 import "../boardgames/durak";
 import "../boardgames/cardgames";
@@ -246,7 +247,7 @@ function afterMove(w: World, t: TableState) {
     const c = w.chars[id];
     if (!c) continue;
     const win = res.winners.includes(id) && !res.draw;
-    c.needs.sanity = clamp(c.needs.sanity + (win ? 8 : res.draw ? 6 : 4));
+    c.needs.sanity = clamp(c.needs.sanity + (win ? 8 : res.draw ? 6 : 4) * sanityGainMult(c.needs.sanity));
     const lk = "_lose_streak_" + id;
     if (win) {
       w.flags[lk] = 0;

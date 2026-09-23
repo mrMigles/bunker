@@ -14,6 +14,8 @@ export interface Settings {
   tableTurnTime: number; // seconds
   tableLeave: "bot" | "pause";
   skipPrologue: boolean;
+  /** residents plan rooms and send scavenging runs themselves when players don't */
+  botInitiative: boolean;
 }
 
 export type StatId = "sil" | "lov" | "int" | "vyn" | "har";
@@ -121,6 +123,7 @@ export interface Char {
   seat?: string; // seat object id when sitting (table)
   npc: boolean; // joined during game
   pinned?: string; // chore pinned by player
+  deathCause?: string;
 }
 
 export type TerrainId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;

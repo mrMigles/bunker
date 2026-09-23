@@ -1,3 +1,4 @@
+import { sanityGainMult } from "./needs";
 import type { Char, World } from "../types";
 import { defAction, type ActionCtx } from "./actions";
 import { timeMult } from "./time";
@@ -53,7 +54,7 @@ function leisure(
       const h = dt * hoursPerSec(x.w) * timeMult(x.w);
       let gain = sanityPerHour;
       if (opts.social) gain *= 1 + company(x.w, x.c) * 0.5 * (hasCompanyStoryteller(x.w, x.c) ? 1.5 : 1);
-      x.c.needs.sanity = clamp(x.c.needs.sanity + gain * h);
+      x.c.needs.sanity = clamp(x.c.needs.sanity + gain * sanityGainMult(x.c.needs.sanity) * h);
       if (opts.energy) x.c.needs.energy = clamp(x.c.needs.energy + opts.energy * h);
       opts.extra?.(x, h);
       if (isBotDriven(x.w, x.c.id)) {

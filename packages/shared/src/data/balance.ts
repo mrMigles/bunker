@@ -22,7 +22,7 @@ export const BAL = {
     food: 40,
     water: 60,
     energy: 55, // restored by sleep
-    sanity: 8, // baseline drift down (comfort offsets it)
+    sanity: 12, // baseline drift down (comfort offsets it)
   },
   rationFood: 1, // food units per person per day
   rationWater: 2, // water units per person per day

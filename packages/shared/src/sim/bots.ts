@@ -82,7 +82,10 @@ export function targetPos(w: World, tt: TargetType, id: string): { x: number; lv
     }
     case "char": {
       const o = w.chars[id];
-      return o ? { x: o.x + (o.x > 1 ? -0.6 : 0.6), lv: o.lv } : null;
+      if (!o) return null;
+      // stand beside them on whichever side is open floor
+      for (const dx of [-0.6, 0.6, 0]) if (walkable(w, Math.floor(o.x + dx), o.lv)) return { x: o.x + dx, lv: o.lv };
+      return null;
     }
     default:
       return null;
@@ -377,6 +380,8 @@ function execPlan(w: World, c: Char, p: Plan) {
     return;
   }
   if (!pos || !goTo(w, c, pos.x, pos.lv)) {
+    const d = ((w.mods as any)._botErr ??= {}) as Record<string, number>;
+    d[p.a + ": нет пути"] = (d[p.a + ": нет пути"] ?? 0) + 1;
     releaseChore(w, c);
     m.plan = "idle";
     m.act = undefined;
@@ -447,6 +452,10 @@ export function botTick(w: World, c: Char, dt: number) {
     m.act = undefined;
     const err = startAction(w, c, act.a, { type: act.tt as TargetType, id: act.t }, act.param);
     if (err) {
+      // diagnostics for the balance simulator (hidden from clients)
+      const k = act.a + ": " + err;
+      const d = ((w.mods as any)._botErr ??= {}) as Record<string, number>;
+      d[k] = (d[k] ?? 0) + 1;
       releaseChore(w, c);
       m.plan = "idle";
       m.idleT = 1.5;

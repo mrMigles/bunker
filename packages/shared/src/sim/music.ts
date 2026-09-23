@@ -1,3 +1,4 @@
+import { sanityGainMult } from "./needs";
 import type { World } from "../types";
 import { defAction } from "./actions";
 import { registerCmd } from "./commands";
@@ -17,7 +18,7 @@ function instrumentTick(w: World, c: any, dt: number, base: number) {
     if (o.task && ["play_guitar", "play_piano", "play_harmonica"].includes(o.task.action) && o.lv === c.lv && Math.abs(o.x - c.x) < 6) players++;
   }
   const jam = players > 1 ? 1 + (players - 1) * 0.6 : 1;
-  c.needs.sanity = clamp(c.needs.sanity + base * jam * h);
+  c.needs.sanity = clamp(c.needs.sanity + base * jam * sanityGainMult(c.needs.sanity) * h);
   // listeners around enjoy it too
   for (const id in w.chars) {
     const o = w.chars[id];

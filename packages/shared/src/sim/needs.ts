@@ -56,7 +56,18 @@ export function decayNeeds(w: World, c: Char, hours: number, opts: { asleep?: bo
   c.drunk = Math.max(0, c.drunk - 40 * hours);
 }
 
+/**
+ * Leisure pays off less the calmer you already are: full value around 40, a fifth near 95.
+ * Keeps sanity a resource to manage instead of a bar pinned at 100.
+ */
+export function sanityGainMult(sanity: number) {
+  return Math.max(0.15, Math.min(1.2, 1.35 - sanity / 80));
+}
+
 onTick("needs", "day", (w, dt) => {
+  const beds = Object.values(w.objs).filter((o) => o.kind === "bed" || o.kind === "med_bed").length;
+  const home = Object.values(w.chars).filter((c) => c.status !== "dead" && c.status !== "away").length;
+  const crowded = home > beds;
   const hours = dt * hoursPerSec(w) * timeMult(w);
   for (const id in w.chars) {
     const c = w.chars[id];
@@ -73,6 +84,11 @@ onTick("needs", "day", (w, dt) => {
       if (hasTrait(c, "claustro") && (r.w <= 3 || c.lv >= 3)) s -= 1.5;
     }
     if (hasTrait(c, "smoker") && (w.flags["_smoke_" + c.id] ?? 0) < w.day - 1) s -= 1;
+    // bodily misery and crowding wear the mind down
+    if (c.needs.food < 30) s -= 1.5;
+    if (c.needs.water < 30) s -= 1.5;
+    if (c.needs.health < 50) s -= 1;
+    if (crowded) s -= 0.6;
     c.needs.sanity = clamp(c.needs.sanity + s * hours);
     // status
     if (c.status === "ok" && c.needs.health <= 0) knockDown(w, c, "здоровье");
@@ -163,6 +179,7 @@ export function breakdown(w: World, c: Char) {
 export function killChar(w: World, c: Char, cause: string) {
   if (c.status === "dead") return;
   c.status = "dead";
+  c.deathCause = cause;
   c.task = null;
   c.anim = "dead";
   c.hands = [];

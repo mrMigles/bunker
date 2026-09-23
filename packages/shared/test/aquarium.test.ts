@@ -26,7 +26,9 @@ describe("bots keep the bunker alive (Aquarium, 20 minutes)", () => {
     const alive = Object.values(w.chars).filter((c) => c.status !== "dead");
     console.log(`day ${w.day}, alive ${alive.length}, barks ${barks}, talks ${talks}, gazette harvest days ${harvested}`);
     console.log(alive.map((c) => `${c.card.name}: ${JSON.stringify(Object.fromEntries(Object.entries(c.needs).map(([k, v]) => [k, Math.round(v)])))}`).join("\n"));
-    expect(alive.length).toBe(6);
+    // newcomers may join through events; nobody may die
+    expect(Object.values(w.chars).filter((c) => c.status === "dead").length).toBe(0);
+    expect(alive.length).toBeGreaterThanOrEqual(6);
     expect(w.day).toBeGreaterThanOrEqual(3);
     expect(harvested).toBeGreaterThanOrEqual(1);
     expect(barks).toBeGreaterThan(20);

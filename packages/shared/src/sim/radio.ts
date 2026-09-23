@@ -1,3 +1,4 @@
+import { sanityGainMult } from "./needs";
 import radioJson from "../data/radio.json";
 import type { World } from "../types";
 import { defAction } from "./actions";
@@ -118,7 +119,7 @@ defAction({
     const st = stationAt(w.radio.freq);
     let gain = st ? (st.kind === "tales" ? 12 : st.kind === "music" ? 9 : st.kind === "dj" ? 8 : 5) : 2;
     gain *= 1 + company(w, c) * 0.4;
-    c.needs.sanity = clamp(c.needs.sanity + gain * h);
+    c.needs.sanity = clamp(c.needs.sanity + gain * sanityGainMult(c.needs.sanity) * h);
     if (st?.kind === "numbers" && c.card.goal === "radio") {
       const k = "_numday_" + c.id;
       if ((w.flags[k] ?? 0) < w.day) {

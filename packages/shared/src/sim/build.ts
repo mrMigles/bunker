@@ -231,6 +231,7 @@ registerCmd("plan", (w, p, cmd) => {
   const err = canPlaceRoom(w, type, x, lv, width);
   if (err) return err;
   const r = placeRoomPlan(w, type, x, lv, width);
+  w.flags._humanPlanDay = w.day;
   const who = p.char ? w.chars[p.char] : undefined;
   log(w, `${p.name} размечает: ${ROOMS[type].name} (${width} кл.)`, "info");
   if (who) who.needs.sanity = clamp(who.needs.sanity + 0.5);

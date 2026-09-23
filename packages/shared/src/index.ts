@@ -56,4 +56,5 @@ export * from "./sim/raids";
 export * from "./sim/prologue";
 export * from "./sim/tech";
 export * from "./sim/ending";
+export * from "./sim/foreman";
 export * from "./sim/debug";

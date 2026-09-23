@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tableTurnTime: 30,
   tableLeave: "bot",
   skipPrologue: false,
+  botInitiative: true,
 };
 
 export function createWorld(code: string, seed: number, settings: Partial<Settings> = {}): World {
