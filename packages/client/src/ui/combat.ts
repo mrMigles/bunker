@@ -1,5 +1,17 @@
 import * as THREE from "three";
-import { ABILITIES, ENEMIES, WEAPONS, hitChance, moveCost, pathTo, validatePlan, type Action, type CEvent, type CombatState, type Unit } from "@bunker/shared";
+import {
+  ABILITIES,
+  ENEMIES,
+  WEAPONS,
+  hitChance,
+  moveCost,
+  pathTo,
+  validatePlan,
+  type Action,
+  type CEvent,
+  type CombatState,
+  type Unit,
+} from "@bunker/shared";
 import { audio } from "../audio/audio";
 import { net } from "../net";
 import { CharView } from "../render/chars";
@@ -7,6 +19,7 @@ import { mat } from "../render/palette";
 import { SiteRenderer, buildEnemy } from "../render/site";
 import type { WorldRenderer } from "../render/world";
 import { add, bar, clear, floatText, h, ui } from "./dom";
+import "./combat.css";
 
 type Mode = "move" | "shoot" | "aim" | "melee" | "shove" | "heal" | "throw" | "ability" | "door" | null;
 
@@ -40,9 +53,14 @@ export class CombatUI {
   private key = "";
   private mouse = { x: 0, y: 0 };
   private attached: THREE.Scene | null = null;
+  private selectedTarget: string | null = null;
+  private submenu: "attack" | "items" | "more" | null = null;
+  private markerMaterials = new Map<string, THREE.MeshBasicMaterial>();
+  private markerGeometry = new THREE.PlaneGeometry(0.92, 1.9);
+  intel = h("aside.combat-intel.panel.hidden");
 
   constructor(private r: WorldRenderer) {
-    ui().append(this.labels, this.top, this.panel);
+    ui().append(this.labels, this.top, this.panel, this.intel);
     const canvas = r.renderer.domElement;
     canvas.addEventListener("mousemove", (e) => {
       this.mouse.x = e.clientX;
@@ -50,6 +68,8 @@ export class CombatUI {
     });
     canvas.addEventListener("mousedown", (e) => {
       if (!this.active || e.button !== 0) return;
+      this.mouse.x = e.clientX;
+      this.mouse.y = e.clientY;
       this.click();
     });
     canvas.addEventListener("contextmenu", () => {
@@ -57,7 +77,14 @@ export class CombatUI {
     });
   }
 
-  get cs(): (Omit<CombatState, "phase"> & { planLeft: number; phase: "plan" | "over" | "anim"; eventsRound: number; where: string }) | null {
+  get cs():
+    | (Omit<CombatState, "phase"> & {
+        planLeft: number;
+        phase: "plan" | "over" | "anim";
+        eventsRound: number;
+        where: string;
+      })
+    | null {
     const c = net.pub?.mods?.combat;
     return c?.active ? (c as any) : null;
   }
@@ -65,7 +92,7 @@ export class CombatUI {
   myUnit(): Unit | null {
     const s = this.cs;
     const ch = net.priv?.char;
-    return s && ch ? (s.units["u_" + ch] as Unit) ?? null : null;
+    return s && ch ? ((s.units["u_" + ch] as Unit) ?? null) : null;
   }
 
   pos(col: number, floor: number): [number, number] {
@@ -77,7 +104,10 @@ export class CombatUI {
   cellAtMouse(): { col: number; floor: number } | null {
     const s = this.cs;
     if (!s) return null;
-    const [wx, wy] = this.where === "bunker" ? this.r.toWorld(this.mouse.x, this.mouse.y) : this.site.toWorld(this.mouse.x, this.mouse.y);
+    const [wx, wy] =
+      this.where === "bunker"
+        ? this.r.toWorld(this.mouse.x, this.mouse.y)
+        : this.site.toWorld(this.mouse.x, this.mouse.y);
     const col = Math.floor(wx - (this.where === "bunker" ? s.field.originX : 0));
     const lvAbs = Math.floor(-wy / 2);
     const floor = lvAbs - (this.where === "bunker" ? s.field.originLv : 0);
@@ -88,7 +118,10 @@ export class CombatUI {
   unitAtCell(c: { col: number; floor: number } | null): Unit | null {
     const s = this.cs;
     if (!s || !c) return null;
-    return (Object.values(s.units) as Unit[]).find((u) => u.col === c.col && u.floor === c.floor && !u.dead && !u.fled) ?? null;
+    return (
+      (Object.values(s.units) as Unit[]).find((u) => u.col === c.col && u.floor === c.floor && !u.dead && !u.fled) ??
+      null
+    );
   }
 
   /** Simulated position after the current plan. */
@@ -124,7 +157,7 @@ export class CombatUI {
   tryAdd(a: Action) {
     const s = this.cs;
     const u = this.myUnit();
-    if (!s || !u) return;
+    if (!s || !u || s.phase !== "plan" || u.dead || u.down || u.fled) return;
     const next = [...this.plan, a];
     const err = validatePlan(s as any, u.id, next);
     if (err) {
@@ -139,6 +172,7 @@ export class CombatUI {
   }
 
   sync(ready: boolean) {
+    if (this.cs?.phase !== "plan") return;
     net.send({ k: "cplan", actions: this.plan, ready });
     this.key = "";
   }
@@ -156,7 +190,13 @@ export class CombatUI {
         break;
       case "shoot":
       case "aim":
-        if (target && target.side === "enemy") this.tryAdd({ t: "shoot", target: target.id, aimed: this.mode === "aim", part: this.mode === "aim" ? this.aimPart : undefined });
+        if (target && target.side === "enemy")
+          this.tryAdd({
+            t: "shoot",
+            target: target.id,
+            aimed: this.mode === "aim",
+            part: this.mode === "aim" ? this.aimPart : undefined,
+          });
         break;
       case "melee":
       case "shove":
@@ -181,8 +221,9 @@ export class CombatUI {
       default:
         // quick default: click enemy = shoot/melee, click floor = move
         if (target && target.side === "enemy") {
-          const w = WEAPONS[u.weapon] ?? WEAPONS.fists;
-          this.tryAdd(w.range > 1 ? { t: "shoot", target: target.id } : { t: "melee", target: target.id });
+          this.selectedTarget = target.id;
+          this.key = "";
+          this.renderPanel();
         } else if (!target) this.tryAdd({ t: "move", col: cell.col, floor: cell.floor });
     }
   }
@@ -221,6 +262,7 @@ export class CombatUI {
     this.attached = scene;
     this.panel.classList.remove("hidden");
     this.top.classList.remove("hidden");
+    this.intel.classList.remove("hidden");
     audio.sfx("siren", 0.4);
   }
 
@@ -234,6 +276,9 @@ export class CombatUI {
     clear(this.labels);
     this.panel.classList.add("hidden");
     this.top.classList.add("hidden");
+    this.intel.classList.add("hidden");
+    this.selectedTarget = null;
+    this.submenu = null;
     this.queue = [];
     this.active = false;
   }
@@ -352,7 +397,7 @@ export class CombatUI {
           vw.dir = tv.x > vw.x ? 1 : -1;
           vw.lunge = 1;
           audio.sfx("hit");
-          this.floatAt(tv, e.hit ? (e.dmg ? `−${e.dmg}` : e.text ?? "") : "мимо", e.hit ? "#ff6a4a" : "#bbbbbb");
+          this.floatAt(tv, e.hit ? (e.dmg ? `−${e.dmg}` : (e.text ?? "")) : "мимо", e.hit ? "#ff6a4a" : "#bbbbbb");
         }
         return 0.45;
       case "heal":
@@ -360,13 +405,16 @@ export class CombatUI {
         return 0.45;
       case "down":
       case "dead":
-        if (vw) this.floatAt(vw, e.k === "dead" ? "☠" : e.text ?? "✚", "#ffffff");
+        if (vw) this.floatAt(vw, e.k === "dead" ? "☠" : (e.text ?? "✚"), "#ffffff");
         return 0.5;
       case "fire":
         if (e.col !== undefined) {
           const [x, y] = this.pos(e.col, e.floor!);
           for (let i = 0; i < 2; i++) {
-            const f = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.8, 5), mat(0xff7a1a, { emissive: 0xff4400, opacity: 0.85 }));
+            const f = new THREE.Mesh(
+              new THREE.ConeGeometry(0.3, 0.8, 5),
+              mat(0xff7a1a, { emissive: 0xff4400, opacity: 0.85 }),
+            );
             f.position.set(x + i, y + 0.4, -0.3);
             this.overlay.add(f);
             setTimeout(() => this.overlay.remove(f), 1200);
@@ -394,10 +442,17 @@ export class CombatUI {
   }
 
   tracer(a: UnitView, b: UnitView, hit: boolean) {
-    const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a.x, a.y + 0.75, -0.3), new THREE.Vector3(b.x + (hit ? 0 : 0.4), b.y + 0.75, -0.3)]);
+    const geo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(a.x, a.y + 0.75, -0.3),
+      new THREE.Vector3(b.x + (hit ? 0 : 0.4), b.y + 0.75, -0.3),
+    ]);
     const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffe08a }));
     this.overlay.add(line);
-    setTimeout(() => this.overlay.remove(line), 180);
+    setTimeout(() => {
+      this.overlay.remove(line);
+      line.geometry.dispose();
+      (line.material as THREE.Material).dispose();
+    }, 180);
   }
 
   floatAt(vw: UnitView, text: string, color: string) {
@@ -417,14 +472,21 @@ export class CombatUI {
     if (!u || s.phase !== "plan") return;
     const addMark = (col: number, floor: number, color: number, op = 0.35) => {
       const [x, y] = this.pos(col, floor);
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(0.92, 1.9), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthWrite: false }));
+      const key = color + ":" + op;
+      let material = this.markerMaterials.get(key);
+      if (!material) {
+        material = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthWrite: false });
+        this.markerMaterials.set(key, material);
+      }
+      const m = new THREE.Mesh(this.markerGeometry, material);
       m.position.set(x, y + 0.95, 0.05);
       m.userData.plan = true;
       this.overlay.add(m);
     };
     // my plan
     let p = { col: u.col, floor: u.floor };
-    for (const a of this.plan) if (a.t === "move") ((p = { col: a.col, floor: a.floor }), addMark(p.col, p.floor, 0x66ccff, 0.3));
+    for (const a of this.plan)
+      if (a.t === "move") ((p = { col: a.col, floor: a.floor }), addMark(p.col, p.floor, 0x66ccff, 0.3));
     // allies' plans (ghosts)
     for (const [uid, acts] of Object.entries(s.plans ?? {})) {
       if (uid === u.id) continue;
@@ -437,7 +499,9 @@ export class CombatUI {
     // move reach preview
     if (this.mode === "move" && cell) {
       const path = pathTo(s as any, { ...u, col: p.col, floor: p.floor } as Unit, cell.col, cell.floor);
-      if (path) for (const st of path) addMark(st.col, st.floor, moveCost(path.length) <= this.apLeft() ? 0x66ff66 : 0xff6666, 0.18);
+      if (path)
+        for (const st of path)
+          addMark(st.col, st.floor, moveCost(path.length) <= this.apLeft() ? 0x66ff66 : 0xff6666, 0.18);
     }
   }
 
@@ -447,7 +511,18 @@ export class CombatUI {
     const u = this.myUnit();
     const cell = this.hoverCell;
     const target = this.unitAtCell(cell);
-    const key = JSON.stringify([Object.values(s.units).map((x: any) => [x.id, x.hp, x.intentText, x.dead, x.down, x.fled]), [...this.views.values()].map((v) => [Math.round(v.x * 10), Math.round(v.y * 10)]), target?.id, this.mode, this.plan.length, this.r.camX.toFixed(1), this.r.camY.toFixed(1), this.r.viewH, s.phase]);
+    const key = JSON.stringify([
+      Object.values(s.units).map((x: any) => [x.id, x.hp, x.intentText, x.dead, x.down, x.fled]),
+      [...this.views.values()].map((v) => [Math.round(v.x * 10), Math.round(v.y * 10)]),
+      target?.id,
+      this.selectedTarget,
+      this.mode,
+      this.plan.length,
+      this.r.camX.toFixed(1),
+      this.r.camY.toFixed(1),
+      this.r.viewH,
+      s.phase,
+    ]);
     if (key === this.labKey) return;
     this.labKey = key;
     clear(this.labels);
@@ -455,16 +530,45 @@ export class CombatUI {
       if (x.dead || x.fled) continue;
       const vw = this.views.get(x.id);
       if (!vw) continue;
-      const [sx, sy] = this.where === "bunker" ? this.r.toScreen(vw.x, vw.y + 1.75) : this.site.toScreen(vw.x, vw.y + 1.75);
-      const el = h("div.label", { style: { left: sx + "px", top: sy + "px" } });
-      if (x.side === "enemy" && x.intentText && s.phase === "plan") el.append(h("div.intent", null, intentIcon(x) + " " + x.intentText));
-      el.append(h("div.nm" + (x.side === "ally" ? ".player" : ""), null, `${x.side === "enemy" ? x.icon + " " : ""}${x.name}`));
+      const [sx, sy] =
+        this.where === "bunker" ? this.r.toScreen(vw.x, vw.y + 1.75) : this.site.toScreen(vw.x, vw.y + 1.75);
+      const el = h("div.label.combat-unit-label" + (x.id === this.selectedTarget ? ".selected" : ""), {
+        style: { left: sx + "px", top: sy + "px" },
+        role: "button",
+        tabindex: 0,
+        "aria-label": `${x.name}: ${Math.max(0, x.hp)} здоровья`,
+        onclick: () => {
+          if (this.mode && s.phase === "plan") {
+            this.mouse.x = sx;
+            this.mouse.y = sy + 30;
+            const [px, py] =
+              this.where === "bunker" ? this.r.toScreen(vw.x, vw.y + 0.7) : this.site.toScreen(vw.x, vw.y + 0.7);
+            this.mouse.x = px;
+            this.mouse.y = py;
+            this.click();
+          } else {
+            this.selectedTarget = x.id;
+            this.key = "";
+            this.renderPanel();
+          }
+        },
+      });
+      if (x.side === "enemy" && x.intentText && s.phase === "plan")
+        el.append(h("div.intent", null, intentIcon(x) + " " + x.intentText));
+      el.append(
+        h("div.nm" + (x.side === "ally" ? ".player" : ""), null, `${x.side === "enemy" ? x.icon + " " : ""}${x.name}`),
+      );
       const hb = bar(Math.max(0, x.hp), x.side === "ally" ? "#8fcf6a" : "#e0503a", x.maxHp);
       hb.style.width = "50px";
       hb.style.margin = "0 auto";
       el.append(hb);
       if (x.down) el.append(h("div.bad", null, x.captured ? "сдался" : "без сознания"));
-      if (u && target?.id === x.id && x.side === "enemy" && (this.mode === "shoot" || this.mode === "aim" || this.mode === null)) {
+      if (
+        u &&
+        target?.id === x.id &&
+        x.side === "enemy" &&
+        (this.mode === "shoot" || this.mode === "aim" || this.mode === null)
+      ) {
         const pos = this.simPos();
         const me = { ...u, ...pos } as Unit;
         const ch = hitChance(s as any, me, x, this.mode === "aim", this.mode === "aim" ? this.aimPart : undefined);
@@ -475,81 +579,366 @@ export class CombatUI {
   }
 
   renderPanel() {
-    const s = this.cs!;
-    const u = this.myUnit();
-    const key = JSON.stringify([s.phase, s.planLeft, s.round, this.plan, this.mode, this.aimPart, u?.hp, u?.ap, u?.ammo, u?.cd, s.ready, s.result, s.log?.length, this.queue.length > 0]);
+    const s = this.cs!,
+      u = this.myUnit();
+    const key = JSON.stringify([
+      s.phase,
+      Math.ceil(s.planLeft),
+      s.round,
+      this.plan,
+      this.mode,
+      this.submenu,
+      this.selectedTarget,
+      this.aimPart,
+      u?.hp,
+      u?.ap,
+      u?.ammo,
+      u?.cd,
+      s.ready,
+      s.result,
+      s.log?.length,
+      this.queue.length > 0,
+      Object.values(s.units).map((x) => [x.id, x.hp, x.dead, x.fled]),
+    ]);
     if (key === this.key) return;
     this.key = key;
     clear(this.top);
-    add(this.top, h("b", null, `⚔ Ход ${s.round}`), s.phase === "plan" ? h("span", null, ` · планирование ⏱ ${s.planLeft}с`) : s.phase === "anim" ? h("span.warn", null, " · разыгрываем…") : null, s.dark ? h("span.dim", null, " · темнота") : null);
-    const log = h("div.combat-log", null, (s.log ?? []).slice(-4).map((l) => h("div", null, l)));
-    this.top.append(log);
+    clear(this.intel);
     clear(this.panel);
-    if (!u) {
-      add(this.panel, h("span.dim", null, "Вы наблюдаете за боем."), s.phase === "anim" ? h("button.small", { onclick: () => net.send({ k: "cskip" }) }, "⏩ Быстрее") : null);
-      return;
-    }
-    const w = WEAPONS[u.weapon] ?? WEAPONS.fists;
-    const ap = this.apLeft();
-    const ab = u.ability ? ABILITIES[u.ability] : undefined;
-    const modeBtn = (m: Mode, label: string, title = "", disabled = false) => h("button.small" + (this.mode === m ? ".primary" : ""), { title, disabled, onclick: () => ((this.mode = this.mode === m ? null : m), (this.key = "")) }, label);
-    const direct = (a: Action, label: string, disabled = false) => h("button.small", { disabled, onclick: () => this.tryAdd(a) }, label);
+    const enemies = Object.values(s.units).filter((x) => x.side === "enemy" && !x.dead && !x.fled).length;
+    const allies = Object.values(s.units).filter((x) => x.side === "ally" && !x.dead && !x.fled).length;
     add(
-      this.panel,
+      this.top,
+      h("div.combat-phase", null, h("span.combat-eyebrow", null, "ТАКТИЧЕСКИЙ БОЙ"), h("b", null, `Ход ${s.round}`)),
       h(
-        "div.col",
-        { style: { gap: "4px", minWidth: "170px" } },
-        h("b", null, u.name),
-        h("div.row", null, "❤", bar(Math.max(0, u.hp), "#8fcf6a", u.maxHp), `${Math.max(0, u.hp)}/${u.maxHp}`),
-        h("div", null, `ОД: `, h("b", { class: ap > 0 ? "good" : "dim" }, `${ap}`), `/${u.ap} · ${w.name}${w.ammo ? ` ${u.ammo}/${w.ammo}` : ""}`),
-        h("div.dim", null, `Стресс ${Math.round(u.stress)}${u.st.panic ? " · ПАНИКА" : ""}`),
+        "div.combat-clock" + (s.phase === "plan" && s.planLeft <= 8 ? ".urgent" : ""),
+        null,
+        h("strong", null, s.phase === "plan" ? `${Math.ceil(s.planLeft)}` : s.phase === "anim" ? "•••" : "✓"),
+        h("span", null, s.phase === "plan" ? "сек. на план" : s.phase === "anim" ? "Действия отряда" : "Бой завершён"),
       ),
-      h(
-        "div.col",
-        { style: { gap: "4px" } },
+      h("div.combat-forces", null, h("span", null, `Отряд ${allies}`), h("b", null, `Противники ${enemies}`)),
+    );
+    const target = this.selectedTarget ? s.units[this.selectedTarget] : null;
+    if (target && !target.dead && !target.fled) {
+      const chance = u
+        ? hitChance(s as any, { ...u, ...this.simPos() } as Unit, target, this.mode === "aim", this.aimPart)
+        : 0;
+      add(
+        this.intel,
+        h("div.combat-eyebrow", null, target.side === "enemy" ? "ВЫБРАННАЯ ЦЕЛЬ" : "БОЕЦ ОТРЯДА"),
+        h("h3", null, target.name),
         h(
-          "div.row",
-          { style: { flexWrap: "wrap", gap: "4px" } },
-          modeBtn("move", "🚶 Идти", "1 клетка — 1 ОД, 3 клетки — 2 ОД"),
-          w.range > 1 ? modeBtn("shoot", `🔫 Выстрел (${w.ap})`) : modeBtn("melee", `👊 Удар (${w.ap})`),
-          w.range > 1 ? modeBtn("aim", `🎯 Прицельно (${w.ap + 1})`, "+20% к попаданию") : null,
-          w.range > 1 ? modeBtn("melee", "👊 Удар (1)") : null,
-          modeBtn("shove", "✋ Толкнуть (1)"),
-          w.ammo ? direct({ t: "reload" }, "🔄 Перезарядка (1)") : null,
-          (u.items.medkit ?? 0) + (u.items.meds ?? 0) > 0 ? modeBtn("heal", "🩹 Лечить (2)") : null,
-          (u.items.molotov ?? 0) > 0 ? modeBtn("throw", "🍾 Бросить (2)") : null,
-          ab ? h("button.small" + (this.mode === "ability" ? ".primary" : ""), { title: ab.desc, disabled: u.cd > 0, onclick: () => (ab.target === "none" || ab.target === "self" ? this.tryAdd({ t: "ability" }) : ((this.mode = "ability"), (this.key = ""))) }, `✨ ${ab.name} (${ab.ap})${u.cd > 0 ? ` ⏳${u.cd}` : ""}`) : null,
-          direct({ t: "hunker" }, "🛡 Укрыться (1)"),
-          direct({ t: "overwatch" }, "👁 Ожидание"),
-          modeBtn("door", "🚪 Дверь (1)"),
-          direct({ t: "flee" }, "🏃 Бежать (1)"),
+          "div.combat-target-health",
+          null,
+          bar(target.hp, target.side === "enemy" ? "#cd7058" : "#93c58c", target.maxHp),
+          h("b", null, `${Math.max(0, target.hp)} / ${target.maxHp}`),
         ),
-        this.mode === "aim"
+        target.intentText ? h("p.combat-intent-text", null, intentIcon(target) + " " + target.intentText) : null,
+        target.side === "enemy" && u && s.phase === "plan"
           ? h(
-              "div.row",
-              { style: { gap: "4px" } },
-              h("span.dim", null, "Часть тела:"),
-              ...([[undefined, "корпус"], ["legs", "ноги (замедлить)"], ["arms", "руки (сбить прицел)"], ["head", "голова (−15%, ×1.5)"]] as const).map(([p, l]) => h("button.small" + (this.aimPart === p ? ".primary" : ""), { onclick: () => ((this.aimPart = p as any), (this.key = "")) }, l)),
+              "button.combat-target-attack",
+              {
+                onclick: () => {
+                  const w = WEAPONS[u.weapon] ?? WEAPONS.fists;
+                  this.tryAdd(
+                    w.range > 1
+                      ? { t: "shoot", target: target.id, aimed: this.mode === "aim", part: this.aimPart }
+                      : { t: "melee", target: target.id },
+                  );
+                },
+              },
+              "Атаковать",
+              h("span", null, `${chance}% попадание`),
             )
           : null,
-        h("div.dim", null, this.plan.length ? "План: " + this.plan.map(describe).join(" → ") : this.mode ? "Щёлкните цель на поле. ПКМ — отмена режима." : "Щёлкните врага — атака, клетку — идти. Или выберите действие."),
-      ),
+      );
+    } else
+      add(
+        this.intel,
+        h("div.combat-eyebrow", null, "ТАКТИЧЕСКАЯ ОБСТАНОВКА"),
+        h("h3", null, "Держитесь вместе"),
+        h("p.dim", null, "Выберите противника, чтобы оценить шанс попадания. Все планы выполняются одновременно."),
+      );
+    add(
+      this.intel,
       h(
-        "div.col",
-        { style: { gap: "4px" } },
-        h("button.small", { disabled: !this.plan.length, onclick: () => (this.plan.pop(), this.sync(false)) }, "↶ Отменить шаг"),
-        s.phase === "anim"
-          ? h("button.small", { onclick: () => ((this.fast = true), net.send({ k: "cskip" }), setTimeout(() => (this.fast = false), 1500)) }, "⏩ Быстрее")
-          : h("button" + (s.ready?.[net.priv!.pid] ? ".good" : ".primary"), { onclick: () => this.sync(true) }, s.ready?.[net.priv!.pid] ? "✔ Готов" : "Готов ⏎"),
+        "details.combat-journal",
+        null,
+        h("summary", null, "Журнал боя"),
+        h(
+          "div.combat-log",
+          null,
+          (s.log ?? []).slice(-5).map((l) => h("div", null, l)),
+        ),
       ),
     );
+    if (!u) {
+      add(this.panel, h("p", null, "Вы наблюдаете за боем"));
+      return;
+    }
+    const w = WEAPONS[u.weapon] ?? WEAPONS.fists,
+      ap = this.apLeft(),
+      ab = u.ability ? ABILITIES[u.ability] : undefined;
+    const canPlan = s.phase === "plan" && !u.dead && !u.down && !u.fled;
+    const setMode = (mode: Mode) => {
+      this.mode = this.mode === mode ? null : mode;
+      this.key = "";
+      this.renderPanel();
+    };
+    const action = (glyph: string, title: string, subtitle: string, fn: () => void, active = false, disabled = false) =>
+      h(
+        "button.combat-action" + (active ? ".active" : ""),
+        { disabled: disabled || !canPlan, onclick: fn },
+        h("span.combat-action-icon", null, glyph),
+        h("b", null, title),
+        h("small", null, subtitle),
+      );
+    const stats = h(
+      "div.combat-operative",
+      null,
+      h("div.combat-eyebrow", null, "ВАШ ПЕРСОНАЖ"),
+      h("h3", null, u.name),
+      h(
+        "div.combat-health",
+        null,
+        h("span", null, "♥"),
+        bar(Math.max(0, u.hp), "#92c98b", u.maxHp),
+        h("b", null, `${Math.max(0, u.hp)}`),
+      ),
+      h("div.combat-weapon", null, w.name, w.ammo ? h("span", null, `${u.ammo} / ${w.ammo}`) : null),
+      h(
+        "div.combat-ap",
+        null,
+        h("b", null, `${ap} / ${u.ap}`),
+        h("span", null, "очки действий"),
+        h(
+          "div.combat-ap-pips",
+          null,
+          Array.from({ length: u.ap }, (_, i) => h("i" + (i < ap ? ".available" : ""))),
+        ),
+      ),
+    );
+    const commands = h("div.combat-commands");
+    const hints: Partial<Record<NonNullable<Mode>, string>> = {
+      move: "Выберите клетку. Зелёный маршрут доступен за оставшиеся очки.",
+      shoot: "Выберите противника для выстрела.",
+      aim: "Выберите часть тела, затем противника.",
+      melee: "Выберите противника рядом для удара.",
+      heal: "Выберите раненого бойца, включая себя.",
+      throw: "Выберите клетку для броска.",
+      ability: "Выберите цель для навыка.",
+      shove: "Выберите противника рядом.",
+      door: "Выберите соседнюю дверь.",
+    };
+    add(
+      commands,
+      h(
+        "div.combat-plan-line",
+        null,
+        h("span.combat-eyebrow", null, "ПЛАН ДЕЙСТВИЙ"),
+        h(
+          "div.combat-queue",
+          null,
+          this.plan.length
+            ? this.plan.map((a, i) => h("span.combat-order", null, h("b", null, String(i + 1)), describe(a)))
+            : h("span.dim", null, "Выберите действие или клетку на поле"),
+        ),
+        h(
+          "button.combat-undo",
+          {
+            title: "Отменить последний шаг",
+        "aria-label": "Отменить последний шаг",
+            disabled: !this.plan.length || !canPlan,
+            onclick: () => {
+              this.plan.pop();
+              this.sync(false);
+            },
+          },
+          "↶",
+        ),
+      ),
+      h(
+        "div.combat-actions",
+        null,
+        action(
+          w.range > 1 ? "⌖" : "✊",
+          w.range > 1 ? "Выстрел" : "Удар",
+          `${w.ap} ОД`,
+          () => {
+            this.submenu = w.range > 1 ? "attack" : null;
+            setMode(w.range > 1 ? "shoot" : "melee");
+          },
+          this.mode === "shoot" || this.mode === "aim" || this.mode === "melee",
+          ap < w.ap,
+        ),
+        action(
+          "↗",
+          "Движение",
+          "Выбрать клетку",
+          () => {
+            this.submenu = null;
+            setMode("move");
+          },
+          this.mode === "move",
+          ap < 1,
+        ),
+        action(
+          "✦",
+          "Навык",
+          ab ? `${ab.name} · ${ab.ap} ОД${u.cd ? " · перезарядка " + u.cd : ""}` : "Нет навыка",
+          () => {
+            this.submenu = null;
+            if (ab?.target === "none" || ab?.target === "self") this.tryAdd({ t: "ability" });
+            else setMode("ability");
+          },
+          this.mode === "ability",
+          !ab || u.cd > 0 || ap < (ab?.ap ?? 0),
+        ),
+        action(
+          "✚",
+          "Предметы",
+          "Аптечка / граната",
+          () => {
+            this.submenu = this.submenu === "items" ? null : "items";
+            this.key = "";
+            this.renderPanel();
+          },
+          this.submenu === "items",
+        ),
+        action("◇", "Укрыться", "Защита · 1 ОД", () => this.tryAdd({ t: "hunker" }), false, ap < 1),
+        action(
+          "•••",
+          "Ещё",
+          "Тактика и оружие",
+          () => {
+            this.submenu = this.submenu === "more" ? null : "more";
+            this.key = "";
+            this.renderPanel();
+          },
+          this.submenu === "more",
+        ),
+      ),
+    );
+    const sub = h("div.combat-submenu");
+    const smallMode = (mode: Mode, label: string, disabled = false) =>
+      h(
+        "button" + (this.mode === mode ? ".active" : ""),
+        { disabled: !canPlan || disabled, onclick: () => setMode(mode) },
+        label,
+      );
+    const direct = (a: Action, label: string, disabled = false) =>
+      h("button", { disabled: !canPlan || disabled, onclick: () => this.tryAdd(a) }, label);
+    if (this.submenu === "attack")
+      add(
+        sub,
+        smallMode("shoot", `Обычный · ${w.ap} ОД`, ap < w.ap),
+        smallMode("aim", `Прицельный · ${w.ap + 1} ОД`, ap < w.ap + 1),
+      );
+    if (this.mode === "aim")
+      add(
+        sub,
+        ...(
+          [
+            [undefined, "Корпус"],
+            ["legs", "Ноги"],
+            ["arms", "Руки"],
+            ["head", "Голова"],
+          ] as const
+        ).map(([part, label]) =>
+          h(
+            "button" + (this.aimPart === part ? ".active" : ""),
+            {
+              title: part === "head" ? "−15% точности, ×1.5 урон" : "",
+              onclick: () => {
+                this.aimPart = part;
+                this.key = "";
+                this.renderPanel();
+              },
+            },
+            label,
+          ),
+        ),
+      );
+    if (this.submenu === "items")
+      add(
+        sub,
+        smallMode(
+          "heal",
+          `Лечить · ${(u.items.medkit ?? 0) + (u.items.meds ?? 0)} шт. · 2 ОД`,
+          ap < 2 || !(u.items.medkit || u.items.meds),
+        ),
+        smallMode("throw", `Коктейль Молотова · ${u.items.molotov ?? 0} шт. · 2 ОД`, ap < 2 || !u.items.molotov),
+      );
+    if (this.submenu === "more")
+      add(
+        sub,
+        w.ammo ? direct({ t: "reload" }, "Перезарядить · 1 ОД", ap < 1 || u.ammo >= w.ammo) : null,
+        direct({ t: "overwatch" }, "Огонь наготове"),
+        smallMode("melee", "Удар вблизи · 1 ОД", ap < 1),
+        smallMode("shove", "Толкнуть · 1 ОД", ap < 1),
+        smallMode("door", "Дверь · 1 ОД", ap < 1),
+        direct({ t: "flee" }, "Отступить · 1 ОД", ap < 1),
+      );
+    if (sub.children.length) commands.append(sub);
+    commands.append(
+      h(
+        "div.combat-guidance",
+        null,
+        this.mode
+          ? (hints[this.mode] ?? "Выберите цель на поле.")
+          : "Щёлкните врага — информация о цели. Щёлкните пол — движение.",
+      ),
+    );
+    const finish = h(
+      "div.combat-finish",
+      null,
+      s.phase === "anim"
+        ? h(
+            "button.combat-ready",
+            {
+              onclick: () => {
+                this.fast = true;
+                net.send({ k: "cskip" });
+                setTimeout(() => (this.fast = false), 1500);
+              },
+            },
+            "Ускорить",
+            h("small", null, "Разыгрываем планы…"),
+          )
+        : h(
+            "button.combat-ready" + (s.ready?.[net.priv!.pid] ? ".confirmed" : ""),
+            { disabled: !canPlan, onclick: () => this.sync(true) },
+            s.ready?.[net.priv!.pid] ? "✓ План готов" : "Завершить план",
+            h("small", null, s.ready?.[net.priv!.pid] ? "Ждём остальных" : "Выполнить вместе с отрядом"),
+          ),
+      h(
+        "span.dim",
+        null,
+        s.dark ? "Темнота снижает точность" : `Стресс ${Math.round(u.stress)}${u.st.panic ? " · ПАНИКА" : ""}`,
+      ),
+    );
+    add(this.panel, stats, commands, finish);
   }
 }
 
 function intentIcon(u: Unit) {
   const a = u.intent?.find((x) => x.t !== "move");
   if (!a) return u.intent?.length ? "🚶" : "…";
-  return a.t === "shoot" ? "🔫" : a.t === "melee" ? "👊" : a.t === "throw" ? "🔥" : a.t === "flee" ? "🏃" : a.t === "steal" ? "💰" : a.t === "hunker" ? "🛡" : a.t === "door" ? "🚪" : "✨";
+  return a.t === "shoot"
+    ? "🔫"
+    : a.t === "melee"
+      ? "👊"
+      : a.t === "throw"
+        ? "🔥"
+        : a.t === "flee"
+          ? "🏃"
+          : a.t === "steal"
+            ? "💰"
+            : a.t === "hunker"
+              ? "🛡"
+              : a.t === "door"
+                ? "🚪"
+                : "✨";
 }
 
 function describe(a: Action): string {
@@ -564,7 +953,19 @@ function describe(a: Action): string {
       return "навык";
     default:
       return (
-        ({ reload: "перезарядка", heal: "лечение", throw: "бросок", hunker: "укрыться", overwatch: "ожидание", door: "дверь", flee: "бежать", shove: "толчок", steal: "грабёж" } as Record<string, string>)[a.t] ?? a.t
+        (
+          {
+            reload: "перезарядка",
+            heal: "лечение",
+            throw: "бросок",
+            hunker: "укрыться",
+            overwatch: "ожидание",
+            door: "дверь",
+            flee: "бежать",
+            shove: "толчок",
+            steal: "грабёж",
+          } as Record<string, string>
+        )[a.t] ?? a.t
       );
   }
 }

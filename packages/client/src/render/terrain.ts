@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { View } from "../net";
 import { PAL, TERRAIN_COLORS, canvasTex, mat, vhash } from "./palette";
+import { addBunkerArchitecture } from "./scenery";
 
 export const DEPTH = 1.6; // how deep the cut-away goes (z from -DEPTH to 0)
 
@@ -36,24 +37,29 @@ export const ROOM_TINT: Record<string, number> = {
 };
 
 function wallTexture() {
-  return canvasTex("wallpanel", 64, 128, (g, w, h) => {
-    g.fillStyle = "#b9b4a6";
+  return canvasTex("wallpanel-detailed", 128, 256, (g, w, h) => {
+    g.fillStyle = "#d1c6ac";
     g.fillRect(0, 0, w, h);
     for (let i = 0; i < 400; i++) {
       const v = 150 + Math.floor(vhash(i) * 60);
       g.fillStyle = `rgba(${v},${v - 5},${v - 15},0.25)`;
       g.fillRect(vhash(i, 1) * w, vhash(i, 2) * h, 2, 2);
     }
-    g.strokeStyle = "rgba(60,50,40,0.35)";
-    g.lineWidth = 2;
-    g.strokeRect(1, 1, w - 2, h / 2 - 2);
-    g.strokeRect(1, h / 2 + 1, w - 2, h / 2 - 2);
+    g.fillStyle = "rgba(38,52,43,0.18)";
+    g.fillRect(0, h * 0.65, w, h * 0.35);
+    g.strokeStyle = "rgba(60,50,40,0.18)";
+    g.lineWidth = 1;
+    g.strokeRect(1, 1, w - 2, h - 2);
     // stains
     g.fillStyle = "rgba(90,70,40,0.15)";
     g.fillRect(0, h - 18, w, 18);
     // rivets
     g.fillStyle = "rgba(40,35,30,0.5)";
     for (const [x, y] of [[5, 5], [w - 6, 5], [5, h / 2 - 6], [w - 6, h / 2 - 6], [5, h / 2 + 5], [w - 6, h / 2 + 5], [5, h - 6], [w - 6, h - 6]]) g.fillRect(x, y, 2, 2);
+    const shade = g.createLinearGradient(0, 0, 0, h);
+    shade.addColorStop(0, "#17191077"); shade.addColorStop(0.25, "#17191000");
+    shade.addColorStop(0.77, "#17191000"); shade.addColorStop(1, "#17191088");
+    g.fillStyle = shade; g.fillRect(0, 0, w, h);
   });
 }
 
@@ -82,6 +88,8 @@ export class TerrainLayer {
   floors: THREE.InstancedMesh;
   marks: THREE.InstancedMesh;
   finds: THREE.InstancedMesh;
+  stones: THREE.InstancedMesh;
+  architecture = new THREE.Group();
   private gridKey = "";
   private roomKey = "";
   private W = 48;
@@ -92,6 +100,9 @@ export class TerrainLayer {
   constructor() {
     const n = 48 * 32;
     this.cells = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, DEPTH), new THREE.MeshLambertMaterial({ flatShading: true }), n);
+    this.stones = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshLambertMaterial({ flatShading: true }), n * 2);
+    this.stones.count = 0;
+    this.group.add(this.stones, this.architecture);
     this.cells.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     const slotN = 48 * 16;
     const wallMat = new THREE.MeshLambertMaterial({ map: wallTexture() });
@@ -131,28 +142,48 @@ export class TerrainLayer {
 
   private rebuildCells(v: View) {
     const { W, H } = v;
-    let n = 0;
+    let n = 0, ns = 0;
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
         const t = v.grid[y * W + x];
         if (t === 0) continue;
+        this.tmp.rotation.set(0, 0, 0);
+        this.tmp.scale.set(1, 1, 1);
         this.tmp.position.set(x + 0.5, -(y + 0.5), -DEPTH / 2);
         this.tmp.updateMatrix();
         this.cells.setMatrixAt(n, this.tmp.matrix);
         const base = TERRAIN_COLORS[t] ?? 0x333333;
         this.col.setHex(base);
-        const k = 0.85 + vhash(x, y) * 0.3 - y * 0.004;
+        const k = 0.94 + vhash(x, y) * 0.12 - y * 0.003;
         this.col.multiplyScalar(k);
         this.cells.setColorAt(n, this.col);
+        if (t !== 7) for (let j = 0; j < 2; j++) {
+          const seed = x + y * W;
+          const scale = 0.1 + vhash(seed, 41 + j) * 0.2;
+          this.tmp.position.set(x + 0.12 + vhash(seed, 14 + j) * 0.76, -y - 0.12 - vhash(seed, 27 + j) * 0.76, 0.025);
+          this.tmp.scale.set(scale * 1.3, scale, scale * 0.32);
+          this.tmp.rotation.set(vhash(seed, 21), vhash(seed, 22), vhash(seed, 23));
+          this.tmp.updateMatrix(); this.stones.setMatrixAt(ns, this.tmp.matrix);
+          this.col.setHex(t === 3 || t === 4 ? 0x77776c : [0x705744, 0x4e4136, 0x88664c][(seed + j) % 3]);
+          this.stones.setColorAt(ns++, this.col);
+        }
         n++;
       }
     }
     this.cells.count = n;
     this.cells.instanceMatrix.needsUpdate = true;
     if (this.cells.instanceColor) this.cells.instanceColor.needsUpdate = true;
+    this.stones.count = ns;
+    this.stones.instanceMatrix.needsUpdate = true;
+    if (this.stones.instanceColor) this.stones.instanceColor.needsUpdate = true;
+    this.stones.computeBoundingSphere();
+    this.tmp.scale.set(1, 1, 1); this.tmp.rotation.set(0, 0, 0);
   }
 
   private rebuildRooms(v: View) {
+    this.architecture.traverse((o) => { if ((o as THREE.InstancedMesh).isInstancedMesh) (o as THREE.InstancedMesh).dispose(); });
+    this.architecture.clear();
+    addBunkerArchitecture(this.architecture, v.rooms);
     const { W, H } = v;
     let nw = 0,
       ne = 0,

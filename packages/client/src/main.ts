@@ -8,6 +8,7 @@ import { LobbyUI } from "./ui/lobby";
 import { showMenu } from "./ui/menu";
 import { GameUI } from "./ui/game";
 import { installExtras } from "./ui/extras";
+import "./polish.css";
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const renderer = new WorldRenderer(canvas);
@@ -60,7 +61,8 @@ setInterval(() => {
   const dt = Math.min(0.1, (now - lastInput) / 1000);
   lastInput = now;
   if (net.pub && net.pub.phase !== "lobby") {
-    const a = game?.inputBlocked() ? { mx: 0, my: 0, run: false } : axis();
+    if (game?.inputBlocked()) game.navigation.cancel();
+    const a = game?.inputBlocked() ? { mx: 0, my: 0, run: false } : game?.navigation.input(axis(), dt) ?? axis();
     net.sendInput(a.mx, a.my, a.run, dt);
   }
 }, 50);

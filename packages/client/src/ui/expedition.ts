@@ -5,21 +5,56 @@ import { net } from "../net";
 import { CharView } from "../render/chars";
 import { box, glyphTex, mat } from "../render/palette";
 import { SiteRenderer, buildEnemy } from "../render/site";
+import { buildSiteProp } from "../render/scenery";
 import type { WorldRenderer } from "../render/world";
-import { add, bar, clear, closeModal, h, modal, ui } from "./dom";
+import { add, bar, clear, closeModal, h, isModalOpen, modal, ui } from "./dom";
+import "./expedition.css";
 
-const GEAR = ["food_can", "water", "meds", "medkit", "flashlight", "batteries", "lockpick", "crowbar", "pistol", "rifle", "shotgun", "pipe", "knife", "ammo", "molotov", "armor", "gasmask", "radpills", "relay", "nvg", "geiger"];
-
-const CONT_COLOR: Record<string, number> = { shelf: 0x6a5a44, crate: 0x8a6a3a, fridge: 0xd8d8d0, safe: 0x4a4a52, desk: 0x7a5a3a, cabinet: 0x6a5a4a, corpse: 0x5a4a44, car: 0x6a3a2a, weapon_crate: 0x4a5a3a, locker: 0x5a6a70, rubble: 0x5a524a, med_cabinet_c: 0xe8e8e0, radio_rack: 0x3a4a44 };
+const GEAR = [
+  "food_can",
+  "water",
+  "meds",
+  "medkit",
+  "flashlight",
+  "batteries",
+  "lockpick",
+  "crowbar",
+  "pistol",
+  "rifle",
+  "shotgun",
+  "pipe",
+  "knife",
+  "ammo",
+  "molotov",
+  "armor",
+  "gasmask",
+  "radpills",
+  "relay",
+  "nvg",
+  "geiger",
+];
 
 export class ExpeditionUI {
   site = new SiteRenderer();
   dyn = new THREE.Group();
   chars = new Map<string, CharView>();
   enemies = new Map<string, THREE.Object3D>();
+  private props = new Map<string, { depleted: boolean; root: THREE.Group }>();
+  private propSite = "";
+  private scenery = new THREE.Group();
+  private sceneryKey = "";
+  private spriteMaterials = new Map<string, THREE.SpriteMaterial>();
+  private coneMeshes = new Map<string, THREE.Mesh>();
+  private beams = new Map<string, THREE.Mesh>();
   mapEl = h("div.exp-map.hidden");
   siteHud = h("div.panel.exp-hud.hidden");
-  prompt = h("div.prompt.hidden");
+  prompt = h("div.prompt.exp-context.hidden");
+  dock = h("div.exp-dock.hidden");
+  markers = h("div.exp-markers.hidden");
+  onNavigate: ((x: number, lv: number) => void) | null = null;
+  private selected: { id: string; name: string; x: number; lv: number } | null = null;
+  private selectedNode = "";
+  private markerNodes = new Map<string, HTMLElement>();
   banner = h("div.panel.exp-banner.hidden");
   mode: "none" | "map" | "site" = "none";
   actions: SiteAction[] = [];
@@ -33,7 +68,7 @@ export class ExpeditionUI {
 
   constructor(private r: WorldRenderer) {
     this.site.scene.add(this.dyn);
-    ui().append(this.mapEl, this.siteHud, this.prompt, this.banner);
+    ui().append(this.mapEl, this.siteHud, this.prompt, this.banner, this.dock, this.markers);
     net.onFx.add((f) => {
       if (f.k !== "news" || (f.to && f.to !== net.priv?.pid)) return;
       if (f.id === "expedition") {
@@ -65,7 +100,12 @@ export class ExpeditionUI {
     this.mode = mine && !combat ? (e.stage === "site" && e.site ? "site" : "map") : "none";
     this.mapEl.classList.toggle("hidden", this.mode !== "map");
     this.siteHud.classList.toggle("hidden", this.mode !== "site");
-    if (this.mode !== "site") this.prompt.classList.add("hidden");
+    this.dock.classList.toggle("hidden", this.mode !== "site");
+    this.markers.classList.toggle("hidden", this.mode !== "site");
+    if (this.mode !== "site") {
+      this.prompt.classList.add("hidden");
+      this.selected = null;
+    }
     if (this.mode === "map") this.renderMap();
     if (this.mode === "site") this.renderHud();
     this.renderBanner();
@@ -78,46 +118,181 @@ export class ExpeditionUI {
       const v = net.pub!;
       if (!e || e.stage !== "prep") return closeModal();
       const me = net.priv?.char;
-      const body = h("div.col", { style: { minWidth: "620px" } });
+      const joined = me && e.squad.includes(me);
+      const body = h("div.exp-prep");
+      const rerender = () => setTimeout(render, 250);
       body.append(
-        h("div.dim", null, "Каждый решает сам: жмите «Иду». До трёх человек, только живые игроки — боты остаются вести хозяйство."),
+        h("div.exp-eyebrow", null, "ПОДГОТОВКА К ВЫХОДУ / УБЕЖИЩЕ 01"),
+        h("p.dim", null, "Соберите отряд и возьмите припасы. Всё найденное вернётся на склад вместе с вами."),
+      );
+      const squad = h(
+        "div.exp-squad",
+        null,
+        h(
+          "div",
+          null,
+          h("b", null, `Отряд ${e.squad.length} / 3`),
+          h("div.dim", null, "Остальные жители остаются в убежище"),
+        ),
+        h("div.grow"),
+        me
+          ? h(
+              "button" + (joined ? "" : ".primary"),
+              {
+                onclick: () => {
+                  net.send({ k: "expJoin", v: !joined });
+                  rerender();
+                },
+              },
+              joined ? "✓ Вы в отряде" : "Присоединиться",
+            )
+          : null,
+      );
+      body.append(
+        squad,
+        h(
+          "div.exp-squad-members",
+          null,
+          ...e.squad.map((id: string) => h("span.tag", null, "◈ " + (v.chars[id]?.card.name ?? id))),
+        ),
+      );
+      const capacity = h(
+        "div.exp-capacity",
+        null,
         h(
           "div.row",
-          { style: { flexWrap: "wrap" } },
-          ...e.squad.map((id: string) => h("span.tag", null, "🎒 " + (v.chars[id]?.card.name ?? id))),
-          !e.squad.length ? h("span.dim", null, "Отряд пуст") : null,
-          me ? h("button.small" + (e.squad.includes(me) ? ".good" : ".primary"), { onclick: () => (net.send({ k: "expJoin", v: !e.squad.includes(me) }), setTimeout(render, 250)) }, e.squad.includes(me) ? "✔ Иду" : "Иду!") : null,
+          null,
+          h("b", null, "Рюкзак отряда"),
+          h("div.grow"),
+          h("b", null, `${Number(e.gearWeight ?? 0).toFixed(1)} / ${e.cap} кг`),
         ),
-        h("div", null, `Груз: `, h("b", { class: e.gearWeight > e.cap ? "bad" : "good" }, `${e.gearWeight} / ${e.cap} кг`), h("span.dim", null, " (вместимость — от СИЛ отряда)")),
+        bar(e.gearWeight ?? 0, "#dda66c", Math.max(1, e.cap)),
       );
-      const grid = h("div", { style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "4px 12px" } });
-      for (const k of GEAR) {
-        const have = Math.floor(v.res[k] ?? 0);
-        const n = e.gear[k] ?? 0;
-        if (!have && !n) continue;
-        grid.append(
-          h(
-            "div.row",
-            { style: { gap: "4px" } },
-            h("span", { style: { flex: "1" } }, `${ITEMS[k]?.icon ?? ""} ${itemName(k)}`, h("span.dim", null, ` (${have})`)),
-            h("button.small", { onclick: () => (net.send({ k: "expGear", item: k, n: n - 1 }), setTimeout(render, 200)) }, "−"),
-            h("b", { style: { width: "18px", textAlign: "center" } }, String(n)),
-            h("button.small", { onclick: () => (net.send({ k: "expGear", item: k, n: n + 1 }), setTimeout(render, 200)) }, "+"),
-          ),
-        );
+      body.append(capacity);
+      const categories = [
+        { title: "Припасы и медицина", ids: GEAR.filter((k) => ["food", "water", "med"].includes(ITEMS[k]?.cat)) },
+        {
+          title: "Инструменты и защита",
+          ids: GEAR.filter((k) => !["food", "water", "med", "weapon"].includes(ITEMS[k]?.cat)),
+        },
+        { title: "Оружие", ids: GEAR.filter((k) => ITEMS[k]?.cat === "weapon") },
+      ];
+      const grid = h("div.exp-gear-grid");
+      for (const cat of categories) {
+        const group = h("section.exp-gear-group", null, h("h3", null, cat.title));
+        for (const k of cat.ids) {
+          const have = Math.floor(v.res[k] ?? 0),
+            n = e.gear[k] ?? 0;
+          if (!have && !n) continue;
+          group.append(
+            h(
+              "div.exp-gear-row" + (n ? ".packed" : ""),
+              null,
+              h("span.exp-item-icon", null, ITEMS[k]?.icon ?? "◇"),
+              h(
+                "div.exp-item-name",
+                null,
+                h("b", null, itemName(k)),
+                h("span.dim", null, `На складе ${have} · ${ITEMS[k]?.weight ?? 0} кг`),
+              ),
+              h(
+                "button.small",
+                {
+                  disabled: !n,
+                  "aria-label": `Убрать ${itemName(k)}`,
+                  onclick: () => {
+                    net.send({ k: "expGear", item: k, n: n - 1 });
+                    rerender();
+                  },
+                },
+                "−",
+              ),
+              h("b.exp-item-count", null, n),
+              h(
+                "button.small",
+                {
+                  disabled: n >= have || !e.squad.length || Number(e.gearWeight ?? 0) + (ITEMS[k]?.weight ?? 0) > e.cap,
+                  "aria-label": `Взять ${itemName(k)}`,
+                  onclick: () => {
+                    net.send({ k: "expGear", item: k, n: n + 1 });
+                    rerender();
+                  },
+                },
+                "+",
+              ),
+            ),
+          );
+        }
+        if (group.children.length === 1) group.append(h("p.dim", null, "На складе пока пусто"));
+        grid.append(group);
       }
       body.append(
         grid,
         h(
-          "div.row",
-          { style: { marginTop: "8px" } },
-          h("button", { onclick: () => (net.send({ k: "expRepeat" }), setTimeout(render, 250)) }, "↺ Как в прошлый раз"),
-          h("button", { onclick: () => (net.send({ k: "expCancel" }), closeModal()) }, "Отменить"),
+          "div.exp-prep-foot",
+          null,
+          h(
+            "button",
+            {
+              disabled: !e.squad.length,
+              onclick: () => {
+                const count = Math.max(1, e.squad.length);
+                const kit: Record<string, number> = {
+                  food_can: count * 2,
+                  water: count * 2,
+                  flashlight: 1,
+                  batteries: 2,
+                  meds: 1,
+                  crowbar: 1,
+                  pipe: 1,
+                };
+                let used = Object.entries(e.gear)
+                  .filter(([k]) => !(k in kit))
+                  .reduce((sum, [k, n]) => sum + Number(n) * (ITEMS[k]?.weight ?? 0), 0);
+                for (const [item, target] of Object.entries(kit)) {
+                  const weight = ITEMS[item]?.weight ?? 0;
+                  const n = Math.max(
+                    0,
+                    Math.min(
+                      target,
+                      Math.floor(v.res[item] ?? 0),
+                      weight ? Math.floor((e.cap - used) / weight) : target,
+                    ),
+                  );
+                  used += n * weight;
+                  net.send({ k: "expGear", item, n });
+                }
+                rerender();
+              },
+            },
+            "Собрать базовый набор",
+          ),
+          h(
+            "button",
+            {
+              onclick: () => {
+                net.send({ k: "expRepeat" });
+                rerender();
+              },
+              disabled: !v.mods.lastGear,
+            },
+            "Прошлый набор",
+          ),
           h("div.grow"),
-          h("button.primary", { disabled: !e.squad.length, onclick: () => (net.send({ k: "expStart" }), closeModal()) }, "▶ Выступить"),
+          h(
+            "button.primary",
+            {
+              disabled: !e.squad.length || e.gearWeight > e.cap,
+              onclick: () => {
+                net.send({ k: "expStart" });
+                closeModal();
+              },
+            },
+            "Выйти на поверхность →",
+          ),
         ),
       );
-      modal("🎒 Сбор вылазки", body, { wide: true });
+      modal("Снаряжение вылазки", body, { wide: true, cls: "exp-prep-modal" });
     };
     render();
   }
@@ -135,7 +310,9 @@ export class ExpeditionUI {
     add(
       this.banner,
       h("span", null, `🎒 Собирается вылазка (${e.squad.length}/3). `),
-      me && !e.squad.includes(me) ? h("button.small.primary", { onclick: () => net.send({ k: "expJoin" }) }, "Иду!") : null,
+      me && !e.squad.includes(me)
+        ? h("button.small.primary", { onclick: () => net.send({ k: "expJoin" }) }, "Иду!")
+        : null,
       h("button.small", { onclick: () => this.openPrep() }, "Снаряжение"),
     );
   }
@@ -156,11 +333,22 @@ export class ExpeditionUI {
       svg.appendChild(x);
       return x;
     };
-    el("rect", { x: 0, y: 0, width: 100, height: 80, fill: "#1e1812" });
-    for (let i = 0; i < 40; i++) el("circle", { cx: (i * 37) % 100, cy: (i * 53) % 80, r: 3 + (i % 5), fill: "rgba(90,70,50,0.12)" });
+    el("rect", { x: 0, y: 0, width: 100, height: 80, fill: "#172020" });
+    for (let i = 0; i < 40; i++)
+      el("circle", { cx: (i * 37) % 100, cy: (i * 53) % 80, r: 3 + (i % 5), fill: "rgba(90,70,50,0.12)" });
     const nodes = m.nodes as Record<string, any>;
     for (const id in nodes)
-      for (const l of nodes[id].links) if (id < l && nodes[l]) el("line", { x1: nodes[id].x, y1: nodes[id].y, x2: nodes[l].x, y2: nodes[l].y, stroke: "#5a4a3a", "stroke-width": 0.35, "stroke-dasharray": "1 0.6" });
+      for (const l of nodes[id].links)
+        if (id < l && nodes[l])
+          el("line", {
+            x1: nodes[id].x,
+            y1: nodes[id].y,
+            x2: nodes[l].x,
+            y2: nodes[l].y,
+            stroke: "#597069",
+            "stroke-width": 0.35,
+            "stroke-dasharray": "1 0.6",
+          });
     // route
     if (e?.route?.length) {
       let prev = nodes[e.node];
@@ -172,14 +360,24 @@ export class ExpeditionUI {
     }
     for (const id in nodes) {
       const n = nodes[id];
-      const icon = n.type === "home" ? "🏠" : n.type === "trader" ? "🛒" : n.type === "camp" ? FACTIONS[n.faction]?.icon ?? "⛺" : LOC.types[n.type]?.icon ?? "•";
-      const g = el("g", { style: "cursor:pointer" });
+      const icon =
+        n.type === "home"
+          ? "🏠"
+          : n.type === "trader"
+            ? "🛒"
+            : n.type === "camp"
+              ? (FACTIONS[n.faction]?.icon ?? "⛺")
+              : (LOC.types[n.type]?.icon ?? "•");
+      const g = el("g", { style: "cursor:pointer", tabindex: onClick ? 0 : -1, role: "button", "aria-label": n.name });
       const c = document.createElementNS(NS, "circle");
       c.setAttribute("cx", n.x);
       c.setAttribute("cy", n.y);
-      c.setAttribute("r", "2.6");
+      c.setAttribute("r", "3");
       c.setAttribute("fill", n.visited ? "#3a2f27" : "#2a221c");
-      c.setAttribute("stroke", id === e?.node ? "#ffc58a" : n.danger >= 3 ? "#d62828" : "#6a5a4a");
+      c.setAttribute(
+        "stroke",
+        id === this.selectedNode ? "#ffffff" : id === e?.node ? "#ffc58a" : n.danger >= 3 ? "#d66a57" : "#8ba79a",
+      );
       c.setAttribute("stroke-width", id === e?.node ? "0.8" : "0.35");
       g.appendChild(c);
       const t = document.createElementNS(NS, "text");
@@ -192,7 +390,26 @@ export class ExpeditionUI {
       const title = document.createElementNS(NS, "title");
       title.textContent = `${n.name}${n.theme ? " — " + n.theme : ""}\nОпасность: ${"☠".repeat(n.danger || 0) || "—"}${n.looted ? `\nОбыскано: ${Math.round(n.looted * 100)}%` : ""}`;
       g.appendChild(title);
-      if (onClick) g.addEventListener("click", () => onClick(id));
+      if (onClick) {
+        g.addEventListener("click", () => onClick(id));
+        g.addEventListener("keydown", (ev) => {
+          if ((ev as KeyboardEvent).key === "Enter" || (ev as KeyboardEvent).key === " ") {
+            ev.preventDefault();
+            onClick(id);
+          }
+        });
+      }
+      const label = document.createElementNS(NS, "text");
+      label.setAttribute("x", n.x);
+      label.setAttribute("y", String(n.y + 5.5));
+      label.setAttribute("font-size", "1.65");
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("fill", "#d7ddd1");
+      label.setAttribute("paint-order", "stroke");
+      label.setAttribute("stroke", "#172020");
+      label.setAttribute("stroke-width", "0.6");
+      label.textContent = n.name;
+      g.appendChild(label);
       svg.appendChild(g);
     }
     // squad marker
@@ -206,36 +423,128 @@ export class ExpeditionUI {
   }
 
   renderMap() {
-    const e = this.e;
-    const v = net.pub!;
-    const key = JSON.stringify([e.node, e.route, Math.round(e.progress * 50), e.stage, e.log, e.loot, e.supplies, v.mods.wmap && Object.keys(v.mods.wmap.nodes).length, e.stock, this.tradeGive, this.tradeTake, v.hour > 21.5]);
+    const e = this.e,
+      v = net.pub!;
+    const key = JSON.stringify([
+      e.node,
+      e.route,
+      Math.round(e.progress * 50),
+      e.stage,
+      e.log,
+      e.loot,
+      e.supplies,
+      v.mods.wmap,
+      e.stock,
+      this.tradeGive,
+      this.tradeTake,
+      v.hour > 21.5,
+      this.selectedNode,
+    ]);
     if (key === this.mapKey) return;
     this.mapKey = key;
     clear(this.mapEl);
-    const nodes = v.mods.wmap?.nodes ?? {};
-    const here = nodes[e.node];
-    const side = h("div.exp-side");
+    const nodes = v.mods.wmap?.nodes ?? {},
+      here = nodes[e.node];
+    const selected = nodes[this.selectedNode] ?? here;
+    const side = h("div.exp-side.panel");
     add(
       side,
-      h("h2", { style: { margin: "0 0 6px", fontFamily: "var(--title)", fontSize: "16px", color: "var(--warm)" } }, "🗺 Пустоши"),
-      e.stage === "travel" ? h("div.warn", null, `В пути: ${nodes[e.route[0]]?.name ?? "?"} — ${Math.round(e.progress * 100)}%${v.hour > 21.5 ? " (скоро привал на ночь)" : ""}`) : h("div", null, "📍 ", h("b", null, here?.name ?? "?"), here?.theme ? h("div.dim", null, "«" + here.theme + "»") : null),
-      e.stage === "map" && here && LOC.types[here.type] ? h("button.primary", { onclick: () => net.send({ k: "expEnter" }) }, `🏚 Войти: ${LOC.types[here.type].name}`) : null,
-      e.stage === "map" && e.node !== "home" ? h("button", { onclick: () => net.send({ k: "expHome" }) }, "🏠 Домой") : null,
-      h("div.dim", { style: { fontSize: "11px" } }, "Щёлкните известное место на карте, чтобы идти туда. Путь съедает время (в бункере оно идёт своим чередом) и припасы."),
-      h("div", null, `Груз ${e.weight}/${e.cap} кг`),
-      h("div.dim", null, "Припасы: " + (Object.entries(e.supplies).filter(([, n]: any) => n >= 1).map(([k, n]: any) => `${ITEMS[k]?.icon ?? ""}${Math.floor(n)}`).join(" ") || "—")),
-      h("div.good", null, "Добыча: " + (Object.entries(e.loot).filter(([, n]: any) => n >= 1).map(([k, n]: any) => `${k.startsWith("bg_") ? "🎲" : ITEMS[k]?.icon ?? ""}${Math.floor(n)}`).join(" ") || "—")),
-      h("div", { style: { color: e.radio?.ok ? "var(--green)" : "var(--dim)" } }, e.radio?.ok ? `📡 Связь с бункером есть${e.coord ? " · координация готова" : ""}` : `📡 ${e.radio?.why ?? "нет связи"}`),
-      h("div.exp-log", null, (e.log ?? []).slice(-8).map((l: string) => h("div", null, l))),
+      h("div.exp-eyebrow", null, "ЭКСПЕДИЦИЯ / КАРТА РАЙОНА"),
+      h("h2", null, e.stage === "travel" ? "В пути" : "Выберите маршрут"),
+      h(
+        "div.exp-current",
+        null,
+        h("span.dim", null, e.stage === "travel" ? "Направляемся в" : "Отряд находится"),
+        h("b", null, e.stage === "travel" ? (nodes[e.route[0]]?.name ?? "Пустоши") : (here?.name ?? "Убежище")),
+      ),
+      e.stage === "travel"
+        ? h(
+            "div",
+            null,
+            bar(e.progress * 100, "#dda66c"),
+            h(
+              "p.dim",
+              null,
+              `${Math.round(e.progress * 100)}% пути${v.hour > 21.5 ? " · скоро привал на ночь" : " · время и припасы расходуются"}`,
+            ),
+          )
+        : null,
+      h(
+        "div.exp-destination",
+        null,
+        h("div.exp-eyebrow", null, "ТОЧКА НАЗНАЧЕНИЯ"),
+        h("h3", null, selected?.name ?? "Выберите место на карте"),
+        selected?.theme ? h("p.dim", null, selected.theme) : null,
+        h(
+          "p",
+          { class: selected?.danger >= 3 ? "bad" : "dim" },
+          `Опасность: ${selected?.danger >= 3 ? "высокая" : selected?.danger > 0 ? "умеренная" : "низкая"} ${"◆".repeat(selected?.danger ?? 0)}`,
+        ),
+        e.stage === "map" && selected?.id !== e.node && this.selectedNode && this.selectedNode !== e.node
+          ? h(
+              "button.primary",
+              {
+                onclick: () => {
+                  net.send({ k: "expGo", node: this.selectedNode });
+                  this.selectedNode = "";
+                },
+              },
+              "Проложить маршрут →",
+            )
+          : null,
+        e.stage === "map" && here && LOC.types[here.type] && (!this.selectedNode || this.selectedNode === e.node)
+          ? h("button.primary", { onclick: () => net.send({ k: "expEnter" }) }, "Войти и исследовать →")
+          : null,
+      ),
+      h(
+        "div.exp-map-load",
+        null,
+        h("span", null, "Рюкзак отряда"),
+        h("b", null, `${Number(e.weight).toFixed(1)} / ${e.cap} кг`),
+      ),
+      bar(e.weight, "#dda66c", e.cap),
+      h("button", { onclick: () => this.openInventory() }, "Открыть снаряжение и добычу"),
+      e.stage === "map" && e.node !== "home"
+        ? h("button", { onclick: () => net.send({ k: "expHome" }) }, "↙ Вернуться в убежище")
+        : null,
+      h(
+        "details.exp-journal",
+        null,
+        h("summary", null, "Журнал вылазки"),
+        h(
+          "div.exp-log",
+          null,
+          (e.log ?? []).slice(-8).map((l: string) => h("div", null, l)),
+        ),
+      ),
     );
-    if (e.stage === "map" && (here?.type === "trader" || here?.type === "camp") && e.stock) side.append(this.tradePanel(e));
-    this.mapEl.append(h("div.exp-map-inner", null, this.svgMap((id) => net.send({ k: "expGo", node: id })), side));
+    if (e.stage === "map" && (here?.type === "trader" || here?.type === "camp") && e.stock)
+      side.append(this.tradePanel(e));
+    const chart = h(
+      "div.exp-chart",
+      null,
+      h(
+        "div.exp-chart-title",
+        null,
+        h("span", null, "ПУСТОШЬ"),
+        h("small", null, "Щёлкните место, чтобы изучить маршрут"),
+      ),
+      this.svgMap((id) => {
+        this.selectedNode = id;
+        this.mapKey = "";
+        this.renderMap();
+      }),
+      h("div.exp-map-legend", null, "● Отряд   ─ Известные дороги   ◆ Опасная зона"),
+    );
+    this.mapEl.append(h("div.exp-map-inner", null, chart, side));
   }
 
   tradePanel(e: any) {
-    const val = (o: Record<string, number>) => Object.entries(o).reduce((s, [k, n]) => s + (ITEMS[k]?.value ?? 1) * n, 0);
+    const val = (o: Record<string, number>) =>
+      Object.entries(o).reduce((s, [k, n]) => s + (ITEMS[k]?.value ?? 1) * n, 0);
     const mine: Record<string, number> = {};
-    for (const src of [e.supplies, e.loot]) for (const k in src) if (src[k] >= 1 && ITEMS[k]) mine[k] = (mine[k] ?? 0) + Math.floor(src[k]);
+    for (const src of [e.supplies, e.loot])
+      for (const k in src) if (src[k] >= 1 && ITEMS[k]) mine[k] = (mine[k] ?? 0) + Math.floor(src[k]);
     const give = val(this.tradeGive),
       take = val(this.tradeTake) * e.priceMult;
     const row = (k: string, max: number, o: Record<string, number>) =>
@@ -252,8 +561,41 @@ export class ExpeditionUI {
       { style: { padding: "6px", marginTop: "6px" } },
       h("b", null, "🤝 Торговля"),
       h("div.dim", null, `Цены ×${e.priceMult.toFixed(2)} (зависят от отношений с фракцией)`),
-      h("div.row", { style: { alignItems: "flex-start" } }, h("div.col", { style: { flex: "1", gap: "2px" } }, h("span.dim", null, "Отдаём"), Object.keys(mine).map((k) => row(k, mine[k], this.tradeGive))), h("div.col", { style: { flex: "1", gap: "2px" } }, h("span.dim", null, "Берём"), Object.keys(e.stock).filter((k) => e.stock[k] > 0).map((k) => row(k, e.stock[k], this.tradeTake)))),
-      h("div", null, `Ценность: ${give} против ${take.toFixed(1)} `, h("button.small.primary", { disabled: give < take || !take, onclick: () => (net.send({ k: "trade", give: this.tradeGive, take: this.tradeTake }), (this.tradeGive = {}), (this.tradeTake = {})) }, "Обменять")),
+      h(
+        "div.row",
+        { style: { alignItems: "flex-start" } },
+        h(
+          "div.col",
+          { style: { flex: "1", gap: "2px" } },
+          h("span.dim", null, "Отдаём"),
+          Object.keys(mine).map((k) => row(k, mine[k], this.tradeGive)),
+        ),
+        h(
+          "div.col",
+          { style: { flex: "1", gap: "2px" } },
+          h("span.dim", null, "Берём"),
+          Object.keys(e.stock)
+            .filter((k) => e.stock[k] > 0)
+            .map((k) => row(k, e.stock[k], this.tradeTake)),
+        ),
+      ),
+      h(
+        "div",
+        null,
+        `Ценность: ${give} против ${take.toFixed(1)} `,
+        h(
+          "button.small.primary",
+          {
+            disabled: give < take || !take,
+            onclick: () => (
+              net.send({ k: "trade", give: this.tradeGive, take: this.tradeTake }),
+              (this.tradeGive = {}),
+              (this.tradeTake = {})
+            ),
+          },
+          "Обменять",
+        ),
+      ),
     );
   }
 
@@ -262,26 +604,198 @@ export class ExpeditionUI {
     const floors = s.H / 2;
     const walk: boolean[] = [];
     for (let lv = 0; lv < floors; lv++) for (let x = 0; x < s.W; x++) walk.push(s.grid[lv * 2 * s.W + x] !== 7);
-    return { cols: s.W, floors, walk, ladders: Object.keys(s.ladders), covers: [], doors: s.doors.map((d: any) => ({ col: d.x, floor: d.lv, closed: d.state === "closed" || d.state === "locked" })), exits: [{ col: s.exitX, floor: s.exitLv }] };
+    return {
+      cols: s.W,
+      floors,
+      walk,
+      ladders: Object.keys(s.ladders),
+      covers: [],
+      doors: s.doors.map((d: any) => ({ col: d.x, floor: d.lv, closed: d.state === "closed" || d.state === "locked" })),
+      exits: [{ col: s.exitX, floor: s.exitLv }],
+    };
   }
 
   renderHud() {
-    const e = this.e;
-    const s = e.site;
-    const me = net.priv?.char;
+    const e = this.e,
+      s = e.site,
+      me = net.priv?.char;
     const key = JSON.stringify([s.noise, e.light, e.log, e.loot, e.weight, e.tasks[me ?? ""]?.t > 0, e.radio?.ok]);
     if (key === this.hudKey) return;
     this.hudKey = key;
     clear(this.siteHud);
+    clear(this.dock);
     const noiseCol = s.noise > 55 ? "#e0503a" : s.noise > 30 ? "#e8c14a" : "#8fcf6a";
     add(
       this.siteHud,
-      h("div.row", null, h("b", null, net.pub!.mods.wmap?.nodes[s.node]?.name ?? "Здание"), h("span.dim", null, ` «${s.theme}»`)),
-      h("div.row", null, "🔊 Шум", bar(s.noise, noiseCol), h("span", { style: { color: noiseCol } }, String(s.noise))),
-      h("div.dim", null, `🔦 ${me && e.light[me] ? "фонарь включён" : "фонарь выключен"} (L) · Shift — красться · R — осмотр · Выход — внизу слева`),
-      h("div", null, `Груз ${e.weight}/${e.cap} кг · добыча: ${Object.entries(e.loot).filter(([, n]: any) => n >= 1).map(([k, n]: any) => `${k.startsWith("bg_") ? "🎲" : ITEMS[k]?.icon ?? ""}${Math.floor(n)}`).join(" ") || "—"}`),
-      h("div.exp-log", null, (e.log ?? []).slice(-5).map((l: string) => h("div", null, l))),
+      h("div.exp-eyebrow", null, "ВЫЛАЗКА / " + (e.radio?.ok ? "СВЯЗЬ УСТОЙЧИВА" : "НЕТ СВЯЗИ")),
+      h("h3", null, net.pub!.mods.wmap?.nodes[s.node]?.name ?? "Руины"),
+      h(
+        "div.exp-noise",
+        null,
+        h("span", null, "Шум"),
+        bar(s.noise, noiseCol),
+        h("b", { style: { color: noiseCol } }, s.noise > 55 ? "Опасно" : s.noise > 30 ? "Слышно" : "Тихо"),
+      ),
+      h(
+        "details.exp-journal",
+        null,
+        h("summary", null, "Журнал вылазки"),
+        h(
+          "div.exp-log",
+          null,
+          (e.log ?? []).slice(-5).map((l: string) => h("div", null, l)),
+        ),
+      ),
     );
+    add(
+      this.dock,
+      h("span.exp-dock-hint", null, "Щёлкните предмет, чтобы подойти"),
+      h(
+        "button",
+        {
+          onclick: () => {
+            this.selected = { id: "near", name: "Рядом с вами", x: net.myChar()?.x ?? 0, lv: net.myChar()?.lv ?? 0 };
+            this.promptKey = "";
+          },
+        },
+        "✋ Действия",
+      ),
+      h(
+        "button" + (me && e.light[me] ? ".active" : ""),
+        { onclick: () => net.send({ k: "expLight" }), title: "Фонарик · L" },
+        me && e.light[me] ? "🔦 Свет включён" : "🔦 Фонарик",
+      ),
+      h("button", { onclick: () => this.openInventory() }, `🎒 ${Number(e.weight).toFixed(1)} / ${e.cap} кг`),
+      h(
+        "button",
+        {
+          onclick: () => {
+            this.selected = { id: "exit", name: "Выход на поверхность", x: s.exitX, lv: s.exitLv };
+            this.onNavigate?.(s.exitX + 0.5, s.exitLv);
+            this.promptKey = "";
+          },
+        },
+        "↗ К выходу",
+      ),
+    );
+  }
+
+  openInventory() {
+    const e = this.e;
+    if (!e) return;
+    const group = (name: string, items: Record<string, number>) =>
+        h(
+          "section.exp-inventory-group",
+          null,
+          h("h3", null, name),
+          Object.entries(items)
+            .filter(([, n]) => n >= 1)
+            .map(([k, n]) =>
+              h(
+                "div.exp-inventory-row",
+                null,
+                h("span.exp-item-icon", null, ITEMS[k]?.icon ?? "◇"),
+                h("span", null, itemName(k)),
+                h("b", null, Math.floor(n)),
+              ),
+            ),
+        ),
+      body = h(
+        "div.exp-inventory",
+        null,
+        h(
+          "p.dim",
+          null,
+          `Общий груз отряда: ${Number(e.weight).toFixed(1)} / ${e.cap} кг. Добыча отправится на склад после возвращения.`,
+        ),
+        group("Добыча", e.loot),
+        group("Снаряжение и припасы", e.supplies),
+      );
+    modal("Рюкзак отряда", body, { cls: "exp-inventory-modal" });
+  }
+
+  private objects(): { id: string; name: string; x: number; lv: number; icon: string }[] {
+    const s = this.e?.site;
+    if (!s) return [];
+    const visible = (o: any) => s.rooms.some((r: any) => r.revealed && r.lv === o.lv && o.x >= r.x && o.x < r.x + r.w);
+    return [
+      ...s.conts
+        .filter((o: any) => o.searched < 1 && visible(o))
+        .map((o: any) => ({ ...o, icon: o.locked ? "⌑" : "◇" })),
+      ...s.doors
+        .filter(visible)
+        .map((o: any) => ({ ...o, name: o.state === "open" ? "Дверь открыта" : "Дверь", icon: "▥" })),
+      ...s.people.filter((o: any) => !o.gone && visible(o)).map((o: any) => ({ ...o, icon: "•••" })),
+      ...s.details
+        .filter((o: any) => o.found && !o.taken && visible(o))
+        .map((o: any) => ({ ...o, name: o.kind === "note" ? "Записка" : "Находка", icon: "✦" })),
+      { id: "exit", name: "Выход на поверхность", x: s.exitX, lv: s.exitLv, icon: "↗" },
+    ];
+  }
+
+  private selectObject(o: { id: string; name: string; x: number; lv: number }) {
+    this.selected = o;
+    this.promptKey = "";
+    const c = net.myChar();
+    if (c && (c.lv !== o.lv || Math.abs(c.x - (o.x + 0.5)) > 1)) {
+      const door = this.e?.site?.doors.find(
+        (d: any) => d.id === o.id && (d.state === "closed" || d.state === "locked"),
+      );
+      const targetX = door ? o.x + 0.5 + (c.x < o.x + 0.5 ? -1 : 1) : o.x + 0.5;
+      this.onNavigate?.(targetX, o.lv);
+    }
+    audio.sfx("click", 0.4);
+  }
+
+  handleClick(sx: number, sy: number): boolean {
+    if (this.mode !== "site" || isModalOpen()) return false;
+    let best: ReturnType<ExpeditionUI["objects"]>[number] | undefined;
+    let distance = 54;
+    for (const o of this.objects()) {
+      const [x, y] = this.site.pos(o.x, o.lv),
+        [px, py] = this.site.toScreen(x, y + 0.65);
+      const d = Math.hypot(px - sx, py - sy);
+      if (d < distance) {
+        distance = d;
+        best = o;
+      }
+    }
+    if (best) {
+      this.selectObject(best);
+      return true;
+    }
+    this.selected = null;
+    this.promptKey = "";
+    return false;
+  }
+
+  private updateMarkers() {
+    const present = new Set<string>();
+    for (const o of this.objects()) {
+      const [x, y] = this.site.pos(o.x, o.lv),
+        [sx, sy] = this.site.toScreen(x, y + 1.3);
+      if (sx < 35 || sx > innerWidth - 35 || sy < 115 || sy > innerHeight - 95) continue;
+      present.add(o.id);
+      let node = this.markerNodes.get(o.id);
+      if (!node) {
+        node = h(
+          "button.exp-world-marker",
+          { title: o.name, "aria-label": o.name, onclick: () => this.selectObject(o) },
+          o.icon,
+          h("span", null, o.name),
+        );
+        this.markerNodes.set(o.id, node);
+        this.markers.append(node);
+      }
+      node.style.left = sx + "px";
+      node.style.top = sy + "px";
+      node.classList.toggle("selected", this.selected?.id === o.id);
+    }
+    for (const [id, node] of this.markerNodes)
+      if (!present.has(id)) {
+        node.remove();
+        this.markerNodes.delete(id);
+      }
   }
 
   /** Per frame; returns true when this view renders the frame. */
@@ -327,6 +841,7 @@ export class ExpeditionUI {
     }
     this.site.render(this.r.renderer);
     this.updatePrompt();
+    this.updateMarkers();
     return true;
   }
 
@@ -334,37 +849,82 @@ export class ExpeditionUI {
     const v = net.pub!;
     this.dyn.clear();
     const pos = (x: number, lv: number): [number, number] => this.site.pos(x, lv);
-    // fog over unrevealed rooms
-    for (const r of s.rooms) {
-      if (r.revealed) continue;
-      const [x, y] = pos(r.x, r.lv);
-      this.dyn.add(box(r.w, 2, 0.1, 0x000000, x - 0.5 + r.w / 2, y - 0.16, 0.2, mat(0x050403)));
+    const sceneryKey = JSON.stringify([
+      s.node,
+      s.rooms.map((r: any) => [r.id, r.revealed]),
+      s.conts.map((c: any) => [c.id, c.searched >= 1, c.locked]),
+      s.details,
+      s.hazards,
+      s.people,
+    ]);
+    if (sceneryKey !== this.sceneryKey) {
+      this.sceneryKey = sceneryKey;
+      this.scenery.clear();
+      // fog over unrevealed rooms
+      for (const r of s.rooms) {
+        if (r.revealed) continue;
+        const [x, y] = pos(r.x, r.lv);
+        this.scenery.add(box(r.w, 2, 0.1, 0x000000, x - 0.5 + r.w / 2, y - 0.16, 0.2, mat(0x0a1116, { opacity: 0.86 })));
+      }
+      if (this.propSite !== s.node) {
+        for (const prop of this.props.values())
+          prop.root.traverse((o) => {
+            if ((o as THREE.InstancedMesh).isInstancedMesh) (o as THREE.InstancedMesh).dispose();
+          });
+        this.props.clear();
+        this.propSite = s.node;
+      }
+      for (const c of s.conts) {
+        const [x, y] = pos(c.x, c.lv);
+        const depleted = c.searched >= 1;
+        let prop = this.props.get(c.id);
+        if (!prop || prop.depleted !== depleted) {
+          prop?.root.traverse((o) => {
+            if ((o as THREE.InstancedMesh).isInstancedMesh) (o as THREE.InstancedMesh).dispose();
+          });
+          prop = { depleted, root: buildSiteProp(c.kind, depleted) };
+          this.props.set(c.id, prop);
+        }
+        prop.root.position.set(x, y, -0.9);
+        this.scenery.add(prop.root);
+      }
+      for (const d of s.details) {
+        if (d.taken || !d.found) continue;
+        const [x, y] = pos(d.x, d.lv);
+        this.scenery.add(
+          this.icon(
+            d.kind === "note" ? "📝" : d.kind === "loose_step" ? "✨" : d.kind === "stash" ? "✨" : "👁",
+            x,
+            y + 0.35,
+            0.35,
+          ),
+        );
+      }
+      for (const hz of s.hazards) {
+        if (!hz.known || (!hz.armed && hz.kind !== "rad")) continue;
+        const [x, y] = pos(hz.x, hz.lv);
+        this.scenery.add(
+          this.icon(
+            { rad: "☢", weak_floor: "🕳", tripwire: "⚠", glass: "✳", gas: "💨" }[hz.kind as string] ?? "⚠",
+            x,
+            y + 0.2,
+            0.35,
+          ),
+        );
+      }
+      for (const p of s.people) {
+        if (
+          p.gone ||
+          !s.rooms.some((room: any) => room.revealed && room.lv === p.lv && p.x >= room.x && p.x < room.x + room.w)
+        )
+          continue;
+        const [x, y] = pos(p.x, p.lv);
+        const g = buildEnemy("marauder", p.kind === "patrol" ? 0x4b5a3a : 0x8a7a5a);
+        g.position.set(x, y, -0.5);
+        this.scenery.add(g, this.icon("💬", x, y + 1.6, 0.35));
+      }
     }
-    for (const c of s.conts) {
-      const [x, y] = pos(c.x, c.lv);
-      const col = CONT_COLOR[c.kind] ?? 0x6a5a4a;
-      const hgt = c.kind === "shelf" || c.kind === "locker" || c.kind === "cabinet" || c.kind === "radio_rack" ? 1.3 : c.kind === "car" ? 0.9 : 0.6;
-      const m = box(c.kind === "car" ? 1.6 : 0.75, hgt, 0.5, c.searched >= 1 ? new THREE.Color(col).multiplyScalar(0.5).getHex() : col, x, y, -0.9);
-      this.dyn.add(m);
-      if (c.locked) this.dyn.add(this.icon("🔒", x, y + hgt + 0.2, 0.35));
-      else if (c.searched < 1) this.dyn.add(this.icon("·", x, y + hgt + 0.15, 0.3));
-    }
-    for (const d of s.details) {
-      if (d.taken) continue;
-      const [x, y] = pos(d.x, d.lv);
-      this.dyn.add(this.icon(d.kind === "note" ? "📝" : d.kind === "loose_step" ? "✨" : d.kind === "stash" ? "✨" : "👁", x, y + 0.35, 0.35));
-    }
-    for (const hz of s.hazards) {
-      if (!hz.armed && hz.kind !== "rad") continue;
-      const [x, y] = pos(hz.x, hz.lv);
-      this.dyn.add(this.icon({ rad: "☢", weak_floor: "🕳", tripwire: "⚠", glass: "✳", gas: "💨" }[hz.kind as string] ?? "⚠", x, y + 0.2, 0.35));
-    }
-    for (const p of s.people) {
-      const [x, y] = pos(p.x, p.lv);
-      const g = buildEnemy("marauder", p.kind === "patrol" ? 0x4b5a3a : 0x8a7a5a);
-      g.position.set(x, y, -0.5);
-      this.dyn.add(g, this.icon("💬", x, y + 1.6, 0.35));
-    }
+    this.dyn.add(this.scenery);
     // threats with vision cones
     const seen = new Set<string>();
     for (const t of s.threats) {
@@ -380,7 +940,16 @@ export class ExpeditionUI {
       this.dyn.add(g);
       if (t.state === "asleep") this.dyn.add(this.icon("💤", x, y + 0.9, 0.35));
       else {
-        const cone = new THREE.Mesh(coneGeo(t.dir), new THREE.MeshBasicMaterial({ color: t.detect > 50 ? 0xff3020 : t.state === "alert" ? 0xff9020 : 0xffe060, transparent: true, opacity: 0.12 + t.detect / 400, depthWrite: false }));
+        let cone = this.coneMeshes.get(t.id);
+        if (!cone) {
+          cone = new THREE.Mesh(coneGeo(t.dir), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false }));
+          this.coneMeshes.set(t.id, cone);
+        }
+        cone.geometry = coneGeo(t.dir);
+        (cone.material as THREE.MeshBasicMaterial).color.setHex(
+          t.detect > 50 ? 0xff3020 : t.state === "alert" ? 0xff9020 : 0xffe060,
+        );
+        (cone.material as THREE.MeshBasicMaterial).opacity = 0.12 + t.detect / 400;
         cone.position.set(x, y + 0.9, 0.05);
         this.dyn.add(cone);
         if (t.detect > 5) this.dyn.add(this.icon(t.detect > 60 ? "❗" : "❓", x, y + 1.7, 0.4));
@@ -411,7 +980,11 @@ export class ExpeditionUI {
       cv.setMine(id === net.priv?.char);
       this.dyn.add(cv.root);
       if (e.light[id]) {
-        const beam = new THREE.Mesh(BEAM_GEO, BEAM_MAT);
+        let beam = this.beams.get(id);
+        if (!beam) {
+          beam = new THREE.Mesh(BEAM_GEO, BEAM_MAT);
+          this.beams.set(id, beam);
+        }
         beam.rotation.z = (c.dir ?? 1) > 0 ? Math.PI / 2 : -Math.PI / 2;
         beam.position.set(cv.x + 2 * (c.dir ?? 1), -cv.y + 1.1, -0.3);
         this.dyn.add(beam);
@@ -420,51 +993,98 @@ export class ExpeditionUI {
   }
 
   icon(glyph: string, x: number, y: number, size: number) {
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glyphTex(glyph), transparent: true, depthWrite: false }));
+    let material = this.spriteMaterials.get(glyph);
+    if (!material) {
+      material = new THREE.SpriteMaterial({ map: glyphTex(glyph), transparent: true, depthWrite: false });
+      this.spriteMaterials.set(glyph, material);
+    }
+    const sp = new THREE.Sprite(material);
     sp.scale.setScalar(size);
     sp.position.set(x, y, 0.3);
     return sp;
   }
 
   updatePrompt() {
-    const e = this.e;
-    const c = net.myChar();
+    const e = this.e,
+      c = net.myChar();
     if (!c || !e?.site) return;
     const p = net.pred;
     const me = { ...c, x: p ? p.x : c.x, lv: p ? p.lv : c.lv, climbing: p ? p.climbing : c.climbing };
     try {
-      this.actions = listSiteActions(e, e.site, me as any, net.pub!.flags as any).slice(0, 7);
+      this.actions = listSiteActions(e, e.site, me as any, net.pub!.flags as any);
     } catch {
       this.actions = [];
     }
+    if (this.selected && this.selected.id !== "near")
+      this.actions = this.actions.filter((a) => a.id === this.selected!.id || a.a === "inspect");
     if (this.sel >= this.actions.length) this.sel = 0;
-    const cv = this.chars.get(c.id);
-    const [sx, sy] = this.site.toScreen(cv ? cv.x : c.x, -(cv ? cv.y : c.y) + 2.3);
-    this.prompt.style.left = sx + "px";
-    this.prompt.style.top = sy + "px";
     const task = e.tasks[c.id];
-    const key = JSON.stringify([this.actions.map((a) => a.label + (a.reason ?? "")), this.sel, task ? Math.round((task.t / task.dur) * 20) : -1]);
+    const near =
+      !this.selected ||
+      this.selected.id === "near" ||
+      (me.lv === this.selected.lv && Math.abs(me.x - (this.selected.x + 0.5)) <= 1.3);
+    const key = JSON.stringify([
+      this.selected?.id,
+      near,
+      this.actions,
+      this.sel,
+      task ? Math.round((task.t / task.dur) * 30) : -1,
+    ]);
+    this.prompt.classList.toggle("hidden", (!this.selected && !task) || isModalOpen());
     if (key === this.promptKey) return;
     this.promptKey = key;
     clear(this.prompt);
-    if (task) this.prompt.append(h("div", null, "⏳ ", bar((task.t / task.dur) * 100, "#ffc58a")));
-    this.actions.forEach((a, i) =>
-      this.prompt.appendChild(
+    this.prompt.append(
+      h(
+        "div.exp-context-title",
+        null,
+        h("b", null, this.selected?.name ?? "Выполняется действие"),
         h(
-          "div.opt" + (i === this.sel ? ".sel" : "") + (a.reason ? ".dis" : ""),
-          { onmousedown: (ev: MouseEvent) => (ev.preventDefault(), this.trigger(i)) },
-          h("span.key", null, i === this.sel ? "E" : String(i + 1)),
-          a.label,
-          a.reason ? h("span.bad", null, " — " + a.reason) : null,
+          "button.small",
+          {
+            "aria-label": "Закрыть действия",
+            onclick: () => {
+              this.selected = null;
+              this.promptKey = "";
+            },
+          },
+          "×",
         ),
       ),
     );
-    this.prompt.classList.toggle("hidden", !this.actions.length && !task);
+    if (task) {
+      this.prompt.append(
+        h(
+          "div.exp-task",
+          null,
+          h("span", null, "Обыскиваем / выполняем действие…"),
+          bar((task.t / task.dur) * 100, "#dda66c"),
+          h("button.small", { onclick: () => net.send({ k: "sstop" }) }, "Остановиться"),
+        ),
+      );
+      return;
+    }
+    if (!near) {
+      this.prompt.append(h("p.dim", null, "Идём к предмету…"));
+      return;
+    }
+    this.actions.forEach((a, i) =>
+      this.prompt.append(
+        h(
+          "button.exp-action" + (i === this.sel ? ".sel" : ""),
+          { disabled: !!a.reason, title: a.reason ?? "", onclick: () => this.trigger(i) },
+          h("span", null, a.label.replace(" (R)", "")),
+          a.reason ? h("small", null, a.reason) : h("small", null, a.dur ? `${Math.ceil(a.dur)} сек` : "Действие"),
+        ),
+      ),
+    );
+    if (!this.actions.length) this.prompt.append(h("p.dim", null, "Здесь больше нечего искать."));
   }
 
   trigger(i = this.sel) {
     const a = this.actions[i];
     if (!a || a.reason) return;
+    if (this.e?.tasks[net.priv?.char ?? ""]) return;
     if (a.a === "exit") net.send({ k: "expLeaveSite" });
     else net.send({ k: "sdo", a: a.a, id: a.id });
     audio.sfx("click", 0.5);
@@ -495,7 +1115,13 @@ export class ExpeditionUI {
       case "KeyX":
         this.sel = Math.min(this.actions.length - 1, this.sel + 1);
         return true;
+      case "KeyI":
+      case "Tab":
+        this.openInventory();
+        return true;
       case "Escape":
+        this.selected = null;
+        this.promptKey = "";
         net.send({ k: "sstop" });
         return true;
     }
@@ -548,7 +1174,11 @@ export class ExpeditionUI {
         g.font = "14px monospace";
         g.fillText(e.stage === "travel" ? "Отряд в пути…" : "Отряд на местности.", 20, 100);
       }
-      const say = h("input", { placeholder: "Передать отряду по радио…", maxLength: 120, style: { flex: "1" } }) as HTMLInputElement;
+      const say = h("input", {
+        placeholder: "Передать отряду по радио…",
+        maxLength: 120,
+        style: { flex: "1" },
+      }) as HTMLInputElement;
       const box = h(
         "div.row",
         { style: { alignItems: "flex-start", gap: "12px" } },
@@ -556,17 +1186,42 @@ export class ExpeditionUI {
         h(
           "div.col",
           { style: { gap: "6px", width: "480px" } },
-          h("div", { style: { color: e.radio?.ok ? "var(--green)" : "var(--bad)" } }, e.radio?.ok ? "📡 Связь устойчива" : "📡 " + (e.radio?.why ?? "нет связи")),
+          h(
+            "div",
+            { style: { color: e.radio?.ok ? "var(--green)" : "var(--bad)" } },
+            e.radio?.ok ? "📡 Связь устойчива" : "📡 " + (e.radio?.why ?? "нет связи"),
+          ),
           h("div.dim", null, "План этажа (по мере открытия):"),
           cvs,
           h(
             "div.row",
             { style: { flexWrap: "wrap" } },
-            h("button.small", { onclick: () => (net.send({ k: "opScan" }), setTimeout(render, 400)) }, "🔍 Подсветить опасности (0.5 кВт·ч)"),
-            h("button.small", { onclick: () => (net.send({ k: "opCoord" }), setTimeout(render, 400)) }, `🎯 Координация (+1 ОД в бою)${e.coord ? " ✔" : ""}`),
+            h(
+              "button.small",
+              { onclick: () => (net.send({ k: "opScan" }), setTimeout(render, 400)) },
+              "🔍 Подсветить опасности (0.5 кВт·ч)",
+            ),
+            h(
+              "button.small",
+              { onclick: () => (net.send({ k: "opCoord" }), setTimeout(render, 400)) },
+              `🎯 Координация (+1 ОД в бою)${e.coord ? " ✔" : ""}`,
+            ),
           ),
-          h("div.row", null, say, h("button.small", { onclick: () => (say.value && net.send({ k: "opCall", text: say.value }), (say.value = "")) }, "Передать")),
-          h("div.exp-log", null, (e.log ?? []).slice(-8).map((l: string) => h("div", null, l))),
+          h(
+            "div.row",
+            null,
+            say,
+            h(
+              "button.small",
+              { onclick: () => (say.value && net.send({ k: "opCall", text: say.value }), (say.value = "")) },
+              "Передать",
+            ),
+          ),
+          h(
+            "div.exp-log",
+            null,
+            (e.log ?? []).slice(-8).map((l: string) => h("div", null, l)),
+          ),
         ),
       );
       modal("📡 Связь с отрядом", box, { wide: true });
@@ -582,14 +1237,29 @@ export class ExpeditionUI {
         "div.col",
         { style: { minWidth: "360px" } },
         h("div", { style: { fontFamily: "var(--serif)" } }, TALK_TEXT[p.kind] ?? "…"),
-        data.options.map((o: any) => h("button", { style: { textAlign: "left" }, onclick: () => (net.send({ k: "stalk", person: p.id, opt: o.id }), closeModal()) }, o.label)),
+        data.options.map((o: any) =>
+          h(
+            "button",
+            {
+              style: { textAlign: "left" },
+              onclick: () => (net.send({ k: "stalk", person: p.id, opt: o.id }), closeModal()),
+            },
+            o.label,
+          ),
+        ),
       ),
     );
   }
 }
 
 const BEAM_GEO = new THREE.ConeGeometry(0.9, 4, 12, 1, true);
-const BEAM_MAT = new THREE.MeshBasicMaterial({ color: 0xfff2c0, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide });
+const BEAM_MAT = new THREE.MeshBasicMaterial({
+  color: 0xfff2c0,
+  transparent: true,
+  opacity: 0.1,
+  depthWrite: false,
+  side: THREE.DoubleSide,
+});
 const CONES: Record<number, THREE.ShapeGeometry> = {};
 function coneGeo(dir: number) {
   if (!CONES[dir]) {

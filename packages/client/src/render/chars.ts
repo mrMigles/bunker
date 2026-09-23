@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { ITEMS } from "@bunker/shared";
-import { box, cyl, glyphTex, mat, PAL } from "./palette";
+import { box, canvasTex, cyl, mat, PAL } from "./palette";
+import { buildLoot } from "./loot";
+import { SceneryBatch } from "./scenery";
 
 const SKIN = [0xe0b48f, 0xc99873, 0xa8764f, 0xf0c9a5, 0x8d5e3c];
 
@@ -13,7 +15,7 @@ export class CharView {
   armR: THREE.Group;
   head: THREE.Group;
   torso: THREE.Mesh;
-  carry: THREE.Sprite;
+  carry: THREE.Group;
   x = 0;
   y = 0;
   t = Math.random() * 10;
@@ -41,6 +43,24 @@ export class CharView {
     this.armR = limb(0.12, 0.44, color, 0.14);
     this.armL.position.set(-0.3, 0.92, 0);
     this.armR.position.set(0.3, 0.92, 0);
+    const outfit = new SceneryBatch();
+    const darkCloth = new THREE.Color(color).multiplyScalar(0.67).getHex();
+    outfit.box(0.48, 0.075, 0.3, 0x403a2a, 0, 0.45, 0);
+    outfit.box(0.10, 0.075, 0.025, 0xb4a77e, 0.025, 0.45, 0.164);
+    outfit.box(0.14, 0.13, 0.035, darkCloth, -0.12, 0.74, 0.16);
+    outfit.box(0.14, 0.027, 0.044, 0xc2af82, -0.12, 0.84, 0.16);
+    outfit.box(0.025, 0.43, 0.03, darkCloth, 0.045, 0.51, 0.162);
+    outfit.box(0.36, 0.36, 0.16, 0x58614a, 0, 0.58, -0.22);
+    outfit.box(0.39, 0.065, 0.19, 0x727959, 0, 0.86, -0.22);
+    for (const x of [-0.18, 0.18]) outfit.box(0.035, 0.43, 0.035, 0xaca079, x, 0.53, 0.16);
+    outfit.finish(this.body);
+    for (const leg of [this.legL, this.legR]) {
+      const boot = new SceneryBatch();
+      boot.box(0.19, 0.13, 0.28, 0x333a32, 0, -0.46, 0.035);
+      boot.box(0.20, 0.035, 0.29, 0x222a25, 0, -0.46, 0.035);
+      boot.box(0.115, 0.09, 0.035, 0x7b7660, 0, -0.2, 0.105);
+      boot.finish(leg);
+    }
     // hands
     this.armL.add(box(0.11, 0.1, 0.11, skin, 0, -0.52, 0));
     this.armR.add(box(0.11, 0.1, 0.11, skin, 0, -0.52, 0));
@@ -54,14 +74,28 @@ export class CharView {
     e1.position.set(-0.07, 0.03, 0.155);
     e2.position.set(0.07, 0.03, 0.155);
     this.head.add(e1, e2);
+    const face = new SceneryBatch();
+    face.box(0.07, 0.055, 0.035, skin, 0.01, -0.028, 0.167);
+    face.box(0.08, 0.019, 0.022, 0x8e654e, 0.005, -0.092, 0.155);
+    face.box(0.035, 0.09, 0.13, skin, -0.173, -0.055, -0.01);
+    face.box(0.035, 0.09, 0.13, skin, 0.173, -0.055, -0.01);
+    face.box(0.33, 0.1, 0.09, 0x514535, 0, 0.06, -0.126);
+    face.finish(this.head);
     addHat(this.head, hat, color);
     this.body.add(this.legL, this.legR, this.torso, this.armL, this.armR, this.head);
     this.root.add(this.body);
-    this.carry = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false }));
-    this.carry.scale.set(0.45, 0.45, 1);
-    this.carry.position.set(0, 0.75, 0.3);
+    this.carry = new THREE.Group();
+    this.carry.position.set(0, 0.62, 0.39);
     this.carry.visible = false;
-    this.root.add(this.carry);
+    this.body.add(this.carry);
+    const shadowTex = canvasTex("survivor-contact-shadow", 64, 64, (g, w, h) => {
+      const gradient = g.createRadialGradient(w / 2, h / 2, 1, w / 2, h / 2, w / 2);
+      gradient.addColorStop(0, "#10151099"); gradient.addColorStop(1, "#10151000");
+      g.fillStyle = gradient; g.fillRect(0, 0, w, h);
+    });
+    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.54), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
+    shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.017;
+    this.root.add(shadow);
     this.selRing = new THREE.Mesh(new THREE.RingGeometry(0.34, 0.42, 20), new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 0.8 }));
     this.selRing.rotation.x = -Math.PI / 2;
     this.selRing.position.y = 0.03;
@@ -84,12 +118,19 @@ export class CharView {
       this.carry.visible = false;
       return;
     }
-    const icon = ITEMS[hands[0].item]?.icon ?? "📦";
-    (this.carry.material as THREE.SpriteMaterial).map = glyphTex(icon);
-    (this.carry.material as THREE.SpriteMaterial).needsUpdate = true;
+    this.carry.clear();
+    const prop = buildLoot(hands[0].item);
+    for (const child of [...prop.children]) {
+      const m = child as THREE.Mesh;
+      if (m.geometry?.type === "CircleGeometry" || m.geometry?.type === "RingGeometry") {
+        prop.remove(m); m.geometry.dispose();
+        if (m.geometry.type === "CircleGeometry") (m.material as THREE.Material).dispose();
+      }
+    }
+    this.carry.add(prop);
     this.carry.visible = true;
     const large = ITEMS[hands[0].item]?.large;
-    this.carry.scale.setScalar(large ? 0.6 : 0.4);
+    this.carry.scale.setScalar(large ? 0.95 : 0.85);
   }
 
   /** Animate pose. */

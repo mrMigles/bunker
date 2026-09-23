@@ -1,0 +1,18 @@
+Verification run 2026-09-23
+
+pnpm test
+Exit code: 0
+Test Files: 11 passed (11)
+Tests: 106 passed (106)
+Duration: 13.44s
+
+pnpm sim --players 6 --days 10
+Exit code: 0
+Six starting residents; classic narrator; 360 seconds/day; 3 seeds.
+Seed 1000: completed 10 days in 9.4s, 7 residents alive, food0.5 water13.1, mean health94, no deaths.
+Seed 8919: completed 10 days in10.5s,9 residents alive, food0 water12.7, mean health85, no deaths.
+Seed16838: completed10 days in4.3s,8 residents alive, food1.5 water12.8, mean health90, no deaths.
+Total deaths:0 across18 starting residents.
+Day10 averages:8 alive, food0.7, water12.9, satiety45, hydration56.7, energy64.3, sanity70.3, health89.7.
+Balance observation: food scarcity becomes the primary late-week problem; seed8919 has55% critical satiety on day10. Seed16838 has88% generator downtime on day10. Not a runtime failure.
+

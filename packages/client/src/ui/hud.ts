@@ -2,6 +2,7 @@ import { ITEMS, NEED_NAMES, PROFS, itemName, type Fx } from "@bunker/shared";
 import { net } from "../net";
 import type { WorldRenderer } from "../render/world";
 import { add, bar, clear, esc, floatText, h, needColor, toast, ui } from "./dom";
+import { art, portraitTile } from "./art";
 
 const FOOD_KEYS = Object.keys(ITEMS).filter((k) => ITEMS[k].cat === "food");
 
@@ -32,7 +33,7 @@ export class Hud {
   constructor(private r: WorldRenderer) {
     this.root.append(this.labels, this.top, this.me, this.feed, this.help);
     ui().appendChild(this.root);
-    this.help.innerHTML = "A/D ходьба · W/S лестница · Shift бег · E действие · Q бросить<br>Tab инвентарь · B стройка · C чат · H аквариум · F камера · F1–F4 эмоции";
+    this.help.innerHTML = "<b>МЫШЬ</b> идти / выбрать предмет <span>·</span> <b>WASD</b> движение <span>·</span> <b>Esc</b> отмена";
     net.onFx.add((f) => this.onFx(f));
     net.onError.add((t) => toast("⚠ " + t));
   }
@@ -54,6 +55,8 @@ export class Hud {
   update() {
     const v = net.pub;
     if (!v) return;
+    document.body.dataset.phase = v.phase;
+    document.body.dataset.activity = v.mods.combat?.active ? "combat" : net.myChar()?.status === "away" ? "expedition" : "bunker";
     this.renderTop(v);
     this.renderMe(v);
     this.renderFeed(v);
@@ -66,35 +69,25 @@ export class Hud {
     const water = res.water ?? 0;
     const p = v.power;
     const bal = p.gen - p.use;
-    const key = [v.day, Math.floor(v.hour * 4), Math.round(food), Math.round(water), res.parts, res.scrap, res.meds, Math.round(p.battery * 10), Math.round(bal * 10), v.notice, v.speed, v.air.co2, v.phase, res.water_dirty, res.wood, res.chem, res.cloth, res.ammo, res.fuel].join("|");
+    const key = [v.day, Math.floor(v.hour * 60), Math.round(food), Math.round(water), res.parts, res.scrap, res.meds, Math.round(p.battery * 10), Math.round(bal * 10), v.notice, v.speed, v.air.co2, v.phase, res.water_dirty, res.wood, res.chem, res.cloth, res.ammo, res.fuel, v.mods.combat?.active, net.myChar()?.status].join("|");
     if (key === this.topKey) return;
     this.topKey = key;
     clear(this.top);
     const people = Object.values(v.chars).filter((c: any) => c.status !== "dead").length;
+    const mode = v.mods.combat?.active ? "БОЙ" : v.phase === "prologue" ? "СБОР" : net.myChar()?.status === "away" ? "ВЫЛАЗКА" : `ДЕНЬ ${v.day}`;
+    const resource = (tile: number, value: string | number, label: string, title: string) => h("div.resource-meter", { title }, art(tile), h("b", null, value), h("small", null, label));
     add(this.top,
-      h("span.clock", null, `День ${v.day} · ${fmtHour(v.hour)}`),
-      v.speed > 1 ? h("span.warn", { title: "Все отдыхают — время ускорено" }, "⏳×" + v.speed) : null,
-      h("span.res", { title: `Еда (пайков). Нужно ${people}/день` }, "🥫", h("b", null, food.toFixed(1))),
-      h("span.res", { title: `Чистая вода. Нужно ${people * 2}/день. Грязной: ${Math.round(res.water_dirty ?? 0)}` }, "💧", h("b", null, Math.floor(water)), res.water_dirty ? h("span.dim", null, `(+${Math.floor(res.water_dirty)})`) : null),
-      h(
-        "span.res",
-        { title: `Аккумулятор ${p.battery.toFixed(1)}/${p.cap} кВт·ч. Выработка ${p.gen.toFixed(2)} кВт, потребление ${p.use.toFixed(2)} из ${p.demand.toFixed(2)} кВт` },
-        "⚡",
-        h("b", null, `${p.battery.toFixed(1)}/${p.cap}`),
-        h("span", { class: bal >= 0 ? "good" : "bad" }, (bal >= 0 ? "+" : "") + bal.toFixed(2)),
-      ),
-      v.air.co2 > 5 ? h("span.res" + (v.air.co2 > 40 ? ".bad" : ".warn"), { title: "Углекислый газ" }, "🌫 CO₂ ", v.air.co2 + "%") : null,
-      h("span.res", { title: "Запчасти" }, "⚙️", h("b", null, Math.floor(res.parts ?? 0))),
-      h("span.res", { title: "Металлолом" }, "🔩", h("b", null, Math.floor(res.scrap ?? 0))),
-      h("span.res", { title: "Дерево" }, "🪵", h("b", null, Math.floor(res.wood ?? 0))),
-      h("span.res", { title: "Ткань" }, "🧵", h("b", null, Math.floor(res.cloth ?? 0))),
-      h("span.res", { title: "Химикаты" }, "🧪", h("b", null, Math.floor(res.chem ?? 0))),
-      h("span.res", { title: "Медикаменты" }, "💊", h("b", null, Math.floor(res.meds ?? 0))),
-      h("span.res", { title: "Патроны" }, "🔸", h("b", null, Math.floor(res.ammo ?? 0))),
-      h("span.grow"),
-      h("span.res" + (v.notice > 45 ? ".bad" : v.notice > 25 ? ".warn" : ""), { title: "Заметность бункера: чем выше, тем вероятнее налёт" }, "👁 ", v.notice),
-      h("span.dim", null, `пинг ${Math.round(net.latency)}мс · ${net.code}`),
+      h("div.hud-clock", null, h("strong", null, mode), h("small", null, v.phase === "prologue" ? "До закрытия убежища" : v.phase === "night" ? "Ночной совет" : "Выжить. Вместе.")),
+      h("div.hud-time", null, h("strong",null,`☀ ${fmtHour(v.hour)}`), h("small",null,`Бункер № ${net.code}`)),
+      resource(0,Math.floor(food),"Еда",`Пайков. Нужно ${people} в день`),
+      resource(1,Math.floor(water),"Вода",`Нужно ${people*2} в день`),
+      resource(7,p.battery.toFixed(1),"Энергия",`Баланс ${bal.toFixed(2)} кВт. Запас ${p.cap} кВт·ч`),
+      resource(2,Math.floor(res.scrap??0),"Металл","Металлолом для строительства"),
+      resource(3,Math.floor(res.wood??0),"Дерево","Древесина"),
+      resource(5,Math.floor(res.meds??0),"Лекарства","Медикаменты"),
+      resource(6,Math.floor(res.parts??0),"Детали","Запчасти для ремонта"),
     );
+    if(v.air.co2>40) this.top.append(h("span.air-alert",null,`CO₂ ${v.air.co2}%`));
   }
 
   private meKey = "";
@@ -114,10 +107,11 @@ export class Hud {
     this.meKey = key;
     clear(this.me);
     const pd = PROFS[c.card.prof];
+    this.me.append(art(portraitTile(c.card.prof),"survivor-portrait"));
     add(this.me,
       h("div.row", null, h("span.name", null, `${pd?.icon ?? ""} ${c.card.name}`), h("span.dim", null, pd?.name)),
       c.status !== "ok" ? h("div.bad", null, c.status === "down" ? `Без сознания! ${c.downT} с` : c.status === "breakdown" ? "Нервный срыв!" : c.status === "dead" ? "Погиб" : "") : null,
-      ...(["food", "water", "energy", "sanity", "health"] as const).map((k) =>
+      ...(["health", "food", "water", "energy", "sanity"] as const).map((k) =>
         h("div.need", null, h("span", null, NEED_NAMES[k]), bar(c.needs[k]), h("span", { style: { color: needColor(c.needs[k]) } }, c.needs[k])),
       ),
       c.needs.rad > 0 ? h("div.need", null, h("span", null, "Радиация"), bar(c.needs.rad, "#b0e040"), h("span.warn", null, c.needs.rad)) : null,
@@ -134,7 +128,8 @@ export class Hud {
     if (key === (this.feed as any)._k) return;
     (this.feed as any)._k = key;
     clear(this.feed);
-    for (const e of log.slice(-8)) this.feed.append(h("div.msg." + e.kind, { html: (e.who ? `<b>${esc(e.who)}:</b> ` : "") + esc(e.text) }));
+    this.feed.append(h("div.feed-heading",null,"Журнал событий"));
+    for (const e of log.slice(-4)) this.feed.append(h("div.msg." + e.kind, { html: (e.who ? `<b>${esc(e.who)}:</b> ` : "") + esc(e.text) }));
   }
 
   /** Name tags, speech bubbles, progress bars. Called every frame. */
@@ -186,3 +181,4 @@ import { GOALS } from "@bunker/shared";
 function goalShort(g: string) {
   return GOALS[g]?.desc ?? g;
 }
+

@@ -12,6 +12,10 @@ export class Prompt {
   sel = 0;
   holding: string | null = null;
   private key = "";
+  private focused: string | null = null;
+  private title = "Рядом с вами";
+
+  focus(id: string, title: string) { this.focused = id; this.title = title; this.key = ""; }
 
   constructor(private r: WorldRenderer) {
     ui().appendChild(this.el);
@@ -24,7 +28,11 @@ export class Prompt {
     const p = net.pred;
     const me = { ...c, x: p ? p.x : c.x, lv: p ? p.lv : c.lv, climbing: p ? p.climbing : c.climbing };
     try {
-      return listActions(v as any, me as any).slice(0, 7);
+      const all = listActions(v as any, me as any);
+      if (this.focused && all.some(a => a.t.id === this.focused)) return all.filter(a => a.t.id === this.focused).slice(0, 7);
+      this.focused = null;
+      this.title = "Рядом с вами";
+      return all.slice(0, 7);
     } catch {
       return [];
     }
@@ -40,30 +48,27 @@ export class Prompt {
     }
     this.list = this.compute();
     if (this.sel >= this.list.length) this.sel = 0;
-    const cv = this.r.chars.get(c.id);
-    const [sx, sy] = this.r.toScreen(cv ? cv.x : c.x, -(cv ? cv.y : c.y) + 2.25);
-    this.el.style.left = sx + "px";
-    this.el.style.top = sy + "px";
+    this.el.classList.add("action-dock");
     const taskLine = c.task ? `${ACTIONS[c.task.action] ? "" : ""}Занят: ${taskLabel(c.task.action)} — E или шаг, чтобы прекратить` : "";
-    const key = JSON.stringify([this.list.map((a) => a.label + (a.reason ?? "")), this.sel, taskLine]);
+    const key = JSON.stringify([this.list.map((a) => a.label + (a.reason ?? "")), this.sel, taskLine, this.title]);
     if (key === this.key) {
       this.el.classList.toggle("hidden", !this.list.length && !taskLine);
       return;
     }
     this.key = key;
     clear(this.el);
+    this.el.append(h("div.dock-heading", null, this.title));
     if (taskLine) this.el.appendChild(h("div.dim", null, taskLine));
     this.list.forEach((a, i) => {
       this.el.appendChild(
         h(
-          "div.opt" + (i === this.sel ? ".sel" : "") + (a.reason ? ".dis" : ""),
+          "button.opt" + (i === this.sel ? ".sel" : "") + (a.reason ? ".dis" : ""),
           {
-            onmousedown: (e: MouseEvent) => {
-              e.preventDefault();
+            disabled: !!a.reason,
+            onclick: () => {
               this.sel = i;
               this.trigger(i);
             },
-            onmouseup: () => this.release(),
           },
           h("span.key", null, i === this.sel ? "E" : String(i + 1)),
           a.label,

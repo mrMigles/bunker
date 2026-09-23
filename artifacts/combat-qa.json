@@ -1,0 +1,8 @@
+{
+  "arenaStarted": true,
+  "defendQueued": true,
+  "undo": true,
+  "movementQueued": true,
+  "planCommitted": true,
+  "errors": []
+}

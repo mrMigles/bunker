@@ -1,10 +1,11 @@
 import * as THREE from "three";
-import { ITEMS } from "@bunker/shared";
 import type { View } from "../net";
 import { CharView } from "./chars";
 import { buildObject, vkey } from "./objects";
-import { PAL, box, canvasTex, glyphTex, mat, vhash } from "./palette";
+import { PAL, box, mat, vhash } from "./palette";
 import { DEPTH, TerrainLayer } from "./terrain";
+import { SceneryBatch, batchStaticBoxes, buildSiteProp, sceneSign } from "./scenery";
+import { buildLoot } from "./loot";
 
 export const CHAR_Z = -0.45;
 
@@ -20,7 +21,7 @@ export class WorldRenderer {
   terrain = new TerrainLayer();
   objs = new Map<string, ObjEntry>();
   chars = new Map<string, CharView>();
-  items = new Map<string, THREE.Sprite>();
+  items = new Map<string, THREE.Group>();
   lamps: THREE.PointLight[] = [];
   bulbs = new THREE.Group();
   fires = new THREE.Group();
@@ -34,7 +35,7 @@ export class WorldRenderer {
   // camera state
   camX = 24;
   camY = -3;
-  viewH = 14; // world units visible vertically
+  viewH = 9; // world units visible vertically
   follow = true;
   shake = 0;
   flash = 0;
@@ -54,36 +55,25 @@ export class WorldRenderer {
     this.scene.background = new THREE.Color(0x0e0b0a);
     this.camera = new THREE.OrthographicCamera(-10, 10, 7, -7, 0.1, 100);
     this.camera.position.set(24, -3, 30);
-    this.ambient = new THREE.AmbientLight(0x8a7a6a, 1.1);
-    this.hemi = new THREE.HemisphereLight(0xb0a090, 0x302418, 0.6);
+    this.ambient = new THREE.AmbientLight(0xc0ad91, 1.1);
+    this.hemi = new THREE.HemisphereLight(0xc4c3a4, 0x483c2d, 0.85);
     this.scene.add(this.ambient, this.hemi);
-    const dir = new THREE.DirectionalLight(0xffe0c0, 0.35);
+    const dir = new THREE.DirectionalLight(0xffd39a, 0.65);
     dir.position.set(10, 20, 30);
     this.scene.add(dir);
     for (let i = 0; i < 6; i++) {
       const l = new THREE.PointLight(PAL.lamp, 0, 9, 1.4);
-      l.castShadow = i < 2;
+      l.castShadow = false;
       l.shadow.mapSize.set(256, 256);
       l.shadow.bias = -0.01;
       this.lamps.push(l);
       this.scene.add(l);
     }
     this.scene.add(this.terrain.group, this.bulbs, this.fires, this.floods, this.dirtLayer, this.surface);
-    this.sky = new THREE.Mesh(
-      new THREE.PlaneGeometry(400, 60),
-      new THREE.MeshBasicMaterial({
-        map: canvasTex("sky", 4, 128, (g, w, h) => {
-          const gr = g.createLinearGradient(0, 0, 0, h);
-          gr.addColorStop(0, "#1c1416");
-          gr.addColorStop(0.55, "#5a2e22");
-          gr.addColorStop(0.85, "#a0522d");
-          gr.addColorStop(1, "#c8704a");
-          g.fillStyle = gr;
-          g.fillRect(0, 0, w, h);
-        }),
-      }),
-    );
-    this.sky.position.set(24, 30, -30);
+    const panorama = new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}assets/wasteland-panorama.png`);
+    panorama.colorSpace = THREE.SRGBColorSpace;
+    this.sky = new THREE.Mesh(new THREE.PlaneGeometry(35, 19.7), new THREE.MeshBasicMaterial({ map: panorama, toneMapped: false }));
+    this.sky.position.set(24, -1.6, -30);
     this.scene.add(this.sky);
     this.buildSurface();
     // ash particles
@@ -121,38 +111,33 @@ export class WorldRenderer {
 
   buildSurface() {
     const s = this.surface;
-    // ground crust
-    s.add(box(120, 0.35, DEPTH + 6, 0x3a2e24, 24, -0.05, -3));
-    // rubble
-    for (let i = 0; i < 60; i++) {
-      const x = -30 + i * 1.8 + vhash(i) * 1.5;
-      s.add(box(0.3 + vhash(i, 2) * 0.8, 0.2 + vhash(i, 3) * 0.4, 0.4 + vhash(i, 4), [0x5a524a, 0x3e3630, 0x6a5a4a][i % 3], x, 0.2, -0.5 - vhash(i, 5) * 3));
+    const batch = new SceneryBatch();
+    const b = batch.box.bind(batch);
+    b(120, 0.24, DEPTH + 6, 0x544536, 24, -0.05, -3);
+    for (let i = 0; i < 90; i++) {
+      const x = -30 + i * 1.2 + vhash(i) * 1.0;
+      b(0.22 + vhash(i, 2) * 0.55, 0.12 + vhash(i, 3) * 0.22, 0.4, [0x75634f, 0x494336, 0x80634b][i % 3], x, 0.14, -0.5 - vhash(i, 5) * 3, (vhash(i, 8) - 0.5) * 0.7);
     }
-    // ruined city: two parallax layers
-    for (let layer = 0; layer < 2; layer++) {
-      const g = new THREE.Group();
-      const z = layer === 0 ? -8 : -16;
-      const col = layer === 0 ? 0x2c2622 : 0x1e1a18;
-      for (let i = 0; i < 40; i++) {
-        const w = 2 + vhash(i, 10 + layer) * 4;
-        const h = 2 + vhash(i, 20 + layer) * (layer ? 14 : 9);
-        const x = -40 + i * 4 + vhash(i, 30 + layer) * 2;
-        const b = box(w, h, 2, col, x, 0, z);
-        g.add(b);
-        // broken top
-        if (vhash(i, 40) > 0.4) {
-          const chunk = box(w * 0.4, 0.8, 2, col, x + w * 0.2, h, z);
-          chunk.rotation.z = 0.3;
-          g.add(chunk);
-        }
-        // window holes
-        for (let k = 0; k < Math.floor(h / 1.5); k++) {
-          if (vhash(i, k) > 0.6) g.add(box(0.4, 0.5, 0.1, 0x0c0a09, x - w / 4 + (k % 2) * w / 2, 0.6 + k * 1.4, z + 1.01));
-        }
-      }
-      this.parallax.push(g);
-      s.add(g);
+    // The skyline is an authored silhouette strip, batched instead of hundreds of meshes.
+    for (let i = 0; i < 30; i++) {
+      const x = -30 + i * 3.2;
+      const ht = 0.25 + vhash(i, 53) * 0.8;
+      b(0.8 + vhash(i, 54) * 1.8, ht, 0.8, i % 3 ? 0xa67c58 : 0x927559, x, 0, -9);
+      if (i % 3 === 0) b(0.22, ht + 0.25, 0.5, 0x9a7755, x + 0.2, 0, -9);
     }
+    for (const x of [8, 17, 28, 38]) {
+      b(0.10, 1.3, 0.12, 0x393c2f, x, 0.2, -2.8, -0.07);
+      b(0.09, 0.64, 0.1, 0x393c2f, x - 0.2, 0.61, -2.8, 0.7);
+      b(0.07, 0.45, 0.08, 0x393c2f, x + 0.18, 0.83, -2.8, -0.7);
+    }
+    for (const x of [12.5, 31.5]) {
+      const car = buildSiteProp("car", true); car.position.set(x, 0.2, -2.2); car.rotation.z = -0.03; s.add(car);
+    }
+    const sign = sceneSign("ЛУЧШЕЕ ЗАВТРА", 2.0, 16, 0.95, "#4d4539", 0.58);
+    sign.position.z = -2.9; sign.rotation.z = 0.08; s.add(sign);
+    b(0.07, 0.8, 0.08, 0x393b30, 15.4, 0.16, -3);
+    b(0.07, 0.8, 0.08, 0x393b30, 16.6, 0.16, -3);
+    batch.finish(s);
     // hatch lid above airlock
     const hatch = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 0.15, 12), mat(0x6e6a60));
     hatch.position.set(21.5, 0.2, -0.8);
@@ -172,8 +157,12 @@ export class WorldRenderer {
       const key = o.kind + "|" + vkey(o) + "|" + o.x + "|" + o.lv;
       let e = this.objs.get(id);
       if (!e || e.key !== key) {
-        if (e) this.scene.remove(e.g);
+        if (e) {
+          this.scene.remove(e.g);
+          e.g.traverse((o) => { if ((o as THREE.InstancedMesh).isInstancedMesh) (o as THREE.InstancedMesh).dispose(); });
+        }
         const g = buildObject(o);
+        batchStaticBoxes(g);
         g.position.set(o.x + 0.5, -(o.lv * 2 + 2) + 0.16, 0);
         this.scene.add(g);
         e = { key, g };
@@ -185,6 +174,7 @@ export class WorldRenderer {
     for (const [id, e] of this.objs) {
       if (!seen.has(id)) {
         this.scene.remove(e.g);
+        e.g.traverse((o) => { if ((o as THREE.InstancedMesh).isInstancedMesh) (o as THREE.InstancedMesh).dispose(); });
         this.objs.delete(id);
       }
     }
@@ -219,13 +209,12 @@ export class WorldRenderer {
       iseen.add(id);
       let sp = this.items.get(id);
       if (!sp) {
-        sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glyphTex(ITEMS[it.item]?.icon ?? "📦"), transparent: true }));
-        const large = ITEMS[it.item]?.large;
-        sp.scale.setScalar(large ? 0.6 : 0.42);
+        sp = buildLoot(it.item);
+        sp.scale.setScalar(0.86);
         this.scene.add(sp);
         this.items.set(id, sp);
       }
-      sp.position.set(it.x, -(it.lv * 2 + 2) + 0.16 + sp.scale.y / 2, -0.15);
+      sp.position.set(it.x, -(it.lv * 2 + 2) + 0.17, -0.15);
     }
     for (const [id, sp] of this.items) {
       if (!iseen.has(id)) {
@@ -412,10 +401,12 @@ export class WorldRenderer {
       sx = (Math.random() - 0.5) * this.shake * 0.6;
       sy = (Math.random() - 0.5) * this.shake * 0.6;
     }
-    this.camera.position.set(this.camX + sx, this.camY + sy, 30);
+    this.camera.position.set(this.camX + sx + 3.6, this.camY + sy + 2.6, 30);
     this.camera.lookAt(this.camX + sx, this.camY + sy, 0);
     for (let i = 0; i < this.parallax.length; i++) this.parallax[i].position.x = (this.camX - 24) * (i === 0 ? 0.35 : 0.6);
-    this.sky.position.x = this.camX;
+    this.sky.position.x = this.camX * 0.84 + 3.84 - 3.6;
+    this.sky.position.y = -4.2;
+    this.sky.quaternion.copy(this.camera.quaternion);
     this.updateLamps(v);
     if (this.flash > 0) {
       this.flash = Math.max(0, this.flash - dt * 0.8);
@@ -436,16 +427,17 @@ export class WorldRenderer {
         l.intensity = 0;
         continue;
       }
-      l.position.set(r.x + r.w / 2, -(r.lv * 2) - 0.5, -0.2);
-      l.castShadow = this.shadows && i < 2;
-      let inten = 7 + Math.min(4, r.w);
+      l.position.set(r.x + r.w / 2, -(r.lv * 2) - 0.5, 1.5);
+      l.castShadow = false; // Contact shadows and light pools avoid six cubemap passes per bulb.
+      let inten = 2.8 + Math.min(1, r.w * 0.15);
       if (lowPower) inten *= 0.5 + (Math.sin(this.time * 23 + i * 3) > 0.6 ? 0 : 0.5);
       if (v.phase === "night") inten *= 0.55;
       l.intensity = inten;
       l.distance = Math.max(6, r.w * 1.6);
     }
     const dark = v.phase === "night" ? 0.6 : 1;
-    this.ambient.intensity = (this.flash > 0 ? this.ambient.intensity : 0.9 * dark);
+    (this.sky.material as THREE.MeshBasicMaterial).color.setRGB(dark === 1 ? 1 : 0.22, dark === 1 ? 1 : 0.29, dark === 1 ? 1 : 0.4);
+    this.ambient.intensity = (this.flash > 0 ? this.ambient.intensity : 1.05 * dark);
   }
 
   /** World → screen pixel coordinates. */
@@ -458,7 +450,10 @@ export class WorldRenderer {
   toWorld(sx: number, sy: number): [number, number] {
     const nx = (sx / window.innerWidth) * 2 - 1;
     const ny = -(sy / window.innerHeight) * 2 + 1;
-    const p = new THREE.Vector3(nx, ny, 0).unproject(this.camera);
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(new THREE.Vector2(nx, ny), this.camera);
+    const p = new THREE.Vector3();
+    ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), p);
     return [p.x, p.y];
   }
 }

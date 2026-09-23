@@ -1,0 +1,610 @@
+.combat-eyebrow {
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #c5a884;
+}
+.combat-panel {
+  transform: none;
+  width: auto;
+  max-width: none;
+  position: fixed;
+  inset: auto 22px 22px;
+  z-index: 15;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr) 185px;
+  align-items: stretch;
+  gap: 22px;
+  padding: 18px 20px;
+  border-radius: 9px;
+  border: 1px solid #c2c9c146;
+  background: linear-gradient(125deg, #1b2228f7, #111619f7);
+  box-shadow: 0 10px 40px #000a;
+  pointer-events: auto;
+  font-family: Arial, sans-serif;
+  color: #e9e5dc;
+}
+.combat-operative {
+  border-right: 1px solid #ffffff18;
+  padding-right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.combat-operative h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #f5e9d5;
+}
+.combat-health {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+}
+.combat-health > span {
+  color: #d97562;
+}
+.combat-health .bar {
+  flex: 1;
+  height: 6px;
+}
+.combat-health > b {
+  font-size: 12px;
+}
+.combat-weapon {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #aebbb7;
+}
+.combat-weapon > span {
+  color: #dcc7a5;
+}
+.combat-ap {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 8px;
+  align-items: center;
+  font-size: 10px;
+  color: #b6bcb6;
+}
+.combat-ap > b {
+  font-size: 15px;
+  color: #d7b578;
+}
+.combat-ap-pips {
+  display: flex;
+  gap: 4px;
+  grid-column: 1/-1;
+}
+.combat-ap-pips i {
+  width: 18px;
+  height: 5px;
+  background: #ffffff19;
+  border-radius: 1px;
+}
+.combat-ap-pips i.available {
+  background: #d9b777;
+  box-shadow: 0 0 6px #f2c37a30;
+}
+.combat-commands {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.combat-plan-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 26px;
+}
+.combat-plan-line > .combat-eyebrow {
+  font-size: 9px;
+  white-space: nowrap;
+}
+.combat-queue {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 5px;
+  overflow-x: auto;
+  min-width: 0;
+  font-size: 11px;
+}
+.combat-queue > .dim {
+  font-size: 11px;
+}
+.combat-order {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #b9bcaa3a;
+  border-radius: 3px;
+  padding: 5px 8px;
+  white-space: nowrap;
+  color: #dfd2b6;
+  font-size: 10px;
+}
+.combat-order b {
+  font-size: 9px;
+  color: #8e9d95;
+}
+.combat-undo {
+  background: transparent;
+  border: 0;
+  font-size: 22px;
+  color: #d2c3a8;
+  min-width: 28px;
+  padding: 0;
+}
+.combat-actions {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 7px;
+}
+.combat-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 78px;
+  border: 1px solid #aebbac33;
+  border-radius: 5px;
+  background: linear-gradient(#ffffff07, #ffffff02);
+  padding: 8px 5px;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  color: #e6e6de;
+  min-width: 0;
+}
+.combat-action:hover:not(:disabled),
+.combat-action.active {
+  background: linear-gradient(#a3905b3a, #77653725);
+  border-color: #dbba76b0;
+  color: #ffe4b1;
+}
+.combat-action-icon {
+  font-size: 24px;
+  line-height: 1;
+  font-family: Arial, sans-serif;
+  color: #d3cdbb;
+}
+.combat-action b {
+  font-size: 12px;
+  font-weight: 600;
+}
+.combat-action small {
+  font-size: 9px;
+  line-height: 1.25;
+  color: #aeb6ae;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.combat-action:disabled {
+  opacity: 0.38;
+}
+.combat-guidance {
+  font-size: 11px;
+  color: #9daaa6;
+  min-height: 13px;
+}
+.combat-submenu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding-top: 2px;
+}
+.combat-submenu button {
+  border: 1px solid #c3c9b527;
+  background: #ffffff08;
+  border-radius: 3px;
+  font-size: 11px;
+  padding: 8px 10px;
+}
+.combat-submenu button.active {
+  border-color: #ceb277;
+  color: #e7c997;
+}
+.combat-finish {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 12px;
+}
+.combat-ready {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  min-height: 81px;
+  background: linear-gradient(#ba9b5f, #907744);
+  color: #fff7e1;
+  border: 1px solid #e2c687;
+  border-radius: 5px;
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow:
+    inset 0 1px #ffedc653,
+    0 3px 8px #0004;
+  padding: 12px;
+}
+.combat-ready:hover {
+  background: linear-gradient(#cbae75, #a18955);
+}
+.combat-ready small {
+  font-size: 10px;
+  font-weight: 400;
+  color: #f2e8d1;
+}
+.combat-ready.confirmed {
+  background: linear-gradient(#476b4e, #304a36);
+  border-color: #8da97b;
+}
+.combat-finish > .dim {
+  font-size: 10px;
+  text-align: center;
+}
+.combat-top {
+  top: 92px;
+  left: 50%;
+  transform: translateX(-50%);
+  right: auto;
+  width: auto;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 14px 22px;
+  border: 1px solid #c2c9c146;
+  border-radius: 7px;
+  background: linear-gradient(125deg, #1b2228f0, #111619ee);
+  box-shadow: 0 4px 24px #0007;
+  z-index: 13;
+  font-family: Arial, sans-serif;
+}
+.combat-phase {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.combat-phase > b {
+  font-size: 21px;
+  color: #f1e4cf;
+}
+.combat-clock {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-inline: 1px solid #ffffff1b;
+  padding: 0 23px;
+}
+.combat-clock strong {
+  font-size: 34px;
+  line-height: 1;
+  color: #e7c791;
+  font-variant-numeric: tabular-nums;
+  min-width: 39px;
+  text-align: center;
+}
+.combat-clock > span {
+  font-size: 11px;
+  color: #c2c6bf;
+  max-width: 80px;
+}
+.combat-clock.urgent strong {
+  color: #e67f68;
+}
+.combat-forces {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+.combat-forces > span {
+  color: #a2c998;
+}
+.combat-forces > b {
+  font-weight: 400;
+  color: #dd9d84;
+}
+.combat-intel {
+  position: fixed;
+  top: 94px;
+  right: 22px;
+  width: 260px;
+  padding: 18px;
+  z-index: 12;
+  border-radius: 7px;
+  border: 1px solid #c2c9c13d;
+  background: linear-gradient(120deg, #192026ed, #101619e8);
+  pointer-events: auto;
+  font-family: Arial, sans-serif;
+}
+.combat-intel h3 {
+  font-size: 17px;
+  margin: 8px 0 12px;
+  color: #ecddc7;
+}
+.combat-intel p {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.combat-target-health {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.combat-target-health .bar {
+  flex: 1;
+  height: 6px;
+}
+.combat-target-health b {
+  font-size: 11px;
+}
+.combat-intent-text {
+  color: #ddb49b;
+}
+.combat-target-attack {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #c2907255;
+  background: #9a573323;
+  color: #f4d9c0;
+  font-size: 12px;
+  padding: 11px;
+}
+.combat-target-attack > span {
+  font-size: 10px;
+  color: #e1b884;
+}
+.combat-journal {
+  border-top: 1px solid #ffffff17;
+  padding-top: 10px;
+  margin-top: 13px;
+}
+.combat-journal summary {
+  font-size: 11px;
+  color: #aeb9b5;
+  cursor: pointer;
+}
+.combat-log {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #abb8b0;
+  max-height: 150px;
+  overflow: auto;
+}
+.combat-log > div {
+  padding: 5px 0;
+  border-bottom: 1px solid #ffffff0c;
+}
+.combat-unit-label {
+  pointer-events: auto;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+  background: #131a1dd9;
+  border: 1px solid #8390824d;
+  border-radius: 4px;
+  padding: 6px 9px;
+  min-width: 70px;
+}
+.combat-unit-label .nm {
+  font-size: 11px;
+  font-family: Arial, sans-serif;
+  color: #e1e6d7;
+}
+.combat-unit-label .bar {
+  height: 4px;
+  margin-top: 5px !important;
+}
+.combat-unit-label.selected {
+  border-color: #edc082;
+  box-shadow: 0 0 12px #c096493a;
+}
+.combat-unit-label .intent {
+  font-size: 10px;
+  background: transparent;
+  color: #e2a18a;
+  padding: 0 0 5px;
+}
+.combat-unit-label:hover {
+  border-color: #debb80;
+  background: #242925ec;
+}
+@media (max-width: 1200px) {
+  .combat-panel {
+  transform: none;
+  width: auto;
+  max-width: none;
+    grid-template-columns: 175px minmax(0, 1fr) 155px;
+    gap: 14px;
+    padding: 14px;
+    inset: auto 14px 14px;
+  }
+  .combat-intel {
+    width: 225px;
+    right: 14px;
+    top: 177px;
+    padding: 13px;
+  }
+  .combat-actions {
+    gap: 4px;
+  }
+  .combat-action {
+    min-height: 70px;
+  }
+  .combat-action small {
+    font-size: 8px;
+  }
+  .combat-operative {
+    padding-right: 12px;
+  }
+  .combat-ready {
+    font-size: 13px;
+  }
+  .combat-plan-line > .combat-eyebrow {
+    display: none;
+  }
+  .combat-top {
+    top: 90px;
+  }
+}
+@media (max-width: 760px) {
+  .combat-panel {
+  transform: none;
+  width: auto;
+  max-width: none;
+    inset: auto 8px max(8px, env(safe-area-inset-bottom));
+    grid-template-columns: minmax(0, 1fr) 130px;
+    gap: 8px;
+    padding: 10px;
+  }
+  .combat-operative {
+    display: none;
+  }
+  .combat-actions {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 3px;
+  }
+  .combat-action {
+    min-height: 63px;
+    gap: 5px;
+    padding: 6px 2px;
+  }
+  .combat-action-icon {
+    font-size: 19px;
+  }
+  .combat-action b {
+    font-size: 9px;
+  }
+  .combat-action small {
+    display: none;
+  }
+  .combat-finish {
+    gap: 7px;
+  }
+  .combat-ready {
+    font-size: 12px;
+    min-height: 66px;
+    padding: 7px;
+  }
+  .combat-ready small {
+    font-size: 9px;
+  }
+  .combat-top {
+    top: 82px;
+    gap: 12px;
+    padding: 10px 12px;
+  }
+  .combat-eyebrow {
+    font-size: 8px;
+  }
+  .combat-phase > b {
+    font-size: 17px;
+  }
+  .combat-clock {
+    gap: 6px;
+    padding: 0 12px;
+  }
+  .combat-clock strong {
+    font-size: 27px;
+    min-width: 30px;
+  }
+  .combat-clock span,
+  .combat-forces {
+    font-size: 9px;
+  }
+  .combat-intel {
+    top: 158px;
+    right: 8px;
+    width: 175px;
+    padding: 10px;
+  }
+  .combat-intel h3 {
+    font-size: 14px;
+    margin: 7px 0;
+  }
+  .combat-intel p {
+    font-size: 10px;
+  }
+  .combat-target-attack {
+    font-size: 10px;
+    padding: 8px;
+    gap: 5px;
+  }
+  .combat-target-attack > span {
+    font-size: 8px;
+  }
+  .combat-guidance {
+    font-size: 9px;
+    line-height: 1.4;
+  }
+  .combat-queue {
+    font-size: 9px;
+  }
+  .combat-submenu button {
+    font-size: 10px;
+    min-height: 38px;
+  }
+  .combat-unit-label .intent {
+    max-width: 120px;
+    font-size: 9px;
+  }
+  .combat-unit-label {
+    padding: 5px;
+  }
+  .combat-journal {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .combat-panel {
+  transform: none;
+  width: auto;
+  max-width: none;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+  }
+  .combat-finish {
+    flex-direction: row;
+    align-items: center;
+  }
+  .combat-finish > .dim {
+    flex: 1;
+  }
+  .combat-ready {
+    min-height: 43px;
+    font-size: 12px;
+    flex: 1;
+  }
+  .combat-ready small {
+    display: none;
+  }
+  .combat-actions {
+    gap: 4px;
+  }
+  .combat-action {
+    min-height: 56px;
+  }
+  .combat-top {
+    width: calc(100vw - 24px);
+    box-sizing: border-box;
+    justify-content: space-between;
+    gap: 5px;
+  }
+  .combat-clock {
+    padding: 0 8px;
+  }
+  .combat-intel {
+    width: 160px;
+  }
+}
