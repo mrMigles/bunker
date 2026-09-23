@@ -53,6 +53,11 @@ body {
 #ui > * {
   pointer-events: auto;
 }
+/* full-screen containers must let clicks through to the canvas */
+#ui > .layer,
+#ui > .table-ui {
+  pointer-events: none;
+}
 
 .layer {
   position: fixed;

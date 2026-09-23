@@ -32,6 +32,14 @@ export interface BoardGame<S = any, M = any> {
   botMove(s: S, player: string, skill: number, rng: Rng, cheater?: boolean): M | null;
   /** Human-readable move description for table talk / logs. */
   describe?(s: S, player: string, move: M): string;
+  /** Button label for a legal move, computed from the player's view (client side). */
+  label?(move: M, view: any): string;
+  /**
+   * Custom validation for games whose move space is too large to enumerate
+   * (e.g. "put any 1–4 cards face down"). When present, `legalMoves` may return a
+   * representative subset and this decides legality.
+   */
+  isLegal?(s: S, player: string, move: M): boolean;
 }
 
 export function clone<T>(x: T): T {
@@ -46,8 +54,8 @@ export function sameMove(a: any, b: any): boolean {
 export function tryMove<S, M>(g: BoardGame<S, M>, s: S, player: string, move: M, trusted = false): { state: S; error: string | null } {
   if (g.isOver(s)) return { state: s, error: "Партия окончена" };
   if (!trusted) {
-    const legal = g.legalMoves(s, player);
-    if (!legal.some((m) => sameMove(m, move))) return { state: s, error: "Так ходить нельзя" };
+    const ok = g.isLegal ? g.toAct(s).includes(player) && g.isLegal(s, player, move) : g.legalMoves(s, player).some((m) => sameMove(m, move));
+    if (!ok) return { state: s, error: "Так ходить нельзя" };
   }
   const next = clone(s);
   g.applyMove(next, player, move);

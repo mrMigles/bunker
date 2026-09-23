@@ -1,5 +1,9 @@
 import { GAMES, tryMove, type GameResult } from "../boardgames/framework";
 import "../boardgames/durak";
+import "../boardgames/cardgames";
+import "../boardgames/dicegames";
+import "../boardgames/boards";
+import "../boardgames/party";
 import { itemName } from "../data/items";
 import { modViews } from "../net/view";
 import { Rng } from "../rng";
@@ -58,12 +62,22 @@ export function tableFor(w: World, objId: string): TableState {
 
 export function availableGames(w: World): string[] {
   const out: string[] = [];
-  for (const box of w.games) for (const g of BOX_GAMES[box] ?? []) if (GAMES[g] && !out.includes(g)) out.push(g);
+  for (const box of w.games) for (const g of BOX_GAMES[box] ?? []) if (GAMES[g] && !out.includes(g) && !w.flags["incomplete_" + box]) out.push(g);
   return out;
 }
 
 function seated(t: TableState) {
   return t.seats.filter((s): s is string => !!s);
+}
+
+/** Thinking games get a longer clock. */
+function turnTime(w: World, t: TableState) {
+  return w.settings.tableTurnTime * (["chess", "checkers", "backgammon"].includes(t.game ?? "") ? 3 : 1);
+}
+
+/** Games talk about seats by character id; show first names instead. */
+function named(w: World, text: string) {
+  return text.replace(/\bc[0-9a-z]+\b/g, (id) => (w.chars[id] ? firstName(w.chars[id]) : id));
 }
 
 function say(t: TableState, who: string, text: string) {
@@ -154,7 +168,7 @@ export function startTableGame(w: World, t: TableState, gid: string, opts: Recor
   t.state = g.setup(players, (rng(w).next() * 2 ** 31) | 0, opts);
   t.status = "playing";
   t.result = null;
-  t.turnT = w.settings.tableTurnTime;
+  t.turnT = turnTime(w, t);
   t.stake = stake;
   t.pot = {};
   t.thinkT = {};
@@ -177,8 +191,8 @@ registerCmd("tableMove", (w, p, cmd) => {
   if (r.error) return r.error;
   t.state = r.state;
   const d = g.describe?.(t.state, c.id, cmd.move);
-  if (d) say(t, firstName(c), d);
-  t.turnT = w.settings.tableTurnTime;
+  if (d) say(t, firstName(c), named(w, d));
+  t.turnT = turnTime(w, t);
   afterMove(w, t);
 });
 
@@ -257,7 +271,7 @@ function afterMove(w: World, t: TableState) {
     }
   }
   const g2 = GAMES[t.game!];
-  const text = `🃏 ${g2.name}: ${res.draw ? "ничья" : res.losers.length ? `в дураках — ${names(res.losers)}` : `победа: ${names(res.winners)}`}${t.stake ? ` (на кону ${t.pot[t.stake.item]} × ${itemName(t.stake.item)})` : ""}.`;
+  const text = `🃏 ${g2.name}: ${res.draw ? "ничья" : t.game === "durak" && res.losers.length ? `в дураках — ${names(res.losers)}` : res.winners.length ? `победа: ${names(res.winners)}` : `проиграли все`}${res.text ? ` (${named(w, res.text)})` : ""}${t.stake ? ` (на кону ${t.pot[t.stake.item]} × ${itemName(t.stake.item)})` : ""}.`;
   log(w, text, "info");
   say(t, "стол", text);
   const gz = w.gazette[w.gazette.length - 1];
@@ -302,11 +316,14 @@ onTick("tables", "*", (w, dt) => {
       // bots start a game among themselves when no human is seated
       const s = seated(t);
       const humans = s.filter((x) => !isBotDriven(w, x));
-      if (s.length >= 2 && humans.length === 0 && availableGames(w).includes("durak")) {
+      const fits = availableGames(w).filter((gid) => s.length >= GAMES[gid].minPlayers && s.length <= GAMES[gid].maxPlayers && gid !== "chess");
+      if (s.length >= 2 && humans.length === 0 && fits.length) {
         w.flags["_tbl_idle_" + id] = (w.flags["_tbl_idle_" + id] ?? 0) + dt;
         if (w.flags["_tbl_idle_" + id] > 4) {
           w.flags["_tbl_idle_" + id] = 0;
-          startTableGame(w, t, "durak", { variant: rng(w).chance(0.3) ? "perevodnoy" : "podkidnoy" }, null);
+          const R = rng(w);
+          const gid = fits.includes("durak") && R.chance(0.5) ? "durak" : R.pick(fits);
+          startTableGame(w, t, gid, gid === "durak" ? { variant: R.chance(0.3) ? "perevodnoy" : "podkidnoy" } : {}, null);
         }
       }
       continue;
@@ -337,9 +354,9 @@ onTick("tables", "*", (w, dt) => {
       if (r.error) continue;
       t.state = r.state;
       const d = g.describe?.(t.state, p, move);
-      if (d && c) say(t, firstName(c), d);
+      if (d && c) say(t, firstName(c), named(w, d));
       if (c && R.chance(0.15)) c.bark = { text: R.pick(["Ха!", "Ну-ну…", "Бито!", "А вот так?", "Эх…", "Кто так ходит?!", "Держи козыря!"]), t: 2.5 };
-      t.turnT = w.settings.tableTurnTime;
+      t.turnT = turnTime(w, t);
       afterMove(w, t);
       break; // one bot move per tick keeps it watchable
     }

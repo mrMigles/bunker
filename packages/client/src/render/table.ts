@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { RANK_NAME, SUIT_SYM } from "@bunker/shared";
 import { canvasTex, mat, box, cyl } from "./palette";
+import { BOARD_PX, drawBoard, type BoardCtx } from "./boards2d";
 
 const CW = 0.62,
   CH = 0.88;
@@ -94,6 +95,14 @@ export class TableScene {
   selectable = new Set<string>();
   selected: string | null = null;
   targetable = new Set<string>();
+  /** multi-selection (Cheat: several cards at once) */
+  multi = new Set<string>();
+  board: THREE.Mesh;
+  private boardCanvas = document.createElement("canvas");
+  private boardTex: THREE.CanvasTexture;
+  private boardKey = "";
+  private shade: THREE.Object3D;
+  private bulb: THREE.Object3D;
   private backMat: THREE.MeshLambertMaterial;
   private t = 0;
   private smoke: THREE.Points;
@@ -114,10 +123,12 @@ export class TableScene {
     rim.rotation.x = Math.PI / 2;
     this.scene.add(felt, rim);
     // lamp shade & bulb
-    this.scene.add(cyl(0.5, 0.3, 0x333333, 0, 4.2, 0, 16, 0.9));
+    this.shade = cyl(0.5, 0.3, 0x333333, 0, 4.2, 0, 16, 0.9);
+    this.scene.add(this.shade);
     const bulb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.15), mat(0xfff0c0, { emissive: 0xffc070 }));
     bulb.position.set(0, 4.15, 0);
     this.scene.add(bulb);
+    this.bulb = bulb;
     // floor
     const floor = box(20, 0.1, 20, 0x2a2018, 0, -2.2, 0);
     this.scene.add(floor);
@@ -134,6 +145,41 @@ export class TableScene {
     geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     this.smoke = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xbfae98, size: 0.25, transparent: true, opacity: 0.12, depthWrite: false }));
     this.scene.add(this.smoke);
+    // flat board surface (chess, lotto, magnate…) drawn on a canvas
+    this.boardCanvas.width = this.boardCanvas.height = BOARD_PX;
+    this.boardTex = new THREE.CanvasTexture(this.boardCanvas);
+    this.boardTex.colorSpace = THREE.SRGBColorSpace;
+    this.boardTex.anisotropy = 4;
+    this.board = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 4.4), new THREE.MeshLambertMaterial({ map: this.boardTex, transparent: true }));
+    this.board.rotation.x = -Math.PI / 2;
+    this.board.position.set(0, 0.01, 0.2);
+    this.board.visible = false;
+    this.scene.add(this.board);
+  }
+
+  /** Redraw the board texture when the view changes. `game` null hides it. */
+  /** board games get a top-down camera; card games keep the seated view */
+  topDown = false;
+
+  setBoard(game: string | null, view: any, ctx: BoardCtx, topDown = false) {
+    this.board.visible = !!game && !!view;
+    this.topDown = this.board.visible && topDown;
+    if (!game || !view) return;
+    const key = JSON.stringify([game, view, ctx]);
+    if (key === this.boardKey) return;
+    this.boardKey = key;
+    drawBoard(this.boardCanvas.getContext("2d")!, game, view, ctx);
+    this.boardTex.needsUpdate = true;
+  }
+
+  /** Board texture pixel under the cursor. */
+  pickBoard(sx: number, sy: number): { x: number; y: number } | null {
+    if (!this.board.visible) return null;
+    const ndc = new THREE.Vector2((sx / window.innerWidth) * 2 - 1, -(sy / window.innerHeight) * 2 + 1);
+    this.raycaster.setFromCamera(ndc, this.camera);
+    const hit = this.raycaster.intersectObject(this.board, false)[0];
+    if (!hit?.uv) return null;
+    return { x: hit.uv.x * BOARD_PX, y: (1 - hit.uv.y) * BOARD_PX };
   }
 
   /** Seat angle: my seat is at the bottom (towards the camera). */
@@ -200,6 +246,7 @@ export class TableScene {
     // discard pile
     for (let i = 0; i < Math.min(Math.ceil(view.discard / 2), 10); i++) place("disc" + i, null, new THREE.Vector3(-2.3, 0.02 + i * 0.012, -0.9), 0.6 + i * 0.3);
     // table pairs
+    for (let i = 0; i < Math.min(view.pileBacks ?? 0, 10); i++) place("pile" + i, null, new THREE.Vector3((i % 3) * 0.05 - 0.05, 0.02 + i * 0.012, 0.1), i * 0.4);
     const n = view.table.length;
     view.table.forEach((t: any, i: number) => {
       const x = (i - (n - 1) / 2) * 0.85;
@@ -218,7 +265,7 @@ export class TableScene {
         h.forEach((card: string, k: number) => {
           const x = (k - (m - 1) / 2) * Math.min(0.55, 5 / Math.max(1, m));
           const c = place("h" + card, card, new THREE.Vector3(x, 1.2 + k * 0.004, 3.0 - Math.abs(k - (m - 1) / 2) * 0.03), 0, false, -(k - (m - 1) / 2) * 0.04, 0.55);
-          c.lift = this.selected === card ? 0.35 : this.hover === "h" + card ? 0.18 : 0;
+          c.lift = this.selected === card || this.multi.has(card) ? 0.35 : this.hover === "h" + card ? 0.18 : 0;
         });
       } else {
         const cnt = typeof h === "number" ? h : h.length;
@@ -245,6 +292,11 @@ export class TableScene {
       h = window.innerHeight;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    const k = Math.min(1, dt * 4);
+    const want = this.topDown ? new THREE.Vector3(0, 8.6, 2.6) : new THREE.Vector3(0, 7.2, 6.2);
+    this.camera.position.lerp(want, k);
+    this.camera.lookAt(0, 0, this.topDown ? 0.55 : 0.6);
+    this.shade.visible = this.bulb.visible = !this.topDown;
     for (const c of this.cards.values()) {
       const k = Math.min(1, dt * 9);
       const tgt = c.target.clone();

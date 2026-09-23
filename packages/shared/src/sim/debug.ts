@@ -50,12 +50,37 @@ export const debugOps: Record<string, (w: World, arg: any, pid: string) => strin
       w.council.stepEnds = w.phaseT + 35;
     } else w.vote = makeVote(w, e, w.phaseT, 30);
   },
+  /** teleport to the game table and sit down */
+  sit: (w, _a, pid) => {
+    const c = w.chars[w.players[pid]?.char ?? ""];
+    const o = objsOfKind(w, "game_table")[0];
+    if (!c || !o) return "Нет стола";
+    c.x = o.x + 0.5;
+    c.lv = o.lv;
+    c.y = o.lv * 2 + 2;
+    return startAction(w, c, "sit_table", { type: "obj", id: o.id });
+  },
+  /** stop the table game and keep `arg` bots seated next to me */
+  table: (w, n, pid) => {
+    const me = w.players[pid]?.char;
+    for (const t of Object.values((w.mods.tables ?? {}) as Record<string, any>)) {
+      if (!t.seats.includes(me)) continue;
+      t.status = "idle";
+      t.state = null;
+      t.game = null;
+      let keep = Number(n) || 0;
+      t.seats = t.seats.map((s: string | null) => (s === me ? s : s && keep-- > 0 ? s : null));
+      for (const c of Object.values(w.chars)) if (c.seat === t.obj && !t.seats.includes(c.id)) c.seat = undefined;
+    }
+  },
   games: (w) => {
     for (const g of ["cards36", "cards52", "domino", "checkers", "chess", "backgammon", "dice", "lotto", "magnate", "wasteland", "mafia"]) if (!w.games.includes(g)) w.games.push(g);
   },
 };
 
 import { EVENT_BY_ID, applyEffect, makeVote } from "./events";
+import { startAction } from "./actions";
+import { objsOfKind } from "../world/rooms";
 
 registerCmd("debug", (w, p, cmd) => {
   const op = debugOps[String(cmd.op)];
