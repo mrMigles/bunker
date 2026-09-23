@@ -122,7 +122,7 @@ export class SiteRenderer {
     if (key === this.key) return;
     const resetCamera = !this.key || this.fieldCols !== f.cols || this.fieldFloors !== f.floors;
     this.key = key;
-    this.group.traverse((o) => { if ((o as THREE.InstancedMesh).isInstancedMesh) (o as THREE.InstancedMesh).dispose(); });
+    disposeTree(this.group);
     this.group.clear();
     const batch = new SceneryBatch();
     const b = batch.box.bind(batch);
@@ -284,4 +284,22 @@ export class SiteRenderer {
     ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), p);
     return [p.x, p.y];
   }
+}
+
+/**
+ * Frees GPU memory of a rebuilt scenery tree: geometries, materials and their textures.
+ * Rebuilds happen whenever a door opens, so leaking here crashed long sessions.
+ * Shared cached resources are safe to dispose — three.js re-uploads them on next use.
+ */
+function disposeTree(root: THREE.Object3D) {
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if ((o as THREE.InstancedMesh).isInstancedMesh) (o as THREE.InstancedMesh).dispose();
+    m.geometry?.dispose?.();
+    const mats = Array.isArray(m.material) ? m.material : m.material ? [m.material] : [];
+    for (const mat of mats) {
+      for (const v of Object.values(mat as any)) if ((v as THREE.Texture)?.isTexture) (v as THREE.Texture).dispose();
+      mat.dispose();
+    }
+  });
 }

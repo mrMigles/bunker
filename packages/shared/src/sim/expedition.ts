@@ -819,9 +819,11 @@ function onStep(w: World, e: Expedition, s: Site, c: Char) {
         elog(e, `💥 ${firstName(c)} задевает растяжку!`);
         fx(w, { k: "sound", id: "boom" });
         break;
-      case "weak_floor":
+      case "weak_floor": {
+        // a floor you were warned about is crossed carefully along the wall
+        const careful = hz.known ? 8 : 0;
         hz.known = true;
-        if (R.d20() + c.card.stats.lov < 13) {
+        if (R.d20() + c.card.stats.lov + careful < 13) {
           hz.armed = false;
           c.needs.health = clamp(c.needs.health - 12);
           c.injury = R.chance(0.4) ? "leg" : c.injury;
@@ -834,6 +836,7 @@ function onStep(w: World, e: Expedition, s: Site, c: Char) {
           }
         }
         break;
+      }
       case "glass":
         hz.known = true;
         if (!(c as any).__sneak) s.noise = clamp(s.noise + 5);
