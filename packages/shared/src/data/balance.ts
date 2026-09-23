@@ -11,9 +11,10 @@ export const BAL = {
   combatTimeMult: 0.25,
 
   // --- movement (cells per second)
-  walkSpeed: 3.2,
-  runSpeed: 5.2,
-  climbSpeed: 2.6,
+  // human pace for 1-cell-wide people in 4–8 cell rooms (was 3.2 / 5.2 / 2.6 — read as scurrying)
+  walkSpeed: 2.2,
+  runSpeed: 3.6,
+  climbSpeed: 2.0,
   carryLargeMult: 0.75,
   drunkWobble: 0.6,
 

@@ -324,13 +324,24 @@ export class WorldRenderer {
           cv.x = tx;
           cv.y = ty;
         } else {
-          const k = Math.min(1, dt * 12);
+          // constant-speed glide between server points instead of an exponential chase (no stop-and-go)
+          const n = cv.net;
+          if (tx !== n.tx || ty !== n.ty) {
+            const now = this.time;
+            n.dur = Math.max(0.03, Math.min(0.2, n.t ? now - n.t : 0.05));
+            n.t = now;
+            n.fx = cv.x;
+            n.fy = cv.y;
+            n.tx = tx;
+            n.ty = ty;
+          }
           if (Math.abs(tx - cv.x) > 3 || Math.abs(ty - cv.y) > 3) {
             cv.x = tx;
             cv.y = ty;
           } else {
-            cv.x += (tx - cv.x) * k;
-            cv.y += (ty - cv.y) * k;
+            const k = Math.min(1, (this.time - n.t) / n.dur);
+            cv.x = n.fx + (n.tx - n.fx) * k;
+            cv.y = n.fy + (n.ty - n.fy) * k;
           }
         }
         cv.root.position.set(cv.x, -cv.y + 0.16, CHAR_Z + (c.climbing ? -0.2 : 0));

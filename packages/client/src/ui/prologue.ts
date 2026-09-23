@@ -127,7 +127,7 @@ export class PrologueUI {
       if(!cv) {cv=new CharView(c.id,c.card.color,c.card.hat,1);cv.x=c.x;cv.y=c.y;this.chars.set(c.id,cv);this.dyn.add(cv.root);}
       const mine=c.id===net.priv?.char&&net.pred;
       const tx=mine?net.pred!.x:c.x, ty=mine?net.pred!.y:c.y;
-      cv.x+=(tx-cv.x)*Math.min(1,dt*14); cv.y+=(ty-cv.y)*Math.min(1,dt*14);
+      cv.glide(tx,ty,performance.now()/1000,!!mine);
       const moving=Math.abs(tx-cv.userPrevX)>.002; cv.userPrevX=tx;
       cv.setCarry(c.hands??[]); cv.update(dt,c.climbing?"climb":moving?"run":"idle",c.dir??1);
       cv.root.position.set(cv.x,-cv.y+.16,-.45); cv.setMine(c.id===net.priv?.char);

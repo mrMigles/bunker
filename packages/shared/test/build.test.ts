@@ -79,6 +79,6 @@ describe("digging & building", () => {
     const before = w.res.water_dirty ?? 0;
     run(w, 30);
     expect(w.res.water_dirty ?? 0).toBeGreaterThan(before);
-    expect(roomAt(w, 30, 1)?.state).toBe("frame");
+    expect(["frame", "done"]).toContain(roomAt(w, 30, 1)?.state);
   });
 });

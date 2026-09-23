@@ -1045,10 +1045,7 @@ export class ExpeditionUI {
       const mine = id === net.priv?.char && net.pred;
       const tx = mine ? net.pred!.x : c.x,
         ty = mine ? net.pred!.y : c.y;
-      cv.x += (tx - cv.x) * Math.min(1, dt * 12);
-      cv.y += (ty - cv.y) * Math.min(1, dt * 12);
-      if (Math.abs(tx - cv.x) > 3) cv.x = tx;
-      if (Math.abs(ty - cv.y) > 3) cv.y = ty;
+      cv.glide(tx, ty, performance.now() / 1000, !!mine);
       const moving = Math.abs(tx - cv.userPrevX) > 0.002;
       cv.userPrevX = tx;
       const anim = e.tasks[id] ? "work" : c.climbing ? "climb" : moving ? "walk" : "idle";

@@ -23,6 +23,11 @@ export class CharView {
   anim = "idle";
   dead = false;
   userPrevX = 0;
+  /** network smoothing: move linearly from the last shown point to the newest server point */
+  net = { fx: 0, fy: 0, tx: NaN, ty: NaN, t: 0, dur: 0.05 };
+  /** smoothed ground speed (cells/s) — drives the stride so feet don't slide */
+  speed = 0;
+  private lastX = 0;
   private carryKey = "";
   private selRing: THREE.Mesh;
 
@@ -134,7 +139,39 @@ export class CharView {
   }
 
   /** Animate pose. */
+  /**
+   * Follow a networked position: glide at constant speed from where we are to the newest
+   * server point over the interval between packets (predicted own positions snap directly).
+   */
+  glide(tx: number, ty: number, now: number, own = false) {
+    if (own) {
+      this.x = tx;
+      this.y = ty;
+      return;
+    }
+    const n = this.net;
+    if (tx !== n.tx || ty !== n.ty) {
+      n.dur = Math.max(0.03, Math.min(0.2, n.t ? now - n.t : 0.05));
+      n.t = now;
+      n.fx = this.x;
+      n.fy = this.y;
+      n.tx = tx;
+      n.ty = ty;
+    }
+    if (Math.abs(tx - this.x) > 3 || Math.abs(ty - this.y) > 3) {
+      this.x = tx;
+      this.y = ty;
+      return;
+    }
+    const k = Math.min(1, (now - n.t) / n.dur);
+    this.x = n.fx + (n.tx - n.fx) * k;
+    this.y = n.fy + (n.ty - n.fy) * k;
+  }
+
   update(dt: number, anim: string, dir: number, speedMul = 1) {
+    const x = this.root.position.x;
+    if (dt > 0) this.speed += (Math.abs(x - this.lastX) / dt - this.speed) * Math.min(1, dt * 10);
+    this.lastX = x;
     this.t += dt * speedMul;
     this.dir += (dir - this.dir) * Math.min(1, dt * 10);
     const t = this.t;
@@ -151,8 +188,9 @@ export class CharView {
     switch (anim) {
       case "walk":
       case "run": {
-        const f = anim === "run" ? 14 : 9;
-        const a = anim === "run" ? 0.9 : 0.6;
+        // stride follows the real ground speed: one full step cycle ≈ 1.1 cells
+        const f = Math.max(4, this.speed * 5.7);
+        const a = anim === "run" ? 0.85 : 0.55;
         this.legL.rotation.x = Math.sin(t * f) * a;
         this.legR.rotation.x = -Math.sin(t * f) * a;
         this.armL.rotation.x = -Math.sin(t * f) * a * 0.8;
