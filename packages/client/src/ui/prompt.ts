@@ -1,5 +1,6 @@
 import { ACTIONS, CROPS, listActions, seedItem, type AvailableAction } from "@bunker/shared";
 import { net } from "../net";
+import { menuArrows } from "../input";
 import type { WorldRenderer } from "../render/world";
 import { clear, h, modal, closeModal, ui } from "./dom";
 
@@ -12,6 +13,7 @@ export class Prompt {
   sel = 0;
   holding: string | null = null;
   private key = "";
+  private listKey = "";
   private focused: string | null = null;
   private title = "Рядом с вами";
 
@@ -51,10 +53,18 @@ export class Prompt {
     if (!v || !c || hidden || v.phase !== "day" || c.status !== "ok") {
       this.el.classList.add("hidden");
       this.list = [];
+      menuArrows.on = false;
       return;
     }
     this.list = this.compute();
+    // a new set of options (walked up to something else) starts from the first, most important one
+    const lk = this.list.map((a) => a.a + a.t.id).join("|");
+    if (lk !== this.listKey) {
+      this.listKey = lk;
+      this.sel = 0;
+    }
     if (this.sel >= this.list.length) this.sel = 0;
+    menuArrows.on = this.list.length >= 2;
     this.el.classList.add("action-dock");
     const taskLine = c.task ? `${ACTIONS[c.task.action] ? "" : ""}Занят: ${taskLabel(c.task.action)} — E или шаг, чтобы прекратить` : "";
     const key = JSON.stringify([this.list.map((a) => a.label + (a.reason ?? "")), this.sel, taskLine, this.title]);
@@ -64,7 +74,7 @@ export class Prompt {
     }
     this.key = key;
     clear(this.el);
-    this.el.append(h("div.dock-heading", null, this.title));
+    this.el.append(h("div.dock-heading", null, this.title, this.list.length > 1 ? h("span.dock-keys", null, "↑↓ выбор · E действие") : this.list.length ? h("span.dock-keys", null, "E действие") : null));
     if (taskLine) this.el.appendChild(h("div.dim", null, taskLine));
     this.list.forEach((a, i) => {
       this.el.appendChild(
@@ -74,10 +84,12 @@ export class Prompt {
             disabled: !!a.reason,
             onclick: () => {
               this.sel = i;
+              this.key = "";
               this.trigger(i);
             },
           },
           h("span.key", null, i === this.sel ? "E" : String(i + 1)),
+          ACTIONS[a.a]?.hold ? h("span.hold-hint", null, "держать") : null,
           a.label,
           a.reason ? h("span.bad", null, ` — ${a.reason}`) : null,
         ),

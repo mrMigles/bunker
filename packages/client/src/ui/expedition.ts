@@ -17,6 +17,7 @@ function siteHint(e: any, s: any, me: any): string {
 }
 import { audio } from "../audio/audio";
 import { net } from "../net";
+import { menuArrows } from "../input";
 import { CharView } from "../render/chars";
 import { box, glyphTex, mat } from "../render/palette";
 import { SiteRenderer, buildEnemy } from "../render/site";
@@ -83,7 +84,7 @@ export class ExpeditionUI {
 
   constructor(private r: WorldRenderer) {
     this.site.scene.add(this.dyn);
-    ui().append(this.mapEl, this.siteHud, this.prompt, this.banner, this.dock, this.markers);
+    ui().append(this.mapEl, this.siteHud, this.prompt, this.banner, this.dock, this.markers, this.bubbleLayer);
     net.onFx.add((f) => {
       if (f.k !== "news" || (f.to && f.to !== net.priv?.pid)) return;
       if (f.id === "expedition") {
@@ -117,6 +118,7 @@ export class ExpeditionUI {
     this.siteHud.classList.toggle("hidden", this.mode !== "site");
     this.dock.classList.toggle("hidden", this.mode !== "site");
     this.markers.classList.toggle("hidden", this.mode !== "site");
+    this.bubbleLayer.classList.toggle("hidden", this.mode !== "site");
     if (this.mode !== "site") {
       this.prompt.classList.add("hidden");
       this.selected = null;
@@ -463,22 +465,16 @@ export class ExpeditionUI {
       svg.appendChild(x);
       return x;
     };
+    // the hand-laid map of Новоград (scripts/gen-map.mjs); places sit on its fixed slots
     el("rect", { x: 0, y: 0, width: 100, height: 80, fill: "#172020" });
-    for (let i = 0; i < 40; i++)
-      el("circle", { cx: (i * 37) % 100, cy: (i * 53) % 80, r: 3 + (i % 5), fill: "rgba(90,70,50,0.12)" });
+    el("image", { href: `${import.meta.env.BASE_URL}assets/wasteland-map.svg`, x: 0, y: 0, width: 100, height: 80, preserveAspectRatio: "none" });
     const nodes = m.nodes as Record<string, any>;
+    const seen = (n: any) => n && !n.unknown;
+    // roads you know are lit up over the drawn ones
     for (const id in nodes)
       for (const l of nodes[id].links)
-        if (id < l && nodes[l])
-          el("line", {
-            x1: nodes[id].x,
-            y1: nodes[id].y,
-            x2: nodes[l].x,
-            y2: nodes[l].y,
-            stroke: "#597069",
-            "stroke-width": 0.35,
-            "stroke-dasharray": "1 0.6",
-          });
+        if (id < l && seen(nodes[id]) && seen(nodes[l]))
+          el("line", { x1: nodes[id].x, y1: nodes[id].y, x2: nodes[l].x, y2: nodes[l].y, stroke: "#e8d6a4", "stroke-width": 0.28, "stroke-opacity": 0.55, "stroke-dasharray": "0.8 0.6" });
     // route
     if (e?.route?.length) {
       let prev = nodes[e.node];
@@ -490,6 +486,11 @@ export class ExpeditionUI {
     }
     for (const id in nodes) {
       const n = nodes[id];
+      if (!seen(n)) {
+        // not scouted yet: a question mark on the drawn plot
+        el("text", { x: n.x, y: n.y + 0.9, "font-size": 2.4, "text-anchor": "middle", fill: "#c9bb96", "fill-opacity": 0.5 }, "?");
+        continue;
+      }
       const icon =
         n.type === "home"
           ? "🏠"
@@ -502,7 +503,7 @@ export class ExpeditionUI {
       const c = document.createElementNS(NS, "circle");
       c.setAttribute("cx", n.x);
       c.setAttribute("cy", n.y);
-      c.setAttribute("r", "3");
+      c.setAttribute("r", "2.6");
       c.setAttribute("fill", n.visited ? "#3a2f27" : "#2a221c");
       c.setAttribute(
         "stroke",
@@ -563,6 +564,7 @@ export class ExpeditionUI {
       e.log,
       e.loot,
       e.supplies,
+      e.bodies,
       v.mods.wmap,
       e.stock,
       this.tradeGive,
@@ -634,6 +636,15 @@ export class ExpeditionUI {
         h("b", null, `${Number(e.weight).toFixed(1)} / ${e.cap} кг`),
       ),
       bar(e.weight, "#dda66c", e.cap),
+      e.bodies
+        ? h(
+            "div.exp-bodies",
+            null,
+            h("b", null, "💀 Тела после боя"),
+            h("p.dim", null, `У них было: ${Object.entries(e.bodies as Record<string, number>).map(([k, n]) => `${ITEMS[k]?.icon ?? ""}${itemName(k)}×${n}`).join(", ")}`),
+            h("button.primary", { onclick: () => net.send({ k: "expBodies" }) }, "Обыскать тела"),
+          )
+        : null,
       h("button", { onclick: () => this.openInventory() }, "Открыть снаряжение и добычу"),
       e.stage === "map" && e.node !== "home"
         ? h("button", { onclick: () => net.send({ k: "expHome" }) }, "↙ Вернуться в убежище")
@@ -1087,10 +1098,15 @@ export class ExpeditionUI {
       }
     }
     for (const id of [...this.enemies.keys()]) if (!seen.has(id)) this.enemies.delete(id);
-    // squad
+    // squad: the best weapons in the packs go to the first members (as in a fight)
+    const pool: Record<string, number> = {};
+    for (const k of ["rifle", "shotgun", "pistol", "pipe", "knife"]) pool[k] = (e.supplies[k] ?? 0) + (e.loot[k] ?? 0);
+    const bubbles = new Set<string>();
     for (const id of e.squad) {
       const c = v.chars[id];
       if (!c || c.status === "dead") continue;
+      const weapon = ["rifle", "shotgun", "pistol", "pipe", "knife"].find((k) => pool[k] >= 1);
+      if (weapon) pool[weapon]--;
       let cv = this.chars.get(id);
       if (!cv) {
         cv = new CharView(id, c.card.color, c.card.hat, 1);
@@ -1106,7 +1122,21 @@ export class ExpeditionUI {
       cv.update(dt, anim, c.dir ?? 1);
       cv.root.position.set(cv.x, -cv.y + 0.16, -0.45);
       cv.setMine(id === net.priv?.char);
+      cv.setWeapon(e.tasks[id] ? null : weapon);
       this.dyn.add(cv.root);
+      if (c.bark?.text) {
+        bubbles.add(id);
+        let b = this.bubbleEls.get(id);
+        if (!b) {
+          b = h("div.exp-bubble" + (id === net.priv?.char ? ".mine" : ""));
+          this.bubbleEls.set(id, b);
+          this.bubbleLayer.append(b);
+        }
+        if (b.textContent !== c.bark.text) b.textContent = c.bark.text;
+        const [sx, sy] = this.site.toScreen(cv.x, -cv.y + 1.75);
+        b.style.left = sx + "px";
+        b.style.top = sy + "px";
+      }
       if (e.light[id]) {
         let beam = this.beams.get(id);
         if (!beam) {
@@ -1118,7 +1148,15 @@ export class ExpeditionUI {
         this.dyn.add(beam);
       }
     }
+    for (const [id, b] of this.bubbleEls)
+      if (!bubbles.has(id)) {
+        b.remove();
+        this.bubbleEls.delete(id);
+      }
   }
+
+  private bubbleEls = new Map<string, HTMLElement>();
+  bubbleLayer = h("div.exp-bubbles");
 
   icon(glyph: string, x: number, y: number, size: number) {
     let material = this.spriteMaterials.get(glyph);
@@ -1132,33 +1170,48 @@ export class ExpeditionUI {
     return sp;
   }
 
+  /** holding E (or the mouse button) on a search: fast and loud */
+  private holdStart = 0;
+  private holding = false;
+  private rushSent = false;
+
   updatePrompt() {
     const e = this.e,
       c = net.myChar();
     if (!c || !e?.site) return;
     const p = net.pred;
     const me = { ...c, x: p ? p.x : c.x, lv: p ? p.lv : c.lv, climbing: p ? p.climbing : c.climbing };
+    let all: SiteAction[];
     try {
-      this.actions = listSiteActions(e, e.site, me as any, net.pub!.flags as any);
+      all = listSiteActions(e, e.site, me as any, net.pub!.flags as any);
     } catch {
-      this.actions = [];
+      all = [];
     }
-    if (this.selected && this.selected.id !== "near")
-      this.actions = this.actions.filter((a) => a.id === this.selected!.id || a.a === "inspect");
+    // the stone is a fallback, not something to offer at every step
+    const useful = all.filter((a) => a.a !== "stone");
+    this.actions = this.selected && this.selected.id !== "near" ? all.filter((a) => a.id === this.selected!.id) : useful.length ? useful : [];
+    const lk = this.actions.map((a) => a.a + a.id).join("|");
+    if (lk !== this.actionsKey) {
+      this.actionsKey = lk;
+      this.sel = 0;
+    }
     if (this.sel >= this.actions.length) this.sel = 0;
     const task = e.tasks[c.id];
+    menuArrows.on = !task && this.actions.length >= 2;
     const near =
       !this.selected ||
       this.selected.id === "near" ||
       (me.lv === this.selected.lv && Math.abs(me.x - (this.selected.x + 0.5)) <= 1.3);
-    const key = JSON.stringify([
-      this.selected?.id,
-      near,
-      this.actions,
-      this.sel,
-      task ? Math.round((task.t / task.dur) * 30) : -1,
-    ]);
-    this.prompt.classList.toggle("hidden", (!this.selected && !task) || isModalOpen());
+    // holding past a short press turns a search into a rush
+    if (this.holding && task?.a === "search") {
+      if (performance.now() - this.holdStart > 300 && !this.rushSent) {
+        this.rushSent = true;
+        net.send({ k: "srush", on: true });
+      }
+    }
+    const key = JSON.stringify([this.selected?.id, near, this.actions, this.sel, task ? [Math.round((task.t / task.dur) * 30), task.rush] : -1]);
+    const show = (!!this.selected || !!task || this.actions.length > 0) && !isModalOpen();
+    this.prompt.classList.toggle("hidden", !show);
     if (key === this.promptKey) return;
     this.promptKey = key;
     clear(this.prompt);
@@ -1166,27 +1219,32 @@ export class ExpeditionUI {
       h(
         "div.exp-context-title",
         null,
-        h("b", null, this.selected?.name ?? "Выполняется действие"),
-        h(
-          "button.small",
-          {
-            "aria-label": "Закрыть действия",
-            onclick: () => {
-              this.selected = null;
-              this.promptKey = "";
-            },
-          },
-          "×",
-        ),
+        h("b", null, task ? "Действие" : this.selected && this.selected.id !== "near" ? this.selected.name : "Рядом с вами"),
+        !task && this.actions.length ? h("span.dock-keys", null, this.actions.length > 1 ? "↑↓ выбор · E" : "E") : null,
+        this.selected
+          ? h(
+              "button.small",
+              {
+                "aria-label": "Закрыть действия",
+                onclick: () => {
+                  this.selected = null;
+                  this.promptKey = "";
+                },
+              },
+              "×",
+            )
+          : null,
       ),
     );
     if (task) {
+      const search = task.a === "search";
       this.prompt.append(
         h(
-          "div.exp-task",
+          "div.exp-task" + (task.rush ? ".rush" : ""),
           null,
-          h("span", null, "Обыскиваем / выполняем действие…"),
-          bar((task.t / task.dur) * 100, "#dda66c"),
+          h("span", null, search ? (task.rush ? "⚡ Быстрый обыск — ШУМНО!" : task.room ? "🏚 Обыскиваем комнату…" : "🔍 Обыскиваем тихо…") : "Выполняем действие…"),
+          bar((task.t / task.dur) * 100, task.rush ? "#e0603a" : "#dda66c"),
+          search ? h("small.dim", null, task.rush ? "Отпустите E — снова тихо" : "Держите E — в 2,5 раза быстрее, но слышно на весь дом") : null,
           h("button.small", { onclick: () => net.send({ k: "sstop" }) }, "Остановиться"),
         ),
       );
@@ -1196,17 +1254,41 @@ export class ExpeditionUI {
       this.prompt.append(h("p.dim", null, "Идём к предмету…"));
       return;
     }
-    this.actions.forEach((a, i) =>
-      this.prompt.append(
-        h(
-          "button.exp-action" + (i === this.sel ? ".sel" : ""),
-          { disabled: !!a.reason, title: a.reason ?? "", onclick: () => this.trigger(i) },
-          h("span", null, a.label.replace(" (R)", "")),
-          a.reason ? h("small", null, a.reason) : h("small", null, a.dur ? `${Math.ceil(a.dur)} сек` : "Действие"),
-        ),
-      ),
-    );
+    this.actions.forEach((a, i) => {
+      const btn = h(
+        "button.exp-action" + (i === this.sel ? ".sel" : ""),
+        { disabled: !!a.reason, title: a.reason ?? "" },
+        h("span.key", null, i === this.sel ? "E" : String(i + 1)),
+        h("span", null, a.label),
+        a.reason ? h("small", null, a.reason) : h("small", null, a.a === "search" ? `${Math.ceil(a.dur)} с · держать — быстрее` : a.dur ? `${Math.ceil(a.dur)} сек` : "сразу"),
+      ) as HTMLButtonElement;
+      // press = careful search, hold = fast and loud (same as the E key)
+      btn.addEventListener("pointerdown", () => {
+        this.sel = i;
+        this.press();
+      });
+      btn.addEventListener("pointerup", () => this.release());
+      btn.addEventListener("pointerleave", () => this.release());
+      this.prompt.append(btn);
+    });
     if (!this.actions.length) this.prompt.append(h("p.dim", null, "Здесь больше нечего искать."));
+  }
+
+  private actionsKey = "";
+
+  /** E / mouse down on the selected option. */
+  press(i = this.sel) {
+    this.holding = true;
+    this.holdStart = performance.now();
+    this.rushSent = false;
+    this.trigger(i);
+  }
+
+  release() {
+    if (!this.holding) return;
+    this.holding = false;
+    if (this.rushSent) net.send({ k: "srush", on: false });
+    this.rushSent = false;
   }
 
   trigger(i = this.sel) {
@@ -1218,6 +1300,15 @@ export class ExpeditionUI {
     audio.sfx("click", 0.5);
   }
 
+  handleKeyUp(ev: KeyboardEvent): boolean {
+    if (this.mode !== "site") return false;
+    if (ev.code === "KeyE") {
+      this.release();
+      return true;
+    }
+    return false;
+  }
+
   handleKey(ev: KeyboardEvent): boolean {
     if (this.mode === "map") {
       if (ev.code === "KeyC" || ev.code === "Enter") return false;
@@ -1226,23 +1317,37 @@ export class ExpeditionUI {
     if (this.mode !== "site") return false;
     switch (ev.code) {
       case "KeyE":
-        this.trigger();
+        if (this.e?.tasks[net.priv?.char ?? ""]) {
+          // E during a task: a second press stops a careful search, holding speeds it up
+          this.holding = true;
+          this.holdStart = performance.now();
+          this.rushSent = false;
+          return true;
+        }
+        this.press();
         return true;
-      case "KeyR": {
-        const a = this.actions.findIndex((x) => x.a === "inspect");
-        if (a >= 0) this.trigger(a);
-        return true;
-      }
       case "KeyL":
         net.send({ k: "expLight" });
         audio.sfx("click");
         return true;
+      case "ArrowUp":
       case "KeyZ":
-        this.sel = Math.max(0, this.sel - 1);
+        if (this.actions.length < 2 && ev.code === "ArrowUp") return false;
+        this.sel = (this.sel - 1 + this.actions.length) % Math.max(1, this.actions.length);
+        this.promptKey = "";
         return true;
+      case "ArrowDown":
       case "KeyX":
-        this.sel = Math.min(this.actions.length - 1, this.sel + 1);
+        if (this.actions.length < 2 && ev.code === "ArrowDown") return false;
+        this.sel = (this.sel + 1) % Math.max(1, this.actions.length);
+        this.promptKey = "";
         return true;
+      case "KeyG": {
+        // throw a stone to lure threats away
+        const stone = listSiteActions(this.e, this.e.site, net.myChar() as any, net.pub!.flags as any).find((a) => a.a === "stone");
+        if (stone) net.send({ k: "sdo", a: "stone", id: "stone" });
+        return true;
+      }
       case "KeyI":
       case "Tab":
         this.openInventory();
@@ -1254,10 +1359,11 @@ export class ExpeditionUI {
         return true;
     }
     if (/^Digit[1-7]$/.test(ev.code)) {
-      this.trigger(Number(ev.code.slice(5)) - 1);
+      this.sel = Number(ev.code.slice(5)) - 1;
+      this.trigger();
       return true;
     }
-    return ["KeyB", "KeyH", "KeyQ", "KeyG", "Tab"].includes(ev.code);
+    return ["KeyB", "KeyH", "KeyQ", "Tab"].includes(ev.code);
   }
 
   // ---------------------------------------------------------------- operator & dialogs

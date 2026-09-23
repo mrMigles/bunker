@@ -2,7 +2,7 @@ import { unitAlive, type Cover, type Door, type Field, type UnitInit } from "../
 import { BAL } from "../data/balance";
 import { ITEMS, itemName } from "../data/items";
 import { FACTIONS, LOC, generateMap, mapPath, travelHours, type MapNode, type WasteMap } from "../expedition/map";
-import { generateSite, rollLoot, siteRoomAt, siteWorld, type Site, type SiteCont, type SiteThreat } from "../expedition/site";
+import { generateSite, rollLoot, siteRoomAt, siteWorld, type Site, type SiteCont } from "../expedition/site";
 import { modViews } from "../net/view";
 import { Rng } from "../rng";
 import type { Char, World } from "../types";
@@ -13,10 +13,12 @@ import { battle, battleEndHooks, charUnit, startBattle, type BattleMod } from ".
 import { inputHooks, registerCmd } from "./commands";
 import { nightHooks } from "./time";
 import { addNpc, effectHooks } from "./events";
+import { bark } from "./bots";
 import { spawnItem } from "./items";
 import { stepMove } from "./move";
 import { decayNeeds, killChar } from "./needs";
-import { grantXp } from "./progress";
+import { grantXp, threatLevel } from "./progress";
+import { debugOps } from "./debug";
 import { onTick } from "./tick";
 import { timeMult } from "./time";
 import { clamp, firstName, fx, hasTrait, hoursPerSec, isBotDriven, log, rng, skillLevel } from "./util";
@@ -26,6 +28,10 @@ export interface SquadTask {
   id: string;
   t: number;
   dur: number;
+  /** held E: searching fast and loud (State of Decay style) */
+  rush?: boolean;
+  /** part of a whole-room search: companions walk to their container first */
+  room?: boolean;
 }
 
 export interface Expedition {
@@ -53,6 +59,8 @@ export interface Expedition {
   ambushBonus?: boolean;
   /** run by the residents themselves (no player in the squad) */
   auto?: string;
+  /** what the enemies of a road fight carried, until someone searches the bodies */
+  bodies?: Record<string, number>;
 }
 
 // ---------------------------------------------------------------- helpers
@@ -335,7 +343,22 @@ registerCmd("expGo", (w, p, cmd) => {
 
 export { startLeg as startLegPublic, elog as elogPublic };
 
+registerCmd("expBodies", (w, p) => {
+  const e = exped(w);
+  if (!e?.bodies || !p.char || !e.squad.includes(p.char)) return "Обыскивать некого";
+  const c = w.chars[p.char];
+  const got = addLoot(w, e, e.bodies, c);
+  e.bodies = undefined;
+  elog(e, `💀 ${firstName(c)} обыскивает тела: ${got.join(", ") || "ничего полезного"}.`);
+  const other = squadChars(w, e).find((m) => m.id !== c.id);
+  if (other) siteBark(w, other, "exp_body");
+});
+
 function startLeg(w: World, e: Expedition) {
+  if (e.bodies) {
+    elog(e, "Тела так и остались лежать у дороги.");
+    e.bodies = undefined;
+  }
   const m = wmap(w);
   const next = e.route[0];
   if (!next) return;
@@ -385,7 +408,8 @@ registerCmd("expEnter", (w, p) => {
 export function enterSite(w: World, e: Expedition, n: MapNode) {
   if (!n.site) {
     const seed = (w.seed * 13 + Number(n.id.replace(/\D/g, "") || 99) * 7919) | 0;
-    n.site = generateSite(n.id, n.type, seed, n.danger, n.theme, { radioPart: !!(LOC.types[n.type]?.radioPart && w.flags.ark_goal) });
+    // stronger survivors meet more company inside
+    n.site = generateSite(n.id, n.type, seed, n.danger + Math.floor((threatLevel(w) - 1) / 3), n.theme, { radioPart: !!(LOC.types[n.type]?.radioPart && w.flags.ark_goal) });
     initSite(n.site);
   } else {
     // revisits: other scavengers may have come by
@@ -586,7 +610,13 @@ battleEndHooks.expedition = (w, b: BattleMod) => {
   if (!e) return;
   const s = b.state;
   const loot = (b as any).loot as Record<string, number>;
-  for (const k in loot) e.loot[k] = (e.loot[k] ?? 0) + loot[k];
+  const drops = ((b as any).drops ?? {}) as Record<string, Record<string, number>>;
+  // on the road the bodies lie by the road until someone searches them (map screen button)
+  if (b.tag !== "site" && s.result === "win" && Object.keys(loot).length) {
+    e.bodies ??= {};
+    for (const k in loot) e.bodies[k] = (e.bodies[k] ?? 0) + loot[k];
+    elog(e, "💀 На дороге остались тела. Их можно обыскать.");
+  }
   // consumed gear
   for (const u of Object.values(s.units)) {
     if (u.side !== "ally") continue;
@@ -605,7 +635,11 @@ battleEndHooks.expedition = (w, b: BattleMod) => {
       if (!t) continue;
       if (!unitAlive(u)) {
         site.threats = site.threats.filter((x) => x !== t);
-        if (u.tags.includes("human")) site.conts.push({ id: "c" + w.nextId++, kind: "corpse", name: `Тело: ${u.name}`, x: Math.max(1, Math.min(site.W - 2, u.col)), lv: u.floor, size: 3, table: "corpse", searched: 0, locked: false });
+        // every fallen enemy can be searched: people carry gear, beasts give meat, drones give parts
+        const kind = u.tags.includes("human") ? "Тело" : u.tags.includes("machine") ? "Обломки" : "Туша";
+        const inside: string[] = [];
+        for (const [k, n] of Object.entries(drops[u.id] ?? {})) for (let i = 0; i < n; i++) inside.push(k);
+        site.conts.push({ id: "c" + w.nextId++, kind: "body", name: `${kind}: ${u.name}`, x: Math.max(1, Math.min(site.W - 2, u.col)), lv: u.floor, size: u.tags.includes("human") ? 2 : 0, table: "corpse", searched: 0, locked: false, guaranteed: inside });
       } else if (u.fled) site.threats = site.threats.filter((x) => x !== t);
       else {
         t.x = u.col;
@@ -856,6 +890,28 @@ function onStep(w: World, e: Expedition, s: Site, c: Char) {
   }
 }
 
+/** Moves a companion toward a spot in the building (via the stair hall between floors). Returns true while walking. */
+function walkTo(s: Site, c: Char, tx: number, lv: number, dt: number, tol = 0.2): boolean {
+  const sw = siteWorld(s);
+  if (c.lv !== lv || c.climbing) {
+    const stairX = 2.5;
+    if (!c.climbing && Math.abs(c.x - stairX) > 0.1) stepMove(sw, c, Math.sign(stairX - c.x), 0, dt);
+    else stepMove(sw, c, 0, Math.sign(lv - c.lv) || 1, dt);
+    return true;
+  }
+  if (Math.abs(tx - c.x) <= tol) return false;
+  const before = c.x;
+  stepMove(sw, c, Math.sign(tx - c.x), 0, dt);
+  if (Math.abs(c.x - before) < 1e-4) return false; // blocked by a wall or a closed door
+  c.anim = "walk";
+  return true;
+}
+
+/** A squad member says something (speech bubble over their head). */
+export function siteBark(w: World, c: Char, cat: string) {
+  bark(w, c, cat);
+}
+
 function siteTick(w: World, e: Expedition, s: Site, dt: number) {
   const squad = squadChars(w, e);
   const R = rng(w);
@@ -869,20 +925,46 @@ function siteTick(w: World, e: Expedition, s: Site, dt: number) {
       elog(e, "🔦 Батарейки сели.");
     }
   }
-  // bot squad members follow the nearest player, help with searches
+  // companions: each keeps their own spot around the leader (behind, ahead, further behind…),
+  // keeps watch while the leader searches, and walks to their own container during a room search
   const leader = squad.find((c) => !isBotDriven(w, c.id)) ?? squad[0];
-  for (const c of squad) {
-    if (!isBotDriven(w, c.id) || c === leader) continue;
+  const followers = squad.filter((c) => isBotDriven(w, c.id) && c !== leader);
+  const sneak = !!(leader as any).__sneak;
+  for (const c of squad) if (c.bark && (c.bark.t -= dt) <= 0) c.bark = null;
+  followers.forEach((c, k) => {
+    const task = e.tasks[c.id];
+    if (task) {
+      // walk to the container first
+      const cont = s.conts.find((x) => x.id === task.id);
+      if (cont && (cont.lv !== c.lv || Math.abs(cont.x + 0.5 - c.x) > 0.8)) walkTo(s, c, cont.x + 0.5, cont.lv, dt);
+      return;
+    }
+    // co-op containers: the nearest companion joins the leader
     const lt = e.tasks[leader.id];
-    if (lt && !e.tasks[c.id] && Math.abs(c.x - leader.x) < 1.5 && c.lv === leader.lv) e.tasks[c.id] = { ...lt, t: 0 };
-    if (e.tasks[c.id]) continue;
-    const tx = leader.x - 0.9;
-    if (c.lv !== leader.lv) {
-      // go to the stairs and climb
-      const stairX = 2.5;
-      if (Math.abs(c.x - stairX) > 0.1 && !c.climbing) stepMove(siteWorld(s), c, Math.sign(stairX - c.x), 0, dt);
-      else stepMove(siteWorld(s), c, 0, Math.sign(leader.lv - c.lv), dt);
-    } else if (Math.abs(tx - c.x) > 0.4) stepMove(siteWorld(s), c, Math.sign(tx - c.x), 0, dt * ((leader as any).__sneak ? SNEAK_SPEED : 1));
+    const lc = lt ? s.conts.find((x) => x.id === lt.id) : undefined;
+    if (lt && lc?.coop && k === 0) {
+      e.tasks[c.id] = { ...lt, t: 0, rush: false, room: true };
+      return;
+    }
+    const side = k % 2 === 0 ? -1 : 1; // behind, ahead, behind, ahead…
+    const face = leader.dir || 1;
+    const tx = leader.x + face * side * (1.0 + Math.floor(k / 2) * 0.95) + (k === 0 ? 0 : 0.12 * side);
+    const moved = walkTo(s, c, tx, leader.lv, dt * (sneak ? SNEAK_SPEED : 1) * (0.94 + k * 0.05), 0.35);
+    if (!moved) {
+      // standing: look away from the leader to cover the room while they work
+      c.dir = (lt ? (tx < leader.x ? -1 : 1) : face) as 1 | -1;
+      c.anim = "idle";
+    }
+    (c as any).__sneak = sneak;
+  });
+  // companions talk: a line now and then, keyed to what is going on
+  w.flags._sbarkT = (w.flags._sbarkT ?? 0) - dt;
+  if (followers.length && w.flags._sbarkT <= 0) {
+    w.flags._sbarkT = R.range(16, 30);
+    const c = R.pick(followers);
+    const room = siteRoomAt(s, Math.floor(c.x), c.lv);
+    const cat = e.tasks[leader.id]?.rush ? "exp_rush" : e.tasks[leader.id] ? "exp_watch" : s.noise > 40 ? "exp_noise" : room?.dark && !Object.values(e.light).some(Boolean) ? "exp_dark" : weightOf({ ...e.supplies, ...e.loot }) > capacity(w, e.squad) * 0.9 ? "exp_heavy" : "exp_idle";
+    siteBark(w, c, cat);
   }
   // reveal rooms
   for (const c of squad) {
@@ -923,15 +1005,63 @@ function siteTick(w: World, e: Expedition, s: Site, dt: number) {
       delete e.tasks[id];
       continue;
     }
-    c.anim = "work";
-    // co-op containers progress only with two people
     const cont = s.conts.find((x) => x.id === t.id);
+    // companions on a room search walk to their container first
+    if (cont && (cont.lv !== c.lv || Math.abs(cont.x + 0.5 - c.x) > 1.1)) continue;
+    if (cont && t.a === "search" && cont.searched >= 1) {
+      delete e.tasks[id];
+      continue;
+    }
+    c.anim = "work";
+    if (cont) c.dir = cont.x + 0.5 >= c.x ? 1 : -1;
+    // co-op containers progress only with two people
     const helpers = Object.values(e.tasks).filter((o) => o.id === t.id && o.a === t.a).length;
     if (cont?.coop && t.a === "search" && helpers < 2) continue;
-    t.t += dt * (1 + (helpers - 1) * 0.5);
+    // holding E: 2.5× faster, but loud — things clatter and threats come
+    let rate = 1 + (helpers - 1) * 0.5;
+    if (t.a === "search") {
+      if (t.rush) {
+        rate *= 2.5;
+        s.noise = clamp(s.noise + 4.5 * dt);
+        if (R.chance(dt * 0.12)) {
+          s.noise = clamp(s.noise + 12);
+          elog(e, `💥 ${firstName(c)} роняет что-то с грохотом!`);
+          fx(w, { k: "sound", id: "clang" });
+        }
+      } else s.noise = clamp(s.noise + (t.room ? 1.6 : 0.3) * dt);
+      if (cont) cont.searched = Math.min(0.99, Math.max(cont.searched, (t.t + dt * rate) / t.dur));
+    }
+    t.t += dt * rate;
     if (t.t >= t.dur) {
       delete e.tasks[id];
       finishSiteTask(w, e, s, c, t);
+      // a room search goes on: companions take the next untouched container in the room
+      if (t.room && cont && isBotDriven(w, c.id)) {
+        const taken = new Set(Object.values(e.tasks).map((x) => x.id));
+        const next = s.conts
+          .filter((x) => x.lv === cont.lv && x.searched < 1 && !x.locked && !taken.has(x.id) && siteRoomAt(s, x.x, x.lv) === siteRoomAt(s, cont.x, cont.lv))
+          .sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))[0];
+        if (next) {
+          const dur = searchDur(c, next, siteRoomAt(s, next.x, next.lv)?.dark && !e.light[c.id] ? 2 : 1);
+          e.tasks[c.id] = { a: "search", id: next.id, t: next.searched * dur, dur, room: true };
+        }
+      }
+    }
+  }
+  // details (notes, stashes, keys) are noticed on their own — better with light and a sharp eye
+  for (const c of squad) {
+    const room = siteRoomAt(s, Math.floor(c.x), c.lv);
+    if (!room) continue;
+    const lit = e.light[c.id] || !room.dark;
+    for (const d of s.details) {
+      if (d.found || d.lv !== c.lv || Math.abs(d.x + 0.5 - c.x) > 2.5) continue;
+      if (d.needsClue && !s.clues.includes(d.needsClue)) continue;
+      const rate = (d.needsClue ? 2 : 0.35) * (lit ? 1 : 0.35) * (1 + c.card.stats.int * 0.12) * (hasTrait(c, "eagleeye") ? 1.8 : 1);
+      if (R.chance(dt * rate)) {
+        d.found = true;
+        elog(e, `✦ ${firstName(c)} замечает: ${d.kind === "note" ? "записку" : d.kind === "loose_step" ? "шатающуюся ступеньку" : d.kind === "stash" ? "тайник" : "что-то странное"}.`);
+        siteBark(w, c, "exp_detail");
+      }
     }
   }
   // threats
@@ -960,6 +1090,9 @@ function doorBetween(s: Site, lv: number, a: number, b: number) {
 }
 
 function threatsThink(w: World, e: Expedition, s: Site, squad: Char[], dt: number, R: Rng) {
+  // a companion standing watch while others search spots danger early: detection builds slower
+  const watching = squad.some((c) => isBotDriven(w, c.id) && !e.tasks[c.id]) && squad.some((c) => e.tasks[c.id]);
+  const watchMul = watching ? 0.75 : 1;
   for (const t of s.threats) {
     const room = s.rooms.find((r) => r.id === t.room) ?? siteRoomAt(s, t.x, t.lv);
     // waking up
@@ -1001,12 +1134,18 @@ function threatsThink(w: World, e: Expedition, s: Site, squad: Char[], dt: numbe
       if (t.etype === "dog") range += 1.5;
       const inFront = Math.sign(dx) === t.dir || Math.abs(dx) < 1.1;
       if (!inFront || Math.abs(dx) > range || doorBetween(s, c.lv, c.x, t.x)) continue;
-      const rate = (hasTrait(c, "shadow") ? 0.65 : 1) * ((c as any).__sneak ? 25 : 55) * (lit ? 1 : 0.6) * (1.3 - Math.abs(dx) / range) * (1 - skillLevel(c, "stealth") * 0.04);
+      const rate = watchMul * (hasTrait(c, "shadow") ? 0.65 : 1) * ((c as any).__sneak ? 25 : 55) * (lit ? 1 : 0.6) * (1.3 - Math.abs(dx) / range) * (1 - skillLevel(c, "stealth") * 0.04);
       t.detect = clamp(t.detect + rate * dt);
       seen = c;
     }
     if (!seen) t.detect = clamp(t.detect - 25 * dt);
-    else if (t.detect > 40 && t.state !== "alert") {
+    else if (t.detect > 25 && !(t as any).warned) {
+      // someone in the squad notices it first
+      (t as any).warned = 1;
+      const spotter = squad.find((c) => c.lv === t.lv && isBotDriven(w, c.id));
+      if (spotter) siteBark(w, spotter, "exp_threat");
+    }
+    if (seen && t.detect > 40 && t.state !== "alert") {
       t.state = "alert";
       t.tx = seen.x;
     }
@@ -1057,8 +1196,14 @@ export interface SiteAction {
   dur: number;
 }
 
+export function searchDur(c: Char, ct: SiteCont, darkMul = 1) {
+  if (ct.kind === "body") return 2.5;
+  return Math.max(2, ct.size * 1.2 * darkMul * (1 - skillLevel(c, "stealth") * 0.03));
+}
+
 export function listSiteActions(e: Expedition, s: Site, c: Char, flags: Record<string, number> = {}): SiteAction[] {
   const out: SiteAction[] = [];
+  const squadSize = e.squad.length;
   if (c.climbing) return out;
   const cx = c.x;
   const near = (x: number, lv: number, r = 1.05) => lv === c.lv && Math.abs(x + 0.5 - cx) <= r;
@@ -1076,7 +1221,12 @@ export function listSiteActions(e: Expedition, s: Site, c: Char, flags: Record<s
       if (!has("lockpick") && !has("crowbar") && !keyDet) out.push({ a: "pry", id: ct.id, label: `🔒 ${ct.name}`, reason: "Заперто: нужны отмычки, лом или ключ", dur: 0 });
       continue;
     }
-    out.push({ a: "search", id: ct.id, label: `${ct.coop ? "🤝 Разобрать (нужны двое)" : "🔍 Обыскать"}: ${ct.name}${ct.searched > 0 ? ` (${Math.round(ct.searched * 100)}%)` : ""}`, dur: Math.max(2, ct.size * 1.2 * darkMul * (1 - skillLevel(c, "stealth") * 0.03)) });
+    out.push({ a: "search", id: ct.id, label: `${ct.coop ? "🤝 Разобрать (нужны двое)" : ct.kind === "corpse" || ct.kind === "body" ? "💀 Обыскать" : "🔍 Обыскать"}: ${ct.name}${ct.searched > 0 ? ` (${Math.round(ct.searched * 100)}%)` : ""}`, dur: searchDur(c, ct, darkMul) });
+  }
+  // the whole squad searches the room at once: fast, but loud
+  if (room && squadSize > 1) {
+    const left = s.conts.filter((x) => x.lv === room.lv && x.x >= room.x && x.x < room.x + room.w && x.searched < 1 && !x.locked);
+    if (left.length >= 2) out.push({ a: "searchRoom", id: room.id, label: `🏚 Обыскать комнату всем отрядом (${left.length}) — шумно`, dur: 0 });
   }
   for (const d of s.doors) {
     if (!near(d.x, d.lv, 1.25)) continue;
@@ -1096,7 +1246,6 @@ export function listSiteActions(e: Expedition, s: Site, c: Char, flags: Record<s
   for (const hz of s.hazards) if (hz.known && hz.armed && hz.kind === "tripwire" && near(hz.x, hz.lv, 1.3)) out.push({ a: "disarm", id: hz.id, label: "✂️ Обезвредить растяжку (Ремонт)", dur: 5 });
   for (const p of s.people) if (!p.gone && near(p.x, p.lv, 1.5)) out.push({ a: "talk", id: p.id, label: `💬 Поговорить: ${p.name}`, dur: 0 });
   for (const t of s.threats) if (t.state !== "alert" && near(t.x - 0.5, t.lv, 1.6)) out.push({ a: "ambush", id: t.id, label: `🗡 Напасть исподтишка`, dur: 0 });
-  if (room) out.push({ a: "inspect", id: room.id, label: "🔎 Детальный осмотр (R)", dur: 3 * darkMul });
   if (c.lv === s.exitLv && Math.abs(c.x - (s.exitX + 0.5)) <= 1.2) out.push({ a: "exit", id: "exit", label: "🚪 Выйти из здания", dur: 0 });
   if (has("relay") && !flags["relay_" + s.node]) out.push({ a: "relay", id: "relay", label: "📡 Установить ретранслятор", dur: 4 });
   out.push({ a: "stone", id: "stone", label: "🪨 Бросить камень (отвлечь)", dur: 0 });
@@ -1112,13 +1261,25 @@ registerCmd("sdo", (w, p, cmd) => {
   if (!act) return "Недоступно";
   if (act.reason) return act.reason;
   if (act.dur <= 0) return instantSiteAction(w, e, e.site, c, act, cmd);
-  e.tasks[c.id] = { a: act.a, id: act.id, t: 0, dur: act.dur };
+  // an interrupted search continues where it stopped
+  const cont = act.a === "search" ? e.site.conts.find((x) => x.id === act.id) : undefined;
+  e.tasks[c.id] = { a: act.a, id: act.id, t: (cont?.searched ?? 0) * act.dur, dur: act.dur, rush: act.a === "search" && !!cmd.rush };
   if (act.a === "kick") e.site.noise = clamp(e.site.noise + 10);
+});
+
+/** Holding E while searching: faster and louder. Releasing goes back to a careful search. */
+registerCmd("srush", (w, p, cmd) => {
+  const e = exped(w);
+  const t = e && p.char ? e.tasks[p.char] : undefined;
+  if (t && t.a === "search") t.rush = !!cmd.on;
 });
 
 registerCmd("sstop", (w, p) => {
   const e = exped(w);
-  if (e && p.char) delete e.tasks[p.char];
+  if (!e || !p.char) return;
+  delete e.tasks[p.char];
+  // stopping a room search calls everyone back
+  for (const id in e.tasks) if (e.tasks[id].room && isBotDriven(w, id)) delete e.tasks[id];
 });
 
 registerCmd("expLight", (w, p) => {
@@ -1135,6 +1296,31 @@ function instantSiteAction(w: World, e: Expedition, s: Site, c: Char, act: SiteA
     case "exit":
       leaveSite(w, e);
       return;
+    case "searchRoom": {
+      const room = s.rooms.find((r) => r.id === act.id);
+      if (!room) return;
+      const left = s.conts.filter((x) => x.lv === room.lv && x.x >= room.x && x.x < room.x + room.w && x.searched < 1 && !x.locked);
+      const people = squadChars(w, e).filter((m) => !e.tasks[m.id]);
+      // each takes the nearest free container (the player first)
+      people.sort((a, b) => (a.id === c.id ? -1 : b.id === c.id ? 1 : 0));
+      const taken = new Set<string>();
+      for (const m of people) {
+        // players search what is within reach (walking would cancel their task); companions walk
+        const ct = left
+          .filter((x) => (!taken.has(x.id) || x.coop) && (isBotDriven(w, m.id) || (x.lv === m.lv && Math.abs(x.x + 0.5 - m.x) <= 1.1)))
+          .sort((a, b) => Math.abs(a.x + 0.5 - m.x) - Math.abs(b.x + 0.5 - m.x))[0];
+        if (!ct) continue;
+        taken.add(ct.id);
+        const dark = room.dark && !e.light[m.id] ? 2 : 1;
+        const dur = searchDur(m, ct, dark);
+        e.tasks[m.id] = { a: "search", id: ct.id, t: ct.searched * dur, dur, room: true };
+      }
+      s.noise = clamp(s.noise + 6);
+      elog(e, "🏚 Отряд расходится по комнате и ищет. Шумно!");
+      const talker = people.find((m) => m.id !== c.id);
+      if (talker) siteBark(w, talker, "exp_room");
+      return;
+    }
     case "ambush": {
       const t = s.threats.find((x) => x.id === act.id);
       if (!t) return;
@@ -1328,12 +1514,12 @@ function finishSiteTask(w: World, e: Expedition, s: Site, c: Char, t: SquadTask)
     case "search": {
       if (!cont || cont.searched >= 1) return;
       const dark = siteRoomAt(s, cont.x, cont.lv)?.dark && !e.light[c.id];
-      const rolls = Math.max(1, Math.round(cont.size / 3) + R.int(-1, 1) - (dark ? 1 : 0) + (hasTrait(c, "scavenger") ? 1 : 0));
+      const rolls = cont.kind === "body" && !cont.size ? 0 : Math.max(1, Math.round(cont.size / 3) + R.int(-1, 1) - (dark ? 1 : 0) + (hasTrait(c, "scavenger") ? 1 : 0));
       const loot = rollLoot(cont.table, R, rolls);
       for (const g of cont.guaranteed ?? []) loot[g] = (loot[g] ?? 0) + 1;
       cont.searched = 1;
-      s.noise = clamp(s.noise + ((c as any).__sneak ? 1 : 3));
       const got = addLoot(w, e, loot, c);
+      if (isBotDriven(w, c.id) || R.chance(0.3)) siteBark(w, c, got.length ? (cont.kind === "body" ? "exp_body" : "exp_found") : "exp_empty");
       elog(e, `${firstName(c)} обыскивает «${cont.name}»: ${got.length ? got.join(", ") : "пусто"}${dark ? " (в темноте могли что-то упустить)" : ""}.`);
       if (cont.kind === "weapon_crate") for (const id of e.squad) if (w.chars[id]?.card.goal === "armory") w.flags["_goal_armory_" + id] = 1;
       c.skills.stealth += 1;
@@ -1392,23 +1578,6 @@ function finishSiteTask(w: World, e: Expedition, s: Site, c: Char, t: SquadTask)
         elog(e, `Найдено: ${got.join(", ")}.`);
       }
       if (c.ctrl && (d.kind === "note" || d.kind === "photo")) fx(w, { k: "toast", to: c.ctrl, text: d.text.slice(0, 120) });
-      break;
-    }
-    case "inspect": {
-      const room = s.rooms.find((r) => r.id === t.id);
-      if (!room) return;
-      let found = 0;
-      const chance = 0.35 + c.card.stats.int * 0.1 + (e.light[c.id] || !room.dark ? 0.2 : -0.15) + (hasTrait(c, "eagleeye") ? 0.2 : 0);
-      for (const d of s.details) {
-        if (d.found || d.lv !== room.lv || d.x < room.x || d.x >= room.x + room.w) continue;
-        if (d.needsClue && !s.clues.includes(d.needsClue)) continue;
-        if (R.chance(Math.min(0.95, chance + (d.needsClue ? 0.4 : 0)))) {
-          d.found = true;
-          found++;
-        }
-      }
-      for (const hz of s.hazards) if (!hz.known && hz.lv === room.lv && hz.x >= room.x && hz.x < room.x + room.w && R.chance(chance)) ((hz.known = true), found++);
-      elog(e, found ? `🔎 ${firstName(c)} замечает детали (${found}).` : "🔎 Ничего особенного.");
       break;
     }
     case "disarm": {
@@ -1569,11 +1738,34 @@ modViews.wmap = {
     const nodes: Record<string, any> = {};
     for (const id in m.nodes) {
       const n = m.nodes[id];
-      if (!n.known) continue;
-      nodes[id] = { id, type: n.type, name: n.name, x: n.x, y: n.y, links: n.links.filter((l) => m.nodes[l].known), visited: n.visited, faction: n.faction, danger: n.danger, looted: n.looted, theme: n.theme };
+      if (!n.known) {
+        // unexplored places show as a question mark on their plot: position only, no spoilers
+        if (!n.hidden) nodes[id] = { id, x: n.x, y: n.y, unknown: true, links: [] };
+        continue;
+      }
+      nodes[id] = { id, known: true, type: n.type, name: n.name, x: n.x, y: n.y, links: n.links.filter((l) => m.nodes[l].known), visited: n.visited, faction: n.faction, danger: n.danger, looted: n.looted, theme: n.theme };
     }
     return { nodes, home: m.home };
   },
+};
+
+/** dev: skip the preparation and the road — me and the pre-filled squad step into the nearest shop */
+debugOps.sortie = (w, _a, pid) => {
+  const me = w.chars[w.players[pid]?.char ?? ""];
+  if (!me) return "Нет персонажа";
+  const e = (w.mods.expedition = newExpedition(w));
+  e.squad = [me.id];
+  autoSquad(w, e);
+  baseKit(w, e);
+  const err = departExpedition(w, e);
+  if (err) return err;
+  const shop = Object.values(wmap(w).nodes).filter((n) => n.type === "shop" && n.known).sort((a, b) => Math.hypot(a.x - 50, a.y - 46) - Math.hypot(b.x - 50, b.y - 46))[0];
+  e.node = shop.id;
+  enterSite(w, e, shop);
+};
+debugOps.leaveSite = (w) => {
+  const e = exped(w);
+  if (e?.stage === "site") leaveSite(w, e);
 };
 
 modViews.expedition = {
@@ -1591,7 +1783,7 @@ modViews.expedition = {
           grid: s.grid,
           ladders: s.ladders,
           rooms: s.rooms,
-          conts: s.conts.filter((c) => s.rooms.find((r) => r.revealed && c.lv === r.lv && c.x >= r.x && c.x < r.x + r.w)).map((c) => ({ id: c.id, kind: c.kind, name: c.name, x: c.x, lv: c.lv, searched: c.searched, locked: c.locked, coop: c.coop, cover: c.cover })),
+          conts: s.conts.filter((c) => s.rooms.find((r) => r.revealed && c.lv === r.lv && c.x >= r.x && c.x < r.x + r.w)).map((c) => ({ id: c.id, kind: c.kind, name: c.name, x: c.x, lv: c.lv, size: c.size, searched: Math.round(c.searched * 100) / 100, locked: c.locked, coop: c.coop, cover: c.cover })),
           doors: s.doors,
           threats: s.threats.filter((t) => scan || s.rooms.find((r) => r.revealed && t.lv === r.lv && t.x >= r.x - 0.5 && t.x < r.x + r.w)).map((t) => ({ id: t.id, etype: t.etype, x: Math.round(t.x * 100) / 100, lv: t.lv, dir: t.dir, state: t.state, detect: Math.round(t.detect) })),
           hazards: s.hazards.filter((h) => h.known),
@@ -1624,6 +1816,7 @@ modViews.expedition = {
       log: e.log.slice(-12),
       prepT: Math.floor(e.prepT),
       recruits: e.recruits,
+      bodies: e.bodies,
       radio: radioLink(w),
       stock: w.mods.stock?.[e.node],
       priceMult: priceMult(w, e.node),

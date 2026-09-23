@@ -62,6 +62,33 @@ export class CouncilUI {
       ),
     );
     if (this.minimized) return;
+    // what this night is about, in plain words: three short steps, each with visible consequences
+    const idx = Math.max(0, steps.findIndex(([id]) => id === cn.step));
+    const WHAT: Record<string, [string, string]> = {
+      rations: [
+        "Шаг 1 из 3 — ужин: сколько еды и воды получит каждый",
+        "Паёк «1» — норма: сытость и вода восстанавливаются. «½» — экономия, но рассудок падает. «0» — голодная ночь. «×2» — чтобы быстрее поправить больного. Свой паёк можно урезать сразу, чужой — только голосованием большинства.",
+      ],
+      event: [
+        "Шаг 2 из 3 — событие ночи: решаем вместе",
+        "Голосуют игроки, у каждого один голос; боты высказываются вслух, но не голосуют. «🎲 проверка» — бросок d20 + характеристика лучшего жильца против сложности. Ничья — решает Староста.",
+      ],
+      plan: [
+        "Шаг 3 из 3 — план на завтра и сон",
+        "Запишите на доску, кто идёт на вылазку и что строим — заметку увидят все утром. Кому не хватило коек, спят на полу: отдых хуже, завтра они первые на койку.",
+      ],
+    };
+    const [what, how] = WHAT[cn.step] ?? ["", ""];
+    this.el.append(
+      h(
+        "div.council-explain",
+        null,
+        h("div.council-steps", null, ...steps.map(([id, label], i) => h("span" + (i < idx ? ".done" : i === idx ? ".now" : ""), null, (i < idx ? "✓ " : "") + label))),
+        h("b", null, what),
+        h("p", null, how),
+        h("small.dim", null, `Совет идёт дальше, когда все нажмут «Готов» или через ${left} с. Утром — новый день, решения уже в силе.`),
+      ),
+    );
     if (cn.step === "rations") this.renderRations(v, cn, me);
     else if (cn.step === "event") this.renderVote(v, cn.vote, me);
     else this.renderPlan(v, cn);
@@ -95,6 +122,13 @@ export class CouncilUI {
         h("div", null, "🥫 Еды: ", h("b", { class: food >= wantF ? "good" : "bad" }, food.toFixed(1)), ` / нужно ${wantF.toFixed(1)}`),
         h("div", null, "💧 Воды: ", h("b", { class: water >= wantW ? "good" : "bad" }, Math.floor(water)), ` / нужно ${wantW}`),
         h("div.dim", null, "По умолчанию — поровну. Предложите перераспределение — решает большинство."),
+      ),
+      h(
+        "div.dim",
+        { style: { marginBottom: "6px" } },
+        food >= wantF
+          ? `После ужина останется еды ещё на ~${Math.max(0, (food - wantF) / Math.max(0.1, chars.length * BAL.rationFood)).toFixed(1)} дн. при норме.`
+          : "Еды на всех не хватит: пайки урежут поровну. Нужна вылазка или урожай.",
       ),
     );
     const myChar = net.priv?.char;

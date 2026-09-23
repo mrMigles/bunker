@@ -207,6 +207,31 @@ class AudioEngine {
         this.tone(120, 0.6, "sawtooth", 0.08 * vol, undefined, 0, 60);
         this.noise(0.4, 400, 1, 0.2 * vol, undefined, 0.3);
         break;
+      case "ring":
+        // old intercom buzzer: two short rasps, twice
+        for (let i = 0; i < 4; i++) this.tone(i % 2 ? 660 : 520, 0.22, "square", 0.06 * vol, undefined, i * 0.28 + (i > 1 ? 0.5 : 0));
+        break;
+      case "clang":
+        this.tone(740, 0.5, "triangle", 0.2 * vol, undefined, 0, 520);
+        this.noise(0.35, 2600, 2, 0.45 * vol);
+        this.noise(0.25, 900, 1.5, 0.35 * vol, undefined, 0.12);
+        break;
+      case "wind":
+        // a long howl in the vent shaft
+        for (let i = 0; i < 3; i++) this.noise(2.2, 500 + i * 180, 6, 0.12 * vol, undefined, i * 0.7);
+        this.tone(220, 3, "sine", 0.03 * vol, undefined, 0, 180);
+        break;
+      case "rumble":
+        this.noise(2.6, 70, 0.5, 0.5 * vol);
+        this.tone(38, 2.4, "sine", 0.35 * vol, undefined, 0, 28);
+        break;
+      case "nuke":
+        // the flash: a pressure wave, then a long roll of thunder
+        this.tone(30, 5, "sine", 1 * vol, undefined, 0, 18);
+        this.noise(5.5, 90, 0.4, 1.2 * vol);
+        this.noise(3, 400, 0.6, 0.5 * vol, undefined, 0.2);
+        for (let i = 0; i < 6; i++) this.noise(1.2, 60 + i * 20, 0.5, 0.35 * vol, undefined, 1.5 + i * 0.6);
+        break;
     }
   }
 

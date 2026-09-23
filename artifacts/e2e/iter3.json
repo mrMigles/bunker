@@ -1,0 +1,81 @@
+{
+  "steps": [
+    {
+      "name": "prologue: civil-defence radio is on",
+      "ok": true,
+      "radio0": "📻 «Внимание всем! Воздушная тревога! Всем немедленно проследовать в укрытия!»"
+    },
+    {
+      "name": "prologue: strikes on the horizon, the radio follows them",
+      "ok": true,
+      "radio1": "📻 «Вторая волна. Промзона… связь с Промзоной потеряна…»"
+    },
+    {
+      "name": "start: me + at most 3 residents",
+      "ok": true,
+      "chars": 4
+    },
+    {
+      "name": "storage tab lists weapons and board games",
+      "ok": true
+    },
+    {
+      "name": "pumping opens the pump minigame",
+      "ok": true
+    },
+    {
+      "name": "hand strokes fill the bucket (task done by the minigame)",
+      "ok": false,
+      "dirty0": 0,
+      "dirty1": 0
+    },
+    {
+      "name": "talking to a resident shows today's story",
+      "ok": true,
+      "story": "«Если будете наверху — поищите самокрутки. Мне очень нужно.»"
+    },
+    {
+      "name": "the intercom rings and opens a dialog with the visitor",
+      "ok": true
+    },
+    {
+      "name": "context menu shows by itself near things, first option highlighted",
+      "ok": true,
+      "visible": true,
+      "sel": 1,
+      "n": 1
+    },
+    {
+      "name": "holding E turns the search into a loud rush",
+      "ok": true,
+      "rush": true,
+      "noise": 1
+    },
+    {
+      "name": "«обыскать комнату» sends the companions to containers",
+      "ok": true,
+      "busy": 1
+    },
+    {
+      "name": "companions stand apart",
+      "ok": true,
+      "xs": [
+        6.34,
+        6.92
+      ],
+      "minGap": 0.5800000000000001,
+      "bubbles": 0
+    },
+    {
+      "name": "the map shows the drawn city of Новоград",
+      "ok": true
+    },
+    {
+      "name": "no page errors",
+      "ok": true,
+      "errors": []
+    }
+  ],
+  "errors": [],
+  "ok": false
+}

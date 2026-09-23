@@ -1,4 +1,5 @@
 import { ENEMIES, actNow, allyBotPlan, createCombat, enemyPhase, unitAlive, unitSummary, type Action, type CombatState, type Field, type UnitInit } from "../combat/combat";
+import { threatLevel } from "./progress";
 import { bunkerField, makeArena } from "../combat/fields";
 import { PROFS } from "../data/characters";
 import { modViews } from "../net/view";
@@ -75,6 +76,14 @@ export function charUnit(w: World, c: Char, col: number, floor: number, taken: R
 
 export function startBattle(w: World, field: Field, allies: UnitInit[], enemies: UnitInit[], where: BattleMod["where"], opts: { coordination?: number; tag?: string; onEnd?: string } = {}) {
   const seed = (rng(w).next() * 2 ** 31) | 0;
+  // the wasteland grows harder as the survivors grow stronger (and as days pass)
+  const tl = where === "arena" ? 1 : threatLevel(w);
+  if (tl > 1)
+    for (const e of enemies) {
+      const base = ENEMIES[e.etype ?? ""]?.hp ?? 10;
+      e.hpBonus = (e.hpBonus ?? 0) + Math.round(base * 0.1 * (tl - 1));
+      e.aimBonus = (e.aimBonus ?? 0) + 2 * (tl - 1);
+    }
   const state = createCombat(field, allies, enemies, seed, { coordination: opts.coordination, where });
   const b: BattleMod = { active: true, where, state, planLeft: w.settings.combatTurnTime, animLeft: 0, ready: {}, eventsRound: 0, tag: opts.tag, onEnd: opts.onEnd, initItems: {} };
   for (const a of allies) b.initItems![a.id] = { ...(a.items ?? {}) };
@@ -214,6 +223,8 @@ function finishBattle(w: World, b: BattleMod) {
   const R = new Rng(w.rng);
   b.active = false;
   const loot: Record<string, number> = {};
+  /** what each fallen enemy carried (bodies to search on expeditions) */
+  const drops: Record<string, Record<string, number>> = {};
   for (const u of Object.values(s.units)) {
     if (u.side === "ally") {
       const c = u.char ? w.chars[u.char] : undefined;
@@ -242,9 +253,13 @@ function finishBattle(w: World, b: BattleMod) {
       }
     } else if (u.dead || u.captured) {
       const d = ENEMIES[u.etype ?? ""];
+      const mine: Record<string, number> = (drops[u.id] = {});
       if (d) for (const k in d.loot) {
         const n = R.int(d.loot[k][0], d.loot[k][1]);
-        if (n > 0) loot[k] = (loot[k] ?? 0) + n;
+        if (n > 0) {
+          loot[k] = (loot[k] ?? 0) + n;
+          mine[k] = n;
+        }
       }
       if (u.captured && b.where === "bunker") w.flags.prisoner = 1;
     }
@@ -253,6 +268,7 @@ function finishBattle(w: World, b: BattleMod) {
   log(w, s.result === "win" ? "⚔ Бой выигран!" : s.result === "fled" ? "⚔ Отступили с поля боя." : "⚔ Бой проигран…", s.result === "win" ? "good" : "bad");
   fx(w, { k: "toast", text: s.result === "win" ? "⚔ Победа!" : "⚔ Бой окончен" });
   (b as any).loot = loot;
+  (b as any).drops = drops;
   if (b.where === "bunker" || b.where === "arena") {
     // loot drops where the fight was
     const home = Object.values(w.chars).find((c) => c.status === "ok");

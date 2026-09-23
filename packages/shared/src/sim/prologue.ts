@@ -141,7 +141,7 @@ export function beginPrologue(w: World) {
   const p = createPrologue(w.seed);
   w.mods.prologue = p;
   // the starting bunker is almost empty: supplies come from the street
-  w.res = { food_can: 8, water: 14, meds: 1, pipe: 2, parts: 4, scrap: 8, wood: 6, cloth: 2, seed_lettuce: 2, seed_potato: 2, spores: 1, shovel: 1 };
+  w.res = { food_can: 8, water: 14, meds: 1, pipe: 2, knife: 1, parts: 4, scrap: 8, wood: 6, cloth: 2, seed_lettuce: 2, seed_potato: 2, spores: 1, shovel: 1 };
   const chars = Object.values(w.chars);
   chars.forEach((c, k) => {
     c.x = p.hatchX + 0.5 + (k - chars.length / 2) * 1.2;

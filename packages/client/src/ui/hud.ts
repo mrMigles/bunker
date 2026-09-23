@@ -1,4 +1,4 @@
-import { ITEMS, NEED_NAMES, PERKS, PROFS, itemName, xpForLevel, type Fx } from "@bunker/shared";
+import { ITEMS, NEED_NAMES, PERKS, PROFS, itemName, threatLevel, xpForLevel, type Fx } from "@bunker/shared";
 import { net } from "../net";
 import type { WorldRenderer } from "../render/world";
 import { add, bar, clear, closeModal, esc, floatText, h, isModalOpen, modal, needColor, toast, ui } from "./dom";
@@ -69,7 +69,7 @@ export class Hud {
     const water = res.water ?? 0;
     const p = v.power;
     const bal = p.gen - p.use;
-    const key = [v.day, Math.floor(v.hour * 60), Math.round(food), Math.round(water), res.parts, res.scrap, res.meds, Math.round(p.battery * 10), Math.round(bal * 10), v.notice, v.speed, v.air.co2, v.phase, res.water_dirty, res.wood, res.chem, res.cloth, res.ammo, res.fuel, v.mods.combat?.active, net.myChar()?.status].join("|");
+    const key = [v.day, Math.floor(v.hour * 60), Math.round(food), Math.round(water), res.parts, res.scrap, res.meds, Math.round(p.battery * 10), Math.round(bal * 10), v.notice, v.speed, v.air.co2, v.phase, res.water_dirty, res.wood, res.chem, res.cloth, res.ammo, res.fuel, v.mods.combat?.active, net.myChar()?.status, threatLevel(v)].join("|");
     if (key === this.topKey) return;
     this.topKey = key;
     clear(this.top);
@@ -77,7 +77,7 @@ export class Hud {
     const mode = v.mods.combat?.active ? "БОЙ" : v.phase === "prologue" ? "СБОР" : net.myChar()?.status === "away" ? "ВЫЛАЗКА" : `ДЕНЬ ${v.day}`;
     const resource = (tile: number, value: string | number, label: string, title: string) => h("div.resource-meter", { title }, art(tile), h("b", null, value), h("small", null, label));
     add(this.top,
-      h("div.hud-clock", null, h("strong", null, mode), h("small", null, v.phase === "prologue" ? "До закрытия убежища" : v.phase === "night" ? "Ночной совет" : "Выжить. Вместе.")),
+      h("div.hud-clock", null, h("strong", null, mode), h("small", { title: "Угроза растёт с уровнями жильцов и днями: враги крепче и метче, в зданиях их больше" }, v.phase === "prologue" ? "До закрытия убежища" : v.phase === "night" ? "Ночной совет" : `☢ Угроза ${threatLevel(v)} · выжить вместе`)),
       h("div.hud-time", null, h("strong",null,`☀ ${fmtHour(v.hour)}`), h("small",null,`Бункер № ${net.code}`)),
       resource(0,Math.floor(food),"Еда",`Пайков. Нужно ${people} в день`),
       resource(1,Math.floor(water),"Вода",`Нужно ${people*2} в день`),

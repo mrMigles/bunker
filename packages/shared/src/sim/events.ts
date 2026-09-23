@@ -7,7 +7,7 @@ import radio from "../data/events/radio.json";
 import world from "../data/events/world.json";
 import { PROFS, STAT_NAMES, SKILL_NAMES } from "../data/characters";
 import { itemName } from "../data/items";
-import type { Char, StatId, SkillId, Vote, World } from "../types";
+import type { Card, Char, StatId, SkillId, Vote, World } from "../types";
 import { feetY } from "../world/grid";
 import { objsOfKind, roomsOfType, addObj, roomAt } from "../world/rooms";
 import { bark } from "./bots";
@@ -337,9 +337,9 @@ export function rollCheck(w: World, chk: { stat?: StatId; skill?: SkillId; dc: n
 
 const NPC_PROFS: Record<string, string> = { doctor: "doctor", soldier: "soldier", cook: "cook", engineer: "engineer", conman: "conman", child: "child" };
 
-export function addNpc(w: World, kind: string): Char {
+export function addNpc(w: World, kind: string, known?: Card): Char {
   const R = new Rng(w.rng);
-  const card = makeCard(R);
+  const card = known ? { ...known } : makeCard(R);
   if (kind !== "random" && NPC_PROFS[kind]) card.prof = NPC_PROFS[kind];
   if (kind === "child") {
     card.age = R.int(7, 12);

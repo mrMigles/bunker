@@ -3,7 +3,7 @@ import { addPlayer, applyCmd, tickWorld } from "../src/index";
 import { startedWorld } from "./helpers";
 
 describe("bots keep the bunker alive (Aquarium, 20 minutes)", () => {
-  it("1 player in aquarium + 5 bots survive 20 real minutes, garden yields", () => {
+  it("1 player in aquarium + 3 bots survive 20 real minutes, garden yields", () => {
     const w = startedWorld({ players: 1, seed: 4242 });
     applyCmd(w, "p0", { k: "aquarium", v: true });
     let harvested = 0;
@@ -28,7 +28,7 @@ describe("bots keep the bunker alive (Aquarium, 20 minutes)", () => {
     console.log(alive.map((c) => `${c.card.name}: ${JSON.stringify(Object.fromEntries(Object.entries(c.needs).map(([k, v]) => [k, Math.round(v)])))}`).join("\n"));
     // newcomers may join through events; nobody may die
     expect(Object.values(w.chars).filter((c) => c.status === "dead").length).toBe(0);
-    expect(alive.length).toBeGreaterThanOrEqual(6);
+    expect(alive.length).toBeGreaterThanOrEqual(4); // 1 player + at most 3 bots at the start (more may knock later)
     expect(w.day).toBeGreaterThanOrEqual(3);
     expect(harvested).toBeGreaterThanOrEqual(1);
     expect(barks).toBeGreaterThan(20);

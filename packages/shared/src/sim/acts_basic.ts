@@ -37,10 +37,14 @@ defAction({
     c.needs.water = clamp(c.needs.water - 2 * h);
     c.skills.digging += 0.02 * dt;
     if (!o!.st.rider) o!.st.rider = c.id;
+    // pedalling by hand (minigame): the rhythm sets the output; without it the bike runs at the usual pace
+    const target = (c.task as any)?.mini ? 0.3 : 1;
+    o!.st.boost = target + ((o!.st.boost ?? 1) - target) * Math.exp(-dt / 1.5);
     if (c.needs.energy < 5) return true;
   },
   stop: ({ o, c }) => {
     if (o && o.st.rider === c.id) o.st.rider = undefined;
+    if (o) o.st.boost = 1;
   },
 });
 
@@ -309,6 +313,19 @@ defAction({
     const got = storeHands(w, c);
     if (got.length) emitWork(w, c, got.join(", "), "#8fcf6a");
   },
+});
+
+/** Carrying loot anywhere in the bunker: one button walks it to the nearest shelf (the client routes). */
+defAction({
+  id: "carry_to_store",
+  type: "self",
+  prio: 2,
+  avail: ({ w, c }) => {
+    if (!c.hands.some((h) => isStorable(h.item))) return null;
+    const nearShelf = Object.values(w.objs).some((o) => ["shelf", "med_cabinet", "weapon_rack", "tool_rack", "game_shelf"].includes(o.kind) && o.lv === c.lv && Math.abs(o.x + 0.5 - c.x) <= 1);
+    return nearShelf ? null : "📥 Отнести на склад";
+  },
+  dur: () => 0,
 });
 
 defAction({

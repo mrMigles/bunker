@@ -45,7 +45,7 @@ export const BAL = {
   snoreEnergy: -12,
 
   // --- resources
-  startRes: { food_can: 12, water: 18, water_dirty: 0, parts: 10, scrap: 15, cloth: 4, chem: 3, meds: 2, ammo: 6, fuel: 0, wood: 8 },
+  startRes: { food_can: 12, water: 18, water_dirty: 0, parts: 10, scrap: 15, cloth: 4, chem: 3, meds: 2, ammo: 6, fuel: 0, wood: 8, pipe: 2, knife: 1, pickaxe: 1 },
   baseStorage: 80,
   storagePerShelf: 60,
 

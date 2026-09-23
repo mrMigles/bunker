@@ -22,7 +22,7 @@ export interface InputMsg {
 
 /** Transient effect (sound, floating text, toast...). `to` limits delivery to one player. */
 export interface Fx {
-  k: "sound" | "float" | "shake" | "toast" | "chat" | "flash" | "emote" | "bark" | "radio" | "music" | "news" | "tabletalk";
+  k: "sound" | "float" | "shake" | "toast" | "chat" | "flash" | "emote" | "bark" | "radio" | "music" | "news" | "tabletalk" | "rats" | "flicker" | "dust";
   x?: number;
   lv?: number;
   text?: string;

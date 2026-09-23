@@ -3,6 +3,9 @@ import { audio } from "../audio/audio";
 import { net } from "../net";
 import { GameUI } from "./game";
 import { CLIENT_SCREENS } from "./prompt";
+import { openIntercom } from "./intercom";
+import { openTalk } from "./talk";
+import { MinigameUI } from "./minigame";
 import { DayVoteUI, InstrumentUI, RadioUI } from "./radio";
 import { TableUI } from "./tableui";
 import { ObjectivesUI } from "./objectives";
@@ -49,17 +52,34 @@ export function installExtras(game: GameUI) {
     h("button", { onclick: () => { game.chatWrap.classList.remove("hidden"); game.chatBox.focus(); } }, "…", h("span", null, "Чат")));
   ui().append(toolbar, dock);
   GameUI.extraKeysUp.push((e) => pro.handleKey(e, false));
+  GameUI.extraKeysUp.push((e) => exp.mode === "site" && exp.handleKeyUp(e));
   const radio = new RadioUI();
   const instr = new InstrumentUI();
   const dayVote = new DayVoteUI();
 
   const ending = new EndingUI();
   const objectives = new ObjectivesUI(game);
+  const minigame = new MinigameUI();
+  (window as any).__mini = minigame;
   CLIENT_SCREENS.research = (a) => (openResearch(a), true);
   CLIENT_SCREENS.craft_item = (a) => (openCraftItem(a), true);
   CLIENT_SCREENS.cook = (a) => (openCook(a), true);
   CLIENT_SCREENS.craft = (a) => (openCraft(a), true);
   CLIENT_SCREENS.board = () => (openBoard(), true);
+  CLIENT_SCREENS.carry_to_store = () => {
+    // walk the armful to the nearest shelf and put it away
+    const me = net.myChar();
+    const v = net.pub;
+    if (!me || !v) return true;
+    const shelves = Object.values(v.objs as Record<string, any>).filter((o) => o.kind === "shelf");
+    const best = shelves.sort((a, b) => Math.abs(a.lv - me.lv) * 20 + Math.abs(a.x - me.x) - (Math.abs(b.lv - me.lv) * 20 + Math.abs(b.x - me.x)))[0];
+    if (!best) {
+      toast("Нет стеллажа — постройте Кладовую");
+      return true;
+    }
+    game.navigation.go(best.x + 0.5, best.lv, () => net.send({ k: "do", a: "deposit", tt: "obj", t: best.id }));
+    return true;
+  };
   CLIENT_SCREENS.draw = (a) => {
     net.send({ k: "do", a: a.a, tt: a.t.type, t: a.t.id });
     openCanvas();
@@ -69,6 +89,8 @@ export function installExtras(game: GameUI) {
   net.onFx.add((f: Fx) => {
     if (f.k === "news" && (!f.to || f.to === net.priv?.pid)) {
       if (f.id === "books") openBooks();
+      else if (f.id === "intercom") openIntercom();
+      else if (f.id === "talk_res") openTalk(String((f.data as any)?.char ?? ""));
       else if (f.id === "periscope") openPeriscope(f.data);
       else if (f.id) openClipping(f.id);
     } else if (f.k === "sound" && f.id) {
@@ -78,8 +100,11 @@ export function installExtras(game: GameUI) {
         const d = Math.abs(me.x - f.x) + Math.abs(me.lv - f.lv) * 5;
         vol = Math.max(0.15, 1 - d / 30);
       }
-      audio.sfx(f.id, vol);
-    } else if (f.k === "toast") audio.sfx("blip", 0.6);
+      audio.sfx(f.id, vol * (typeof f.data === "number" ? f.data : 1));
+    } else if (f.k === "rats") game.r.rats(f.x ?? 0, f.lv ?? 0, (f.data as any)?.w ?? 4, (f.data as any)?.n ?? 3, (f.data as any)?.dir ?? 1);
+    else if (f.k === "flicker") game.r.flicker = Number(f.data ?? 1.5);
+    else if (f.k === "dust") game.r.dustFall();
+    else if (f.k === "toast") audio.sfx("blip", 0.6);
     else if (f.k === "flash") audio.sfx("boom");
   });
 
@@ -151,6 +176,7 @@ export function installExtras(game: GameUI) {
     pro.update();
     ending.update();
     objectives.update();
+    minigame.update();
     maybeOpenPerkChoice();
   });
 

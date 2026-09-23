@@ -129,7 +129,7 @@ export function refreshChores(w: World) {
     if (r.state === "done" && r.dirt > 40) add({ kind: "clean_room", room: id, urgency: Math.min(0.7, r.dirt / 120) });
     if (r.flood > 10) add({ kind: "dry_room", room: id, urgency: 0.6 });
     if (r.state === "done" && (r.dmg > 30 || w.flags["_crack_" + id])) add({ kind: "reinforce", room: id, urgency: w.flags["_crack_" + id] ? 0.95 : 0.5 });
-    if (r.state === "frame" && ((r as any).paid || hasRes(w, roomCost(r.type, r.w)))) add({ kind: "build_frame", room: id, urgency: 0.5 });
+    if (r.state === "frame" && ((r as any).paid || hasRes(w, roomCost(r.type, r.w)))) add({ kind: "build_frame", room: id, urgency: 0.72 }); // a planned room waits on its frame: the colony finishes what it started
   }
   for (const id in w.items) {
     const it = w.items[id];

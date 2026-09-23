@@ -20,6 +20,7 @@ import {
   matchRecipe,
   skillLevel,
   PERKS,
+  BOX_NAMES,
   type Clipping,
 } from "@bunker/shared";
 import { audio } from "../audio/audio";
@@ -182,19 +183,54 @@ export function openArchive() {
 
 // ---------------------------------------------------------------- notice board
 
-export function openBoard(tab: "chores" | "gazette" | "recipes" = "chores") {
+export function openBoard(tab: "store" | "chores" | "gazette" | "recipes" = "store") {
   const v = net.pub!;
   const body = h("div", { style: { minWidth: "620px" } });
   const tabs = h(
     "div.row",
     { style: { marginBottom: "10px" } },
+    h("button.small" + (tab === "store" ? ".primary" : ""), { onclick: () => openBoard("store") }, "📦 Склад"),
     h("button.small" + (tab === "chores" ? ".primary" : ""), { onclick: () => openBoard("chores") }, "📋 Доска дел"),
     h("button.small" + (tab === "gazette" ? ".primary" : ""), { onclick: () => openBoard("gazette") }, "🗞 «Вестник Бункера»"),
     h("button.small" + (tab === "recipes" ? ".primary" : ""), { onclick: () => openBoard("recipes") }, "📖 Рецепты"),
     h("button.small", { onclick: () => openArchive() }, "📚 Архив газет"),
   );
   body.appendChild(tabs);
-  if (tab === "chores") {
+  if (tab === "store") {
+    // everything the bunker owns, by kind: weapons and games used to be invisible
+    const groups: [string, string[]][] = [
+      ["🥫 Еда и вода", ["food", "water", "dish"]],
+      ["⚔ Оружие и защита", ["weapon"]],
+      ["💊 Медицина", ["med"]],
+      ["🛠 Инструменты", ["tool"]],
+      ["⚙ Материалы", ["mat"]],
+      ["🌱 Семена", ["seed"]],
+      ["🎸 Досуг", ["fun", "misc", "lore"]],
+    ];
+    const res = v.res as Record<string, number>;
+    const catOf = (k: string) => (k.startsWith("dish_") ? "dish" : ITEMS[k]?.cat ?? "misc");
+    const grid = h("div.store-grid");
+    for (const [name, cats] of groups) {
+      const rows = Object.keys(res).filter((k) => res[k] >= 1 && cats.includes(catOf(k))).sort((a, b) => res[b] - res[a]);
+      if (!rows.length && name.startsWith("⚔")) rows.push("__none");
+      if (!rows.length) continue;
+      grid.appendChild(
+        h(
+          "section.store-group",
+          null,
+          h("h4", null, name),
+          ...rows.map((k) =>
+            k === "__none"
+              ? h("div.dim", null, "Пусто. Оружие находят на вылазках: в шкафчиках, у тел, в ящиках с инструментами.")
+              : h("div.store-row", null, h("span", null, ITEMS[k]?.icon ?? "◇"), h("span.grow", null, itemName(k)), h("b", null, String(Math.floor(res[k])))),
+          ),
+        ),
+      );
+    }
+    const games = (v.games as string[]) ?? [];
+    grid.appendChild(h("section.store-group", null, h("h4", null, "🎲 Настольные игры"), ...(games.length ? games.map((g) => h("div.store-row", null, h("span", null, "🎲"), h("span.grow", null, BOX_NAMES[g] ?? g))) : [h("div.dim", null, "Пока только колода. Настолки лежат в полках с играми, книжных шкафах и тайниках.")])));
+    body.appendChild(grid);
+  } else if (tab === "chores") {
     const chores = Object.values(v.chores as Record<string, any>).sort((a, b) => b.urgency - a.urgency);
     body.appendChild(h("div.dim", { style: { marginBottom: "6px" } }, "Боты берут карточки сами. «Приколоть» — взять себе (боты не тронут). «Важно» — боты возьмут раньше."));
     const me = net.priv!.pid;
@@ -245,7 +281,7 @@ export function openBoard(tab: "chores" | "gazette" | "recipes" = "chores") {
     }
     body.appendChild(h("div.dim", { style: { marginTop: "6px" } }, `Неизвестно: ${Object.keys(RECIPES).length - (v.recipes as string[]).length} рецептов.`));
   }
-  modal("Доска в Столовой", body, { wide: true });
+  modal(tab === "store" ? "Склад бункера" : "Доска в Столовой", body, { wide: true });
 }
 
 function targetName(v: any, ch: any): string | null {

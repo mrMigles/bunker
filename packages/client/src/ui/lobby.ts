@@ -56,7 +56,7 @@ export class LobbyUI {
             p.ready ? h("span.good", null, "✔ готов") : p.pick ? h("span.dim", null, "выбрал") : h("span.dim", null, "выбирает…"),
           ),
         ),
-        h("div.pchip.dim", null, `+ ${Math.max(0, s.residents - players.length)} бот(ов)-жильцов`),
+        h("div.pchip.dim", { title: "Новые жильцы постучат в интерком или найдутся на вылазках" }, `+ ${Math.max(0, Math.min(3, s.residents - players.length))} бот(ов)-жильцов`),
       ),
     );
     r.appendChild(h("div.dim", null, "Выберите карточку выжившего. Скрытую цель видите только вы."));

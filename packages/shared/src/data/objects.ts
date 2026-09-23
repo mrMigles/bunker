@@ -72,6 +72,7 @@ export const OBJECTS: Record<string, ObjDef> = {
   loophole: { name: "Бойница" },
   turret: { name: "Турель", power: 0.2, group: "defense" },
   periscope: { name: "Перископ" },
+  intercom: { name: "Интерком" },
   shower: { name: "Горячий душ", power: 0.8, group: "comfort" },
   projector: { name: "Кинопроектор", power: 0.2, group: "comfort" },
   grave: { name: "Памятник", seat: false },

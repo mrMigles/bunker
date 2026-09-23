@@ -3,7 +3,7 @@
     {
       "name": "lobby cards readable (light text on dark card)",
       "ok": true,
-      "text": "📻\nЛука Сиренин\nРадиолюбитель, 51 лет\nЛовит станции, ведёт отряд по радио.\n3\nСИЛ",
+      "text": "🕯️\nСавелий Гвоздев\nСвященник, 32 лет\nПоддерживает рассудок группы.\n2\nСИЛ\n2\nЛОВ\n",
       "lum": 224.33333333333334
     },
     {
@@ -19,38 +19,36 @@
       "name": "prologue: selecting loot walks there and picks it up",
       "ok": true,
       "before": {
-        "x": 24.9,
+        "x": 26.1,
         "hands": 0
       },
       "after": {
-        "x": 18.26,
+        "x": 29.38,
         "hands": [
-          "cards52"
+          "suitcase"
         ]
       },
       "target": {
-        "id": "pi48",
-        "x": 18.1
+        "id": "pi36",
+        "x": 29.4
       }
     },
     {
       "name": "prologue: carried loot drops into the hatch",
       "ok": true,
-      "delivered": 3
+      "delivered": 1
     },
     {
       "name": "prologue ends; waiting at the hatch keeps you unhurt",
       "ok": true,
       "rad": 0,
       "injury": null,
-      "waited": 57
+      "waited": 60
     },
     {
       "name": "day 1: «Задачи» panel shows priorities and the first tutorial step",
       "ok": true,
       "list": [
-        "need:Еды на 1.5 дн.",
-        "need:Коек 4 на 6 человек",
         "tutorial:Покрутите генератор-велосипед"
       ],
       "panel": true
@@ -68,47 +66,46 @@
     {
       "name": "sortie prep: squad pre-filled (me + residents) and a base kit packed",
       "ok": true,
-      "squad": 3,
-      "weight": 9.8,
+      "squad": 2,
+      "weight": 7.6,
       "gear": {
-        "water": 6,
-        "food_can": 3,
+        "water": 4,
+        "food_can": 2,
         "meds": 1,
-        "batteries": 1,
-        "pipe": 1
+        "pipe": 1,
+        "knife": 1
       }
     },
     {
       "name": "travel to the first location",
       "ok": true,
-      "dest": "Разрушенный магазин на Проспекте Созидания",
-      "seconds": 2
+      "dest": "Разрушенный магазин на Кирпичной",
+      "seconds": 1
     },
     {
       "name": "site: squad survives the first exploration",
       "ok": true,
       "fights": 0,
       "loot": {
-        "teddy": 1,
+        "scrap": 6,
+        "parts": 2,
+        "pipe": 1,
         "wood": 3,
-        "parts": 6,
-        "radpills": 1
+        "food_can": 1,
+        "batteries": 1,
+        "newspaper": 2
       },
       "log": [
-        "Прибыли: Разрушенный магазин на Проспекте Созидания.",
-        "Вошли: Разрушенный магазин на Проспекте Созидания. «Универмаг, где ночевали беженцы».",
-        "⚠ Марфа: «Стой! Впереди запах газа»",
-        "Лука обыскивает «Стол»: 🧸Плюшевый медведь×1.",
-        "⚠ Лука: «Стой! Впереди гнилой пол»",
-        "Лука обыскивает «Шкаф»: 🪵Дерево×3.",
-        "Лука обыскивает «Сейф»: ⚙️Запчасти×6, 💉Антирад×1.",
-        "🔒 Дверь заперта: отмычка, лом или выбить (подойдите и нажмите E)."
+        "Вошли: Разрушенный магазин на Кирпичной. «Кооператив «Изобилие»».",
+        "Савелий обыскивает «Стеллаж»: 🔩Металлолом×2, ⚙️Запчасти×1 (в темноте могли что-то упустить).",
+        "Савелий обыскивает «Ящик»: 🔧Труба×1, 🔩Металлолом×4 (в темноте могли что-то упустить).",
+        "Савелий обыскивает «Ящик»: 🪵Дерево×2 (в темноте могли что-то упустить).",
+        "✦ Савелий замечает: тайник.",
+        "Савелий обыскивает «Стеллаж»: 🪵Дерево×1.",
+        "Савелий обыскивает «Ящик»: 🥫Консервы «Вечность»×1, ⚙️Запчасти×1.",
+        "Савелий обыскивает «Ящик»: 🔋Батарейки×1, 📰Старая газета×2."
       ],
       "squad": [
-        {
-          "hp": 100,
-          "status": "away"
-        },
         {
           "hp": 100,
           "status": "away"
@@ -123,18 +120,21 @@
       "name": "site: searching finds loot",
       "ok": true,
       "loot": {
-        "teddy": 1,
+        "scrap": 6,
+        "parts": 2,
+        "pipe": 1,
         "wood": 3,
-        "parts": 6,
-        "radpills": 1
+        "food_can": 1,
+        "batteries": 1,
+        "newspaper": 2
       },
       "trace": [
-        "x4.8 lv0 conts3/3 rooms2/6",
-        "x6.7 lv0 conts3/0 rooms2/6",
-        "x6.7 lv0 conts3/0 rooms2/6",
-        "x6.7 lv0 conts3/0 rooms2/6",
-        "x6.7 lv0 conts3/0 rooms2/6",
-        "x6.7 lv0 conts3/0 rooms2/6"
+        "x4.2 lv1 conts3/3 rooms2/6",
+        "x9.8 lv1 conts6/3 rooms3/6",
+        "x11.7 lv1 conts6/0 rooms3/6",
+        "x11.7 lv1 conts6/0 rooms3/6",
+        "x11.7 lv1 conts6/0 rooms3/6",
+        "x11.7 lv1 conts6/0 rooms3/6"
       ]
     },
     {
@@ -146,7 +146,7 @@
         "[debug] Новичок: speed 8",
         "[debug] Новичок: speed 1",
         "[debug] Новичок: speed 8",
-        "🏠 Отряд вернулся: 🧸Плюшевый медведь×1, 🪵Дерево×3, ⚙️Запчасти×6, 💉Антирад×1. Разберите добычу у шлюза!"
+        "🏠 Отряд вернулся: 🥫Консервы «Вечность»×1, 🔧Труба×1, 🔩Металлолом×6, ⚙️Запчасти×2, 🪵Дерево×3, 🔋Батарейки×1, 📰Старая газета×2. Разберите добычу у шлюза!"
       ]
     },
     {

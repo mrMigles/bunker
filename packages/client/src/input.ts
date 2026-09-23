@@ -48,6 +48,9 @@ window.addEventListener("blur", () => {
   }
 });
 
+/** While a context menu with a choice is on screen, ↑/↓ pick an option instead of climbing (W/S still climb). */
+export const menuArrows = { on: false };
+
 export function axis(): { mx: number; my: number; run: boolean } {
   if (typing()) {
     tapped.clear();
@@ -55,7 +58,8 @@ export function axis(): { mx: number; my: number; run: boolean } {
   }
   const on = (c: string) => held.has(c) || tapped.has(c);
   const mx = (on("KeyD") || on("ArrowRight") ? 1 : 0) - (on("KeyA") || on("ArrowLeft") ? 1 : 0);
-  const my = (on("KeyS") || on("ArrowDown") ? 1 : 0) - (on("KeyW") || on("ArrowUp") ? 1 : 0);
+  const arrows = !menuArrows.on;
+  const my = (on("KeyS") || (arrows && on("ArrowDown")) ? 1 : 0) - (on("KeyW") || (arrows && on("ArrowUp")) ? 1 : 0);
   tapped.clear();
   return { mx, my, run: held.has("ShiftLeft") || held.has("ShiftRight") };
 }

@@ -93,3 +93,49 @@ body.mode-build .objectives,body.mode-build .hud-feed,body.mode-build .hud-me,bo
 .perk-btn{margin:0 0 6px;animation:perkPulse 1.6s ease-in-out infinite}@keyframes perkPulse{50%{box-shadow:0 0 0 3px #eac98a55}}
 .perk-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}.perk-card{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;padding:14px 10px;border:1px solid #56636a;border-radius:8px;background:#141c23;color:#e2d8c3;cursor:pointer}.perk-card:hover{border-color:#eac98a;background:#1c2630}.perk-card .perk-icon{font-size:28px}.perk-card b{color:#f3e6c8}.perk-card span{font-size:12px;color:#b9b3a3}
 @media(max-width:700px){.perk-cards{grid-template-columns:1fr}}
+.dock-keys {font-size:11px;font-weight:500;color:#a9b0a8;letter-spacing:0}
+.hold-hint {font-size:10px;color:#e8c98a;border:1px solid #e8c98a55;border-radius:4px;padding:0 4px;margin-right:6px}
+.store-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.store-group {background:#151c21;border:1px solid #39434a;border-radius:8px;padding:8px 10px}
+.store-group h4 {margin:0 0 6px;font-size:13px;color:#eac98a}
+.store-row {display:flex;gap:8px;align-items:center;padding:2px 0;font-size:13px}
+.store-row .grow {flex:1}
+.intercom-modal {width:min(620px,94vw)}
+.intercom-head {display:flex;gap:12px;align-items:center;margin-bottom:8px}
+.intercom-grille {width:46px;height:46px;border-radius:8px;display:grid;place-items:center;font-size:22px;background:repeating-linear-gradient(0deg,#3a3d38 0 3px,#23251f 3px 6px);border:1px solid #6a6e64}
+.intercom-left {margin-left:auto;font-size:11px;color:#e8c98a}
+.intercom-text {font-style:italic;color:#e8e2d0;background:#0f1418;border-left:3px solid #eac98a;padding:10px 12px;border-radius:4px}
+.intercom-asked {color:#bcd4e0;font-size:13px}
+.intercom-done {color:#cfe8b8;font-size:14px}
+.intercom-opts {display:flex;flex-direction:column;gap:6px}
+.intercom-opts > button {display:flex;justify-content:space-between;gap:10px;text-align:left}
+.intercom-opts small {color:#a9b0a8;font-size:11px}
+.intercom-trade .trade-cols {display:grid;grid-template-columns:1fr 1fr;gap:12px;max-height:300px;overflow:auto}
+.intercom-trade h4 {margin:4px 0;color:#eac98a;font-size:13px}
+.trade-row {display:flex;align-items:center;gap:5px;font-size:12px;padding:2px 0}
+.trade-row > span {flex:1}
+.trade-sum {margin:8px 0;font-size:12px}
+.trade-sum.good {color:#9fd67a}
+@media (max-width:600px){.intercom-trade .trade-cols{grid-template-columns:1fr}}
+.talk-modal {width:min(560px,94vw)}
+.talk-head {display:flex;gap:12px;align-items:center;margin-bottom:6px}
+.talk-face {width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:20px;color:#1a1d1e;border:2px solid #eac98a}
+.talk-text {font-size:15px;line-height:1.45;color:#efe9da;background:#0f1418;border-left:3px solid #9fc2d6;padding:12px 14px;border-radius:4px}
+.talk-answer {color:#cfe8b8}
+.talk-hint {font-size:11px;margin-top:8px}
+.council-explain {margin:10px 0;padding:10px 12px;border-radius:7px;background:#0f1519;border:1px solid #3d4a52}
+.council-explain b {display:block;color:#eac98a;margin:6px 0 4px}
+.council-explain p {margin:0 0 6px;font-size:13px;line-height:1.45;color:#d8dbd2}
+.council-steps {display:flex;gap:6px;flex-wrap:wrap}
+.council-steps span {font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid #4a555c;color:#9aa3a0}
+.council-steps span.now {border-color:#eac98a;color:#1a1d1e;background:#eac98a;font-weight:700}
+.council-steps span.done {color:#9fd67a;border-color:#56733f}
+.mini-modal {width:min(520px,96vw)}
+.mini-canvas {width:100%;height:auto;border-radius:8px;border:1px solid #3d4a52;touch-action:none;cursor:crosshair;display:block}
+.mini-progress {height:6px;margin-top:8px}
+.mini-progress i {background:#eac98a}
+.mini-status {margin-top:6px;font-size:13px;color:#e8e2d0;min-height:18px}
+.strike-flash {position:fixed;inset:0;background:radial-gradient(circle at 50% 30%,#fff6d8,#ffd08a 45%,#ff9a4a00 80%);opacity:0;pointer-events:none!important;z-index:55;mix-blend-mode:screen}
+.raid-radio {position:fixed;left:50%;top:132px;transform:translateX(-50%);max-width:min(720px,92vw);padding:8px 16px;border-radius:6px;background:#0c1113e6;border:1px solid #b0513a88;color:#f0dcc0;font-size:14px;z-index:30;pointer-events:none!important;text-align:center;font-family:Georgia,serif}
+.raid-radio.in {animation:radioIn .5s ease-out}
+@keyframes radioIn {from{opacity:0;transform:translate(-50%,-6px)}to{opacity:1;transform:translate(-50%,0)}}

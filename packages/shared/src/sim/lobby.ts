@@ -110,10 +110,15 @@ export function takeChar(w: World, p: Player, charId: string): boolean {
   return true;
 }
 
+/** Bot residents a new bunker starts with (players aside). */
+export const MAX_START_BOTS = 3;
+
 export function startGame(w: World) {
   const players = Object.values(w.players).filter((p) => p.online);
   const rng = new Rng(w.rng);
-  const total = Math.max(players.length, Math.min(6, w.settings.residents));
+  // at most three residents besides the players at the start: the rest knock on the intercom
+  // or are found on sorties later
+  const total = Math.max(players.length, Math.min(6, w.settings.residents, players.length + MAX_START_BOTS));
   const airlock = roomsOfType(w, "airlock")[0];
   const spawnX = airlock ? airlock.x + 1 : 20;
   const taken = new Set<string>();

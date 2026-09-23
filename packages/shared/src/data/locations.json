@@ -15,7 +15,7 @@
     "ark":        { "name": "Ковчег", "icon": "⛰", "floors": [2, 3], "basement": true, "rooms": ["gate", "corridor", "equipment", "stair_hall"], "threats": ["soldier", "drone", "boss", "soldier"], "loot": "rare", "danger": 4, "themes": ["Врата Ковчега"], "final": true }
   },
   "rooms": {
-    "sales_hall":   { "name": "Торговый зал", "w": [5, 7], "conts": ["shelf", "shelf", "counter", "fridge"], "cover": true },
+    "sales_hall":   { "name": "Торговый зал", "w": [5, 7], "conts": ["shelf", "game_shelf_c", "counter", "fridge"], "cover": true },
     "storeroom":    { "name": "Подсобка", "w": [3, 4], "conts": ["crate", "crate", "shelf"], "dark": 0.6 },
     "office":       { "name": "Кабинет", "w": [3, 4], "conts": ["desk", "safe", "cabinet"], "clue": true },
     "cold_room":    { "name": "Холодильная камера", "w": [3, 3], "conts": ["fridge", "crate"], "dark": 0.9 },
@@ -32,7 +32,7 @@
     "guard_post":   { "name": "Караулка", "w": [3, 4], "conts": ["desk", "locker"], "cover": true },
     "classroom":    { "name": "Класс", "w": [4, 5], "conts": ["desk", "cabinet", "bookcase"] },
     "canteen":      { "name": "Столовая", "w": [4, 6], "conts": ["fridge", "counter", "crate"] },
-    "library":      { "name": "Библиотека", "w": [4, 5], "conts": ["bookcase", "bookcase", "desk"], "clue": true },
+    "library":      { "name": "Библиотека", "w": [4, 5], "conts": ["bookcase", "game_shelf_c", "desk"], "clue": true },
     "gym":          { "name": "Спортзал", "w": [5, 7], "conts": ["locker", "crate"], "cover": true },
     "platform":     { "name": "Платформа", "w": [6, 8], "conts": ["corpse", "suitcase_c", "bench"], "dark": 0.8, "cover": true },
     "tunnel":       { "name": "Тоннель", "w": [5, 7], "conts": ["crate", "corpse"], "dark": 1, "hazard": 0.6 },
@@ -42,17 +42,18 @@
     "lab_ruin":     { "name": "Лаборатория", "w": [3, 5], "conts": ["cabinet", "safe", "desk"], "hazard": 0.5, "clue": true },
     "barn":         { "name": "Амбар", "w": [5, 6], "conts": ["crate", "barrel", "hay"], "cover": true },
     "greenhouse":   { "name": "Теплица", "w": [4, 6], "conts": ["seed_box", "crate", "shelf"] },
-    "house_room":   { "name": "Жилая комната", "w": [3, 5], "conts": ["cabinet", "bed_cont", "nightstand", "bookcase"], "clue": true },
+    "house_room":   { "name": "Жилая комната", "w": [3, 5], "conts": ["cabinet", "bed_cont", "game_shelf_c", "bookcase"], "clue": true },
     "cellar_room":  { "name": "Погреб", "w": [3, 4], "conts": ["barrel", "crate", "shelf"], "dark": 1 },
     "equipment":    { "name": "Аппаратная", "w": [3, 5], "conts": ["radio_rack", "cabinet", "toolbox_c"] },
     "roof_room":    { "name": "Площадка антенны", "w": [3, 4], "conts": ["radio_rack", "crate"] },
-    "living_room":  { "name": "Жилой отсек", "w": [4, 5], "conts": ["bed_cont", "locker", "nightstand"] },
+    "living_room":  { "name": "Жилой отсек", "w": [4, 5], "conts": ["bed_cont", "locker", "game_shelf_c"] },
     "tech_room":    { "name": "Техотсек", "w": [3, 4], "conts": ["toolbox_c", "barrel", "cabinet"] },
     "gate":         { "name": "Шлюз Ковчега", "w": [4, 5], "conts": ["locker", "weapon_crate"], "locked": 1 },
     "bench":        { "name": "Зал", "w": [4, 4], "conts": ["bench"] }
   },
   "containers": {
     "shelf":         { "name": "Стеллаж", "size": 6, "table": "base" },
+    "game_shelf_c":  { "name": "Полка с настолками", "size": 4, "table": "games" },
     "counter":       { "name": "Прилавок", "size": 5, "table": "base" },
     "fridge":        { "name": "Холодильник", "size": 5, "table": "food" },
     "crate":         { "name": "Ящик", "size": 7, "table": "base" },
@@ -77,19 +78,20 @@
     "radio_rack":    { "name": "Стойка аппаратуры", "size": 7, "table": "radio" }
   },
   "loot": {
-    "base":     [["scrap", 3, [1, 4]], ["cloth", 2, [1, 3]], ["parts", 2, [1, 2]], ["wood", 2, [1, 3]], ["food_can", 1, [1, 2]], ["batteries", 1, [1, 2]], ["newspaper", 1, [1, 1]]],
+    "base":     [["scrap", 3, [1, 4]], ["cloth", 2, [1, 3]], ["parts", 2, [1, 2]], ["wood", 2, [1, 3]], ["food_can", 1, [1, 2]], ["batteries", 1, [1, 2]], ["newspaper", 1, [1, 1]], ["pipe", 0.6, [1, 1]], ["knife", 0.4, [1, 1]]],
     "food":     [["food_can", 5, [1, 3]], ["water_jug", 1, [1, 1]], ["seed_potato", 1, [1, 2]], ["sunflower", 1, [1, 3]], ["cigarettes", 1, [1, 2]]],
-    "misc":     [["cloth", 2, [1, 2]], ["newspaper", 2, [1, 1]], ["cigarettes", 1, [1, 2]], ["batteries", 1, [1, 1]], ["tape", 1, [1, 1]], ["book", 1, [1, 1]], ["bg_random", 0.5, [1, 1]], ["food_can", 1, [1, 1]], ["teddy", 0.3, [1, 1]]],
+    "misc":     [["cloth", 2, [1, 2]], ["newspaper", 2, [1, 1]], ["cigarettes", 1, [1, 2]], ["batteries", 1, [1, 1]], ["tape", 1, [1, 1]], ["book", 1, [1, 1]], ["bg_random", 1.4, [1, 1]], ["food_can", 1, [1, 1]], ["teddy", 0.3, [1, 1]], ["knife", 0.5, [1, 1]]],
     "rare":     [["meds", 2, [1, 3]], ["parts", 2, [2, 4]], ["radpills", 1, [1, 2]], ["nvg", 0.3, [1, 1]], ["seed_strawberry", 0.6, [1, 1]], ["drill", 0.3, [1, 1]], ["bg_random", 0.6, [1, 1]], ["film", 0.5, [1, 1]]],
     "med":      [["meds", 4, [1, 3]], ["medkit", 2, [1, 1]], ["radpills", 2, [1, 2]], ["chem", 1, [1, 2]], ["cloth", 1, [1, 2]]],
-    "corpse":   [["food_can", 1, [1, 1]], ["ammo", 2, [1, 4]], ["cigarettes", 1, [1, 2]], ["newspaper", 1, [1, 1]], ["knife", 0.5, [1, 1]], ["meds", 0.5, [1, 1]]],
-    "tools":    [["parts", 3, [1, 3]], ["pickaxe", 0.6, [1, 1]], ["crowbar", 0.6, [1, 1]], ["lockpick", 0.5, [1, 1]], ["scrap", 2, [2, 4]], ["drill", 0.15, [1, 1]]],
+    "corpse":   [["food_can", 1, [1, 1]], ["ammo", 2, [1, 4]], ["cigarettes", 1, [1, 2]], ["newspaper", 1, [1, 1]], ["knife", 0.8, [1, 1]], ["meds", 0.5, [1, 1]], ["pipe", 0.6, [1, 1]], ["pistol", 0.35, [1, 1]], ["molotov", 0.3, [1, 1]]],
+    "tools":    [["parts", 3, [1, 3]], ["pickaxe", 0.6, [1, 1]], ["crowbar", 0.6, [1, 1]], ["lockpick", 0.5, [1, 1]], ["scrap", 2, [2, 4]], ["drill", 0.15, [1, 1]], ["pipe", 1, [1, 1]], ["knife", 0.5, [1, 1]]],
     "fuel":     [["fuel", 4, [1, 3]], ["scrap", 2, [2, 4]], ["parts", 1, [1, 2]], ["chem", 1, [1, 1]]],
-    "military": [["ammo", 4, [2, 6]], ["pistol", 0.5, [1, 1]], ["medkit", 1, [1, 1]], ["armor", 0.3, [1, 1]], ["food_can", 1, [1, 2]], ["gasmask", 0.6, [1, 1]], ["cards52", 0.3, [1, 1]]],
+    "military": [["ammo", 4, [2, 6]], ["pistol", 0.5, [1, 1]], ["medkit", 1, [1, 1]], ["armor", 0.3, [1, 1]], ["food_can", 1, [1, 2]], ["gasmask", 0.6, [1, 1]], ["bg_cards52", 0.5, [1, 1]], ["knife", 0.8, [1, 1]], ["shotgun", 0.25, [1, 1]]],
     "weapons":  [["rifle", 1, [1, 1]], ["shotgun", 1, [1, 1]], ["ammo", 3, [4, 10]], ["pistol", 1, [1, 1]], ["armor", 0.6, [1, 1]], ["molotov", 1, [1, 2]]],
-    "books":    [["book", 3, [1, 1]], ["newspaper", 3, [1, 2]], ["bg_random", 0.8, [1, 1]], ["cloth", 1, [1, 1]]],
+    "books":    [["book", 3, [1, 1]], ["newspaper", 3, [1, 2]], ["bg_random", 1.6, [1, 1]], ["cloth", 1, [1, 1]]],
     "seeds":    [["seed_tomato", 2, [1, 2]], ["seed_soy", 2, [1, 2]], ["seed_carrot", 2, [1, 2]], ["seed_peas", 2, [1, 2]], ["seed_sunflower", 1, [1, 2]], ["seed_hops", 1, [1, 1]], ["seed_tobacco", 1, [1, 1]], ["seed_strawberry", 0.4, [1, 1]], ["spores", 1, [1, 1]]],
     "radio":    [["parts", 3, [2, 4]], ["batteries", 2, [1, 3]], ["relay", 0.5, [1, 1]], ["tape", 1, [1, 1]]],
-    "cache":    [["food_can", 4, [3, 6]], ["water_jug", 2, [1, 1]], ["meds", 2, [2, 4]], ["ammo", 2, [3, 6]], ["parts", 2, [2, 4]], ["bg_random", 1, [1, 1]]]
+    "cache":    [["food_can", 4, [3, 6]], ["water_jug", 2, [1, 1]], ["meds", 2, [2, 4]], ["ammo", 2, [3, 6]], ["parts", 2, [2, 4]], ["bg_random", 1, [1, 1]], ["pistol", 0.6, [1, 1]], ["pipe", 1, [1, 1]]],
+    "games":    [["bg_random", 3, [1, 1]], ["bg_cards52", 1, [1, 1]], ["newspaper", 1, [1, 1]], ["cigarettes", 1, [1, 2]], ["batteries", 1, [1, 1]]]
   }
 }

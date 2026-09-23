@@ -39,6 +39,61 @@ export class WorldRenderer {
   follow = true;
   shake = 0;
   flash = 0;
+  /** seconds of flickering lamps left (a power hiccup) */
+  flicker = 0;
+  private critters: { g: THREE.Group; x: number; lv: number; dir: number; speed: number; until: number }[] = [];
+  private dust: { p: THREE.Points; until: number }[] = [];
+
+  /** A few rats dart along a room's floor. */
+  rats(x: number, lv: number, w: number, n: number, dir: number) {
+    for (let i = 0; i < n; i++) {
+      const g = new THREE.Group();
+      g.add(box(0.26, 0.1, 0.12, 0x4a3f38, 0, 0, 0), box(0.1, 0.08, 0.09, 0x5a4d44, 0.15 * dir, 0.02, 0), box(0.18, 0.02, 0.02, 0x8a6f64, -0.2 * dir, 0.03, 0));
+      const sx = dir > 0 ? x - 0.5 - i * 0.6 : x + w + 0.5 + i * 0.6;
+      g.position.set(sx, -(lv * 2 + 2) + 0.2, 0.9);
+      this.scene.add(g);
+      this.critters.push({ g, x: sx, lv, dir, speed: 3.2 + Math.random() * 1.5, until: this.time + (w + 2) / 3 + 1.5 });
+    }
+  }
+
+  /** Dust shaken loose from the ceilings, falling in the rooms around the camera. */
+  dustFall() {
+    const n = 260;
+    const arr = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      arr[i * 3] = this.camX + (Math.random() - 0.5) * 26;
+      const lv = Math.round(-this.camY / 2 + (Math.random() - 0.5) * 4);
+      arr[i * 3 + 1] = -(lv * 2) - 0.05 - Math.random() * 0.4;
+      arr[i * 3 + 2] = 0.2 + Math.random() * 1.4;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(arr, 3));
+    const p = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xb8ab94, size: 2.5, sizeAttenuation: false, transparent: true, opacity: 0.85, depthWrite: false }));
+    this.scene.add(p);
+    this.dust.push({ p, until: this.time + 3.5 });
+  }
+
+  private tickCritters(dt: number) {
+    for (const c of this.critters) {
+      c.x += c.dir * c.speed * dt;
+      c.g.position.x = c.x;
+      c.g.position.y = -(c.lv * 2 + 2) + 0.2 + Math.abs(Math.sin(this.time * 30 + c.x)) * 0.03;
+      c.g.rotation.y = c.dir > 0 ? 0 : Math.PI;
+    }
+    for (const c of this.critters.filter((c) => this.time > c.until)) this.scene.remove(c.g);
+    this.critters = this.critters.filter((c) => this.time <= c.until);
+    for (const d of this.dust) {
+      const pos = d.p.geometry.getAttribute("position") as THREE.BufferAttribute;
+      for (let i = 0; i < pos.count; i++) pos.setY(i, pos.getY(i) - dt * (0.6 + (i % 5) * 0.2));
+      pos.needsUpdate = true;
+      (d.p.material as THREE.PointsMaterial).opacity = Math.max(0, Math.min(0.85, d.until - this.time));
+    }
+    for (const d of this.dust.filter((d) => this.time > d.until)) {
+      this.scene.remove(d.p);
+      d.p.geometry.dispose();
+    }
+    this.dust = this.dust.filter((d) => this.time <= d.until);
+  }
   ambient: THREE.AmbientLight;
   hemi: THREE.HemisphereLight;
   sky: THREE.Mesh;
@@ -376,6 +431,8 @@ export class WorldRenderer {
         const f = e.g.getObjectByName("fan");
         if (f) f.rotation.z += dt * 8;
       }
+      const blink = e.g.getObjectByName("blink");
+      if (blink) blink.visible = Math.sin(this.time * 9) > -0.2;
     }
     for (const f of this.fires.children) {
       f.scale.y = 0.8 + Math.sin(this.time * 20 + f.position.x * 7) * 0.25;
@@ -419,6 +476,7 @@ export class WorldRenderer {
     this.sky.position.y = -4.2;
     this.sky.quaternion.copy(this.camera.quaternion);
     this.updateLamps(v);
+    this.tickCritters(dt);
     if (this.flash > 0) {
       this.flash = Math.max(0, this.flash - dt * 0.8);
       this.ambient.intensity = 1.1 + this.flash * 8;
@@ -442,10 +500,12 @@ export class WorldRenderer {
       l.castShadow = false; // Contact shadows and light pools avoid six cubemap passes per bulb.
       let inten = 2.8 + Math.min(1, r.w * 0.15);
       if (lowPower) inten *= 0.5 + (Math.sin(this.time * 23 + i * 3) > 0.6 ? 0 : 0.5);
+      if (this.flicker > 0) inten *= Math.sin(this.time * 31 + i * 5) > 0.2 ? 0.15 : 1;
       if (v.phase === "night") inten *= 0.55;
       l.intensity = inten;
       l.distance = Math.max(6, r.w * 1.6);
     }
+    this.flicker = Math.max(0, this.flicker - 1 / 60);
     const dark = v.phase === "night" ? 0.6 : 1;
     (this.sky.material as THREE.MeshBasicMaterial).color.setRGB(dark === 1 ? 1 : 0.22, dark === 1 ? 1 : 0.29, dark === 1 ? 1 : 0.4);
     this.ambient.intensity = (this.flash > 0 ? this.ambient.intensity : 1.05 * dark);

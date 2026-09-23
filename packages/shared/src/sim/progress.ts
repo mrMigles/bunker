@@ -112,3 +112,24 @@ export function combatBonuses(c: Char) {
     apBonus: has("quick") ? 1 : 0,
   };
 }
+
+/**
+ * Threat level of the wasteland (1..10): grows with the survivors' levels and slowly with days.
+ * Enemies get tougher and more accurate, buildings hold more of them, raids come bigger.
+ */
+export function threatLevel(w: World) {
+  const people = Object.values(w.chars).filter((c) => c.status !== "dead" && !c.npc);
+  const players = people.filter((c) => c.ctrl);
+  const pool = players.length ? players : people;
+  const avg = pool.length ? pool.reduce((a, c) => a + levelOf(c), 0) / pool.length : 1;
+  return Math.max(1, Math.min(10, 1 + Math.floor((avg - 1) * 0.7 + Math.max(0, w.day - 1) / 5)));
+}
+
+// announce when the wasteland gets meaner
+onTick("threat", "day", (w) => {
+  const tl = threatLevel(w);
+  if (tl > (w.flags.threatLv ?? 1)) {
+    w.flags.threatLv = tl;
+    log(w, `☢ Пустошь становится опаснее: угроза ${tl}. Враги крепче и метче, в зданиях их больше — но и опыт растёт.`, "bad");
+  }
+});

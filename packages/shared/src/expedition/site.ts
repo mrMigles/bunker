@@ -255,9 +255,10 @@ export function generateSite(nodeId: string, type: string, seed: number, danger:
     if (c) (c.guaranteed ??= []).push("radio_part");
   }
   // people
-  if (R.chance(0.3) && type !== "ark") {
+  if (R.chance(0.45) && type !== "ark") {
     const r = R.pick(site.rooms.filter((x) => !x.stairs));
-    const kind = R.pick(["survivor", "family", "trader", "wounded", "patrol"] as SitePerson["kind"][]);
+    // survivors are the most common: sorties are one of the two ways the bunker grows
+    const kind = R.pick(["survivor", "survivor", "family", "trader", "wounded", "patrol"] as SitePerson["kind"][]);
     const names = { survivor: "Одинокий выживший", family: "Прячущаяся семья", trader: "Бродячий торговец", wounded: "Раненый", patrol: "Патруль «Порядка»" };
     site.people.push({ id: id("p"), kind, name: names[kind], x: r.x + R.int(0, r.w - 1), lv: r.lv, met: false, gone: false });
   }

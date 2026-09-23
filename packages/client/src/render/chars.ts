@@ -138,7 +138,6 @@ export class CharView {
     this.carry.scale.setScalar(large ? 0.95 : 0.85);
   }
 
-  /** Animate pose. */
   /**
    * Follow a networked position: glide at constant speed from where we are to the newest
    * server point over the interval between packets (predicted own positions snap directly).
@@ -168,15 +167,105 @@ export class CharView {
     this.y = n.fy + (n.ty - n.fy) * k;
   }
 
+  /** one-shot gesture layered over the base pose: a swing, a shot, a flinch */
+  private gesture: { k: string; t: number; dur: number } | null = null;
+  private weaponKey = "";
+  private weaponProp: THREE.Group | null = null;
+  /** walk-cycle phase (radians); accumulated so a changing pace never jumps the legs */
+  private phase = 0;
+  /** walking vs standing with hysteresis: network jitter must not flicker the legs */
+  private moving = false;
+  private blendPrev: number[] = [];
+
+  /** Play a short attack or reaction on top of whatever the body is doing. */
+  act(k: "swing" | "stab" | "shoot" | "throw" | "hurt" | "heal", dur?: number) {
+    const d = dur ?? ({ swing: 0.55, stab: 0.4, shoot: 0.5, throw: 0.6, hurt: 0.35, heal: 0.8 } as Record<string, number>)[k];
+    this.gesture = { k, t: 0, dur: d };
+  }
+
+  /** Weapon held in the right hand (melee sticks along the forearm, guns point forward). */
+  setWeapon(item: string | null | undefined) {
+    const key = item ?? "";
+    if (key === this.weaponKey) return;
+    this.weaponKey = key;
+    if (this.weaponProp) {
+      this.armR.remove(this.weaponProp);
+      this.weaponProp = null;
+    }
+    if (!key || key === "fists") return;
+    const g = new THREE.Group();
+    const steel = 0x8c9196,
+      dark = 0x2c2e31,
+      wood = 0x6b4424;
+    switch (key) {
+      case "knife":
+      case "kitchen_knife":
+        g.add(box(0.035, 0.1, 0.05, dark, 0, 0, 0), box(0.02, 0.2, 0.05, 0xc9ccd0, 0, -0.15, 0));
+        break;
+      case "pipe":
+        g.add(cyl(0.035, 0.62, steel, 0, -0.26, 0, 6));
+        break;
+      case "crowbar":
+        g.add(box(0.04, 0.6, 0.04, 0x9a2f25, 0, -0.26, 0), box(0.12, 0.04, 0.04, 0x9a2f25, 0.05, -0.56, 0));
+        break;
+      case "bat":
+      case "axe":
+        g.add(box(0.05, 0.55, 0.05, wood, 0, -0.24, 0));
+        if (key === "axe") g.add(box(0.16, 0.12, 0.03, steel, 0.07, -0.48, 0));
+        else g.add(box(0.08, 0.2, 0.08, wood, 0, -0.46, 0));
+        break;
+      case "pistol":
+        g.add(box(0.05, 0.12, 0.05, dark, 0, 0, 0.02), box(0.05, 0.06, 0.2, dark, 0, -0.07, 0.1));
+        break;
+      case "shotgun":
+      case "rifle": {
+        const long = key === "rifle" ? 0.78 : 0.55;
+        g.add(box(0.07, 0.09, long, dark, 0, -0.06, long / 2 - 0.12), box(0.07, 0.12, 0.22, wood, 0, -0.04, -0.2));
+        break;
+      }
+      case "molotov":
+        g.add(cyl(0.05, 0.18, 0x5d7a3a, 0, -0.1, 0, 6), box(0.03, 0.08, 0.03, 0xe0c080, 0, -0.22, 0));
+        break;
+      default:
+        return;
+    }
+    g.position.set(0, -0.52, 0.02);
+    g.traverse((o) => {
+      if ((o as THREE.Mesh).isMesh) o.castShadow = true;
+    });
+    this.weaponProp = g;
+    this.armR.add(g);
+  }
+
+  private get joints(): THREE.Object3D[] {
+    return [this.body, this.legL, this.legR, this.armL, this.armR, this.head];
+  }
+
   update(dt: number, anim: string, dir: number, speedMul = 1) {
     const x = this.root.position.x;
-    if (dt > 0) this.speed += (Math.abs(x - this.lastX) / dt - this.speed) * Math.min(1, dt * 10);
+    if (dt > 0) this.speed += (Math.abs(x - this.lastX) / dt - this.speed) * Math.min(1, dt * 8);
     this.lastX = x;
     this.t += dt * speedMul;
     this.dir += (dir - this.dir) * Math.min(1, dt * 10);
+    // walk/idle decided by real ground speed with hysteresis (network steps and seat snaps don't flicker legs)
+    if (anim === "walk" || anim === "run" || anim === "idle") {
+      if (this.moving ? this.speed < 0.18 : this.speed > 0.45) this.moving = !this.moving;
+      if (!this.moving) anim = "idle";
+      else if (anim === "idle") anim = "walk";
+    } else this.moving = false;
     const t = this.t;
     const b = this.body;
-    // reset
+    // remember the pose we are coming from, then build the target pose from zero
+    const prev = this.blendPrev;
+    let i = 0;
+    for (const j of this.joints) {
+      prev[i++] = j.rotation.x;
+      prev[i++] = j.rotation.y;
+      prev[i++] = j.rotation.z;
+    }
+    prev[i] = b.position.x;
+    prev[i + 1] = b.position.y;
+    prev[i + 2] = b.position.z;
     b.rotation.set(0, this.dir * 0.9, 0);
     b.position.set(0, 0, 0);
     this.legL.rotation.set(0, 0, 0);
@@ -184,43 +273,53 @@ export class CharView {
     this.armL.rotation.set(0, 0, 0);
     this.armR.rotation.set(0, 0, 0);
     this.head.rotation.set(0, 0, 0);
+    this.torso.scale.y = 1;
     const carrying = this.carry.visible;
+    let blendRate = 14; // how fast poses flow into each other
     switch (anim) {
       case "walk":
       case "run": {
-        // stride follows the real ground speed: one full step cycle ≈ 1.1 cells
-        const f = Math.max(4, this.speed * 5.7);
-        const a = anim === "run" ? 0.85 : 0.55;
-        this.legL.rotation.x = Math.sin(t * f) * a;
-        this.legR.rotation.x = -Math.sin(t * f) * a;
-        this.armL.rotation.x = -Math.sin(t * f) * a * 0.8;
-        this.armR.rotation.x = Math.sin(t * f) * a * 0.8;
-        b.position.y = Math.abs(Math.sin(t * f)) * 0.05;
+        // one full step cycle (left + right) covers ~1.5 cells walking, ~2 cells running
+        const stride = anim === "run" ? 2.0 : 1.5;
+        const v = Math.max(0.6, Math.min(this.speed, 5));
+        this.phase += dt * ((Math.PI * 2 * v) / stride);
+        const p = this.phase;
+        const a = anim === "run" ? 0.8 : 0.5;
+        this.legL.rotation.x = Math.sin(p) * a;
+        this.legR.rotation.x = -Math.sin(p) * a;
+        this.armL.rotation.x = -Math.sin(p) * a * 0.7;
+        this.armR.rotation.x = Math.sin(p) * a * 0.7;
+        b.position.y = Math.abs(Math.cos(p)) * (anim === "run" ? 0.05 : 0.025);
+        if (anim === "run") b.rotation.x = 0.12;
+        blendRate = 30;
         break;
       }
       case "climb":
         b.rotation.y = Math.PI; // back to camera
-        this.armL.rotation.x = -2.6 + Math.sin(t * 8) * 0.4;
-        this.armR.rotation.x = -2.6 - Math.sin(t * 8) * 0.4;
-        this.legL.rotation.x = Math.max(0, Math.sin(t * 8)) * 0.8;
-        this.legR.rotation.x = Math.max(0, -Math.sin(t * 8)) * 0.8;
+        this.armL.rotation.x = -2.6 + Math.sin(t * 6) * 0.35;
+        this.armR.rotation.x = -2.6 - Math.sin(t * 6) * 0.35;
+        this.legL.rotation.x = Math.max(0, Math.sin(t * 6)) * 0.7;
+        this.legR.rotation.x = Math.max(0, -Math.sin(t * 6)) * 0.7;
+        blendRate = 20;
         break;
       case "work":
       case "dig":
       case "repair": {
-        const s = anim === "dig" ? 10 : 7;
-        this.armL.rotation.x = -1.2 + Math.sin(t * s) * 0.6;
-        this.armR.rotation.x = -1.2 - Math.sin(t * s) * 0.6;
+        const s = anim === "dig" ? 6 : 4.5;
+        this.armL.rotation.x = -1.2 + Math.sin(t * s) * 0.5;
+        this.armR.rotation.x = -1.2 - Math.sin(t * s) * 0.5;
         b.rotation.x = 0.15 + Math.sin(t * s) * 0.05;
+        blendRate = 20;
         break;
       }
       case "pedal":
         b.position.y = 0.25;
-        this.legL.rotation.x = -1.2 + Math.sin(t * 10) * 0.5;
-        this.legR.rotation.x = -1.2 - Math.sin(t * 10) * 0.5;
+        this.legL.rotation.x = -1.2 + Math.sin(t * 7) * 0.5;
+        this.legR.rotation.x = -1.2 - Math.sin(t * 7) * 0.5;
         this.armL.rotation.x = -1.1;
         this.armR.rotation.x = -1.1;
         b.rotation.x = 0.3;
+        blendRate = 24;
         break;
       case "sit":
       case "read":
@@ -230,20 +329,21 @@ export class CharView {
         b.position.y = -0.12;
         this.legL.rotation.x = -1.45;
         this.legR.rotation.x = -1.45;
-        b.rotation.y = 0.2 * this.dir;
+        b.rotation.y = 0.2 * Math.sign(this.dir || 1);
+        this.torso.scale.y = 1 + Math.sin(t * 1.6) * 0.01;
         if (anim === "read") {
           this.armL.rotation.x = -1.1;
           this.armR.rotation.x = -1.1;
           this.head.rotation.x = 0.35;
         } else if (anim === "eat") {
-          this.armR.rotation.x = -1.2 - Math.max(0, Math.sin(t * 4)) * 0.8;
+          this.armR.rotation.x = -1.2 - Math.max(0, Math.sin(t * 3)) * 0.8;
         } else if (anim === "radio") {
           this.armR.rotation.x = -1.3;
-          this.armR.rotation.z = Math.sin(t * 2) * 0.2;
-          this.head.rotation.z = Math.sin(t * 1.5) * 0.12;
+          this.armR.rotation.z = Math.sin(t * 1.5) * 0.15;
+          this.head.rotation.z = Math.sin(t * 1.1) * 0.1;
         } else if (anim === "play") {
-          this.armL.rotation.x = -1.0 + Math.sin(t * 3) * 0.2;
-          this.armR.rotation.x = -1.0 - Math.sin(t * 2.3) * 0.2;
+          this.armL.rotation.x = -1.0 + Math.sin(t * 2) * 0.15;
+          this.armR.rotation.x = -1.0 - Math.sin(t * 1.7) * 0.15;
         }
         break;
       case "guitar":
@@ -252,23 +352,32 @@ export class CharView {
         this.legR.rotation.x = -1.45;
         this.armL.rotation.x = -1.2;
         this.armL.rotation.z = 0.6;
-        this.armR.rotation.x = -0.9 + Math.sin(t * 12) * 0.25;
-        this.head.rotation.z = Math.sin(t * 2) * 0.15;
+        this.armR.rotation.x = -0.9 + Math.sin(t * 9) * 0.2;
+        this.head.rotation.z = Math.sin(t * 2) * 0.12;
+        blendRate = 24;
         break;
       case "sleep":
       case "down":
       case "dead":
-        b.rotation.set(0, 0, Math.PI / 2 * (this.dir > 0 ? 1 : -1));
+        b.rotation.set(0, 0, (Math.PI / 2) * (this.dir > 0 ? 1 : -1));
         b.position.set(0.5 * (this.dir > 0 ? 1 : -1), anim === "sleep" ? 0.42 : 0.16, 0);
         if (anim === "sleep") b.position.y += Math.sin(t * 1.5) * 0.01;
+        blendRate = 6;
         break;
       case "dance":
-        b.position.y = Math.abs(Math.sin(t * 6)) * 0.12;
-        b.rotation.y = Math.sin(t * 3) * 0.8;
-        this.armL.rotation.z = -1.5 - Math.sin(t * 6) * 0.5;
-        this.armR.rotation.z = 1.5 + Math.sin(t * 6) * 0.5;
-        this.legL.rotation.x = Math.sin(t * 6) * 0.4;
-        this.legR.rotation.x = -Math.sin(t * 6) * 0.4;
+        b.position.y = Math.abs(Math.sin(t * 5)) * 0.1;
+        b.rotation.y = Math.sin(t * 2.5) * 0.8;
+        this.armL.rotation.z = -1.5 - Math.sin(t * 5) * 0.5;
+        this.armR.rotation.z = 1.5 + Math.sin(t * 5) * 0.5;
+        this.legL.rotation.x = Math.sin(t * 5) * 0.4;
+        this.legR.rotation.x = -Math.sin(t * 5) * 0.4;
+        blendRate = 24;
+        break;
+      case "talk":
+        this.armR.rotation.x = -0.5 + Math.sin(t * 3) * 0.3;
+        this.armR.rotation.z = 0.2;
+        this.head.rotation.z = Math.sin(t * 2.2) * 0.08;
+        this.head.rotation.x = Math.sin(t * 3.1) * 0.05;
         break;
       case "yawn":
         this.armL.rotation.z = -2.6;
@@ -277,25 +386,35 @@ export class CharView {
         break;
       case "scratch":
         this.armR.rotation.x = -2.8;
-        this.armR.rotation.z = 0.4 + Math.sin(t * 14) * 0.15;
+        this.armR.rotation.z = 0.4 + Math.sin(t * 10) * 0.12;
         this.head.rotation.z = 0.15;
         break;
       case "pet":
         b.rotation.x = 0.5;
-        this.armR.rotation.x = -1 + Math.sin(t * 5) * 0.3;
+        this.armR.rotation.x = -1 + Math.sin(t * 4) * 0.3;
         break;
       case "breakdown":
-        b.position.x = Math.sin(t * 25) * 0.04;
-        this.armL.rotation.z = -2.2 + Math.sin(t * 9) * 0.4;
-        this.armR.rotation.z = 2.2 - Math.sin(t * 9) * 0.4;
+        b.position.x = Math.sin(t * 18) * 0.03;
+        this.armL.rotation.z = -2.2 + Math.sin(t * 7) * 0.4;
+        this.armR.rotation.z = 2.2 - Math.sin(t * 7) * 0.4;
+        blendRate = 30;
         break;
       case "cook":
         this.armR.rotation.x = -1.2;
-        this.armR.rotation.z = Math.sin(t * 6) * 0.4;
+        this.armR.rotation.z = Math.sin(t * 4) * 0.35;
         this.armL.rotation.x = -0.8;
         break;
+      case "aim":
+        // combat stance: weapon raised toward the facing side
+        this.armR.rotation.x = -1.45;
+        this.armL.rotation.x = -1.3;
+        this.armL.rotation.z = -0.25;
+        this.legL.rotation.x = 0.25;
+        this.legR.rotation.x = -0.2;
+        this.torso.scale.y = 1 + Math.sin(t * 2.4) * 0.012;
+        break;
       default: {
-        // idle breathing
+        // idle breathing, an occasional glance around
         this.torso.scale.y = 1 + Math.sin(t * 2) * 0.015;
         this.head.rotation.y = Math.sin(t * 0.4) * 0.3;
       }
@@ -304,6 +423,79 @@ export class CharView {
       this.armL.rotation.x = -1.3;
       this.armR.rotation.x = -1.3;
     }
+    // one-shot gestures (attack, flinch) override the arms and lean the body
+    const g = this.gesture;
+    if (g && anim !== "dead" && anim !== "down") {
+      g.t += dt;
+      const k = Math.min(1, g.t / g.dur);
+      // wind-up (0..0.35), strike (0.35..0.55), recover
+      const wind = k < 0.35 ? k / 0.35 : 1;
+      const strike = k < 0.35 ? 0 : k < 0.55 ? (k - 0.35) / 0.2 : 1;
+      const rec = k < 0.55 ? 0 : (k - 0.55) / 0.45;
+      const ease = (u: number) => u * u * (3 - 2 * u);
+      const d = Math.sign(this.dir || 1);
+      switch (g.k) {
+        case "swing": {
+          // raise the weapon overhead, bring it down across, step into the blow
+          this.armR.rotation.x = -2.9 * ease(wind) * (1 - strike) - 0.9 * strike * (1 - ease(rec));
+          this.armL.rotation.x = this.armR.rotation.x * 0.6;
+          b.rotation.x = -0.15 * wind * (1 - strike) + 0.3 * strike * (1 - rec);
+          b.rotation.y += d * (0.35 * strike * (1 - rec) - 0.25 * wind * (1 - strike));
+          b.position.x += d * 0.22 * strike * (1 - ease(rec));
+          this.legL.rotation.x = -0.35 * strike * (1 - rec);
+          this.legR.rotation.x = 0.3 * strike * (1 - rec);
+          break;
+        }
+        case "stab":
+          this.armR.rotation.x = -0.6 - 0.9 * ease(strike) * (1 - rec) + 0.4 * wind * (1 - strike);
+          b.position.x += d * 0.3 * ease(strike) * (1 - ease(rec));
+          b.rotation.x = 0.2 * strike * (1 - rec);
+          this.legL.rotation.x = -0.45 * strike * (1 - rec);
+          break;
+        case "shoot":
+          // raise, fire (recoil kick), hold
+          this.armR.rotation.x = -1.5 * ease(Math.min(1, k * 4)) + (k > 0.3 && k < 0.45 ? 0.35 : 0);
+          this.armL.rotation.x = -1.35 * ease(Math.min(1, k * 4));
+          b.position.x -= d * (k > 0.3 && k < 0.5 ? 0.06 : 0);
+          this.head.rotation.x = 0.08;
+          break;
+        case "throw":
+          this.armR.rotation.x = -2.8 * ease(wind) * (1 - strike) - 0.6 * strike * (1 - rec);
+          b.rotation.y += d * 0.4 * strike * (1 - rec);
+          break;
+        case "hurt": {
+          const s = Math.sin(k * Math.PI);
+          b.rotation.x = -0.3 * s;
+          b.position.x -= d * 0.12 * s;
+          this.head.rotation.x = -0.35 * s;
+          this.armL.rotation.z = -0.6 * s;
+          this.armR.rotation.z = 0.6 * s;
+          break;
+        }
+        case "heal":
+          b.rotation.x = 0.45 * Math.sin(k * Math.PI);
+          this.armL.rotation.x = -1.1;
+          this.armR.rotation.x = -1.1 + Math.sin(g.t * 14) * 0.2;
+          break;
+      }
+      if (k >= 1) this.gesture = null;
+      blendRate = 40;
+    }
+    // blend from the previous pose into the target one: no pops between sitting, standing and walking
+    const f = 1 - Math.exp(-dt * blendRate);
+    i = 0;
+    for (const j of this.joints) {
+      const px = prev[i++],
+        py = prev[i++],
+        pz = prev[i++];
+      j.rotation.x = px + (j.rotation.x - px) * f;
+      // the body's facing already follows the smoothed `dir`
+      j.rotation.y = py + (j.rotation.y - py) * (j === b ? Math.max(f, 0.35) : f);
+      j.rotation.z = pz + (j.rotation.z - pz) * f;
+    }
+    b.position.x = prev[i] + (b.position.x - prev[i]) * f;
+    b.position.y = prev[i + 1] + (b.position.y - prev[i + 1]) * f;
+    b.position.z = prev[i + 2] + (b.position.z - prev[i + 2]) * f;
     const dead = anim === "dead";
     if (dead !== this.dead) {
       this.dead = dead;

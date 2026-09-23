@@ -141,9 +141,13 @@ export class GameUI {
         this.setAquarium(!this.aquarium);
         return true;
       case "KeyZ":
+      case "ArrowUp":
+        if (e.code === "ArrowUp" && this.prompt.list.length < 2) return;
         this.prompt.cycle(-1);
         return true;
       case "KeyX":
+      case "ArrowDown":
+        if (e.code === "ArrowDown" && this.prompt.list.length < 2) return;
         this.prompt.cycle(1);
         return true;
       case "KeyC":

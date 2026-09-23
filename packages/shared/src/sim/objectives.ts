@@ -6,12 +6,14 @@ import { OBJECTS } from "../data/objects";
 import type { World } from "../types";
 import { objsOfKind, roomsOfType } from "../world/rooms";
 import { foodUnits } from "./items";
+import { toolFor } from "./build";
+import { unnode } from "../world/grid";
 import { onTick } from "./tick";
 import { firstName } from "./util";
 
 export interface Objective {
   id: string;
-  kind: "urgent" | "need" | "tutorial";
+  kind: "urgent" | "need" | "quest" | "tutorial";
   text: string;
   hint?: string;
   done?: boolean;
@@ -72,8 +74,31 @@ export function computeObjectives(w: World): Objective[] {
   if (w.air.co2 > 45) out.push({ id: "air", kind: w.air.co2 > 65 ? "urgent" : "need", text: "Душно: CO₂ растёт", hint: "Почистите фильтр воздуха и дайте ему энергию.", obj: objsOfKind(w, "air_filter")[0]?.id });
   for (const o of Object.values(w.objs))
     if (o.broken && OBJECTS[o.kind]) out.push({ id: "broken_" + o.id, kind: "need", text: `Сломан: ${OBJECTS[o.kind].name}`, hint: "Почините (E) — нужны детали или хлам.", obj: o.id });
+  // planned digging that no one can do: stone without a pickaxe, granite without a drill
+  for (const key in w.marks) {
+    const [mx, mlv] = unnode(w, Number(key));
+    const tool = toolFor(w, mx, mlv);
+    if (tool.ok) continue;
+    out.push({ id: "tool_" + key, kind: "need", text: tool.need!, hint: "Разметка упёрлась в породу. Кирку находят в ящиках с инструментами на вылазках; бур — редкая находка." });
+    break;
+  }
   const beds = objsOfKind(w, "bed").length;
   if (beds < n && roomsOfType(w, "living").length) out.push({ id: "beds", kind: "need", text: `Коек ${beds} на ${n} человек`, hint: "Спящие на полу хуже отдыхают. Постройте жилой отсек (B) или соберите нары." });
+  // --- promises made in conversations
+  for (const q of (w.mods.quests ?? []) as { id: string; giver: string; by: string; text: string; kind: string; target: string; done?: boolean }[]) {
+    if (q.done) continue;
+    const giver = w.chars[q.giver];
+    if (!giver) continue;
+    const chore = q.kind === "chore" ? w.chores[q.target] : undefined;
+    out.push({
+      id: "quest_" + q.id,
+      kind: "quest",
+      text: `${firstName(giver)} просит: ${q.text}`,
+      hint: q.kind === "room" ? "Режим стройки — B." : q.kind === "bring" ? "Найдите на вылазке и сложите на склад." : "Подойдите и нажмите E.",
+      obj: chore?.obj,
+      char: chore?.obj ? undefined : giver.id,
+    });
+  }
   // --- tutorial: the first unfinished step, plus the ones already done today (to see progress)
   if (w.day <= 3) {
     for (const t of TUTORIAL) {
@@ -84,8 +109,8 @@ export function computeObjectives(w: World): Objective[] {
       if (!done) break;
     }
   }
-  const order = { urgent: 0, need: 1, tutorial: 2 };
-  return out.sort((a, b) => order[a.kind] - order[b.kind]).slice(0, 6);
+  const order = { urgent: 0, need: 1, quest: 2, tutorial: 3 };
+  return out.sort((a, b) => order[a.kind] - order[b.kind]).slice(0, 7);
 }
 
 onTick("objectives", "*", (w, dt) => {

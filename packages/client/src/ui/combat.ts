@@ -339,10 +339,13 @@ export class CombatUI {
         vw.x += (x - vw.x) * Math.min(1, dt * 8);
         vw.y += (y - vw.y) * Math.min(1, dt * 8);
       }
-      vw.lunge = Math.max(0, vw.lunge - dt * 3);
+      vw.lunge -= Math.sign(vw.lunge) * Math.min(Math.abs(vw.lunge), dt * 3);
       vw.obj.position.set(vw.x + vw.lunge * vw.dir * 0.4, vw.y, -0.45);
       if (vw.char) {
-        const anim = u.dead ? "dead" : u.down ? "down" : vw.anim;
+        const gun = (WEAPONS[u.weapon]?.range ?? 1) > 1;
+        const base = vw.anim === "walk" ? "walk" : gun ? "aim" : "idle";
+        const anim = u.dead ? "dead" : u.down ? "down" : base;
+        vw.char.setWeapon(u.weapon);
         vw.char.update(dt, anim, vw.dir);
         vw.char.x = vw.x;
         vw.char.y = -vw.y;
@@ -376,6 +379,13 @@ export class CombatUI {
     const s = this.cs!;
     const vw = this.views.get(e.u);
     const tv = e.to ? this.views.get(e.to) : undefined;
+    const cvOf = (x?: UnitView, id?: string) => {
+      if (x?.char) return x.char;
+      const cid = id ? (s.units[id] as Unit | undefined)?.char : undefined;
+      return this.where === "bunker" && cid ? this.r.chars.get(cid) : undefined;
+    };
+    const actor = cvOf(vw, e.u);
+    const victim = cvOf(tv, e.to);
     switch (e.k) {
       case "move": {
         if (vw && e.col !== undefined) {
@@ -392,6 +402,11 @@ export class CombatUI {
         if (vw && tv) {
           vw.dir = tv.x > vw.x ? 1 : -1;
           this.tracer(vw, tv, e.hit ?? false);
+          actor?.act("shoot");
+          if (e.hit) {
+            victim?.act("hurt");
+            if (!victim) tv.lunge = -0.6;
+          }
           audio.sfx("shot");
           this.floatAt(tv, e.hit ? `−${e.dmg}${e.crit ? "!" : ""}` : "мимо", e.hit ? "#ff6a4a" : "#bbbbbb");
           vw.anim = "work";
@@ -400,12 +415,19 @@ export class CombatUI {
       case "melee":
         if (vw && tv) {
           vw.dir = tv.x > vw.x ? 1 : -1;
-          vw.lunge = 1;
+          const wpn = (s.units[e.u] as Unit | undefined)?.weapon ?? "fists";
+          if (actor) actor.act(wpn === "knife" || wpn === "fists" ? "stab" : "swing");
+          else vw.lunge = 1;
+          if (e.hit) {
+            victim?.act("hurt");
+            if (!victim) tv.lunge = -0.6;
+          }
           audio.sfx("hit");
           this.floatAt(tv, e.hit ? (e.dmg ? `−${e.dmg}` : (e.text ?? "")) : "мимо", e.hit ? "#ff6a4a" : "#bbbbbb");
         }
         return 0.45;
       case "heal":
+        actor?.act("heal");
         if (tv) this.floatAt(tv, `+${e.dmg}`, "#8fcf6a");
         return 0.45;
       case "down":

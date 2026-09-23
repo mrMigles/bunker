@@ -3,7 +3,7 @@ import { net } from "../net";
 import { add, clear, h, ui } from "./dom";
 import type { GameUI } from "./game";
 
-const ICON: Record<string, string> = { urgent: "⚠", need: "●", tutorial: "☐" };
+const ICON: Record<string, string> = { urgent: "⚠", need: "●", quest: "💬", tutorial: "☐" };
 
 /** «Задачи» panel: the colony's current priorities and the first-days tutorial. Click = go there. */
 export class ObjectivesUI {

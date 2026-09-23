@@ -1,4 +1,5 @@
 import locationsJson from "../data/locations.json";
+import mapSlots from "../data/mapslots.json";
 import { Rng } from "../rng";
 
 export const LOC = locationsJson as any;
@@ -18,6 +19,7 @@ export interface MapNode {
   theme?: string;
   site?: any; // persisted site state after the first visit
   looted?: number; // share of containers searched
+  district?: string;
 }
 
 export interface WasteMap {
@@ -45,107 +47,64 @@ export function nodeName(type: string, R: Rng): string {
   return `${base} ${R.pick(streets)}`;
 }
 
+/**
+ * The wasteland map: fixed places on the hand-laid map of Новоград (data/mapslots.json, drawn by
+ * scripts/gen-map.mjs into the map picture). What stands in a free slot, its name and theme vary
+ * with the seed; the geography — river, bridges, roads, districts — is the same in every game.
+ */
 export function generateMap(seed: number): WasteMap {
   const R = Rng.from(seed * 31 + 7);
   const nodes: Record<string, MapNode> = {};
-  const home: MapNode = { id: "home", type: "home", name: "Наш бункер", x: 50, y: 40, links: [], known: true, visited: true, danger: 0 };
-  nodes.home = home;
-  const count = 30 + (Math.abs(seed) % 21);
-  const pts: { x: number; y: number }[] = [{ x: 50, y: 40 }];
-  let guard = 0;
-  while (pts.length < count + 1 && guard++ < 5000) {
-    const x = R.range(4, 96),
-      y = R.range(4, 76);
-    if (pts.every((p) => Math.hypot(p.x - x, p.y - y) > 8.5)) pts.push({ x, y });
-  }
-  // types by distance, with guaranteed specials
-  const specials = ["hospital", "hospital", "checkpoint", "radiotower", "metro", "trader", "trader", "signal", "crater", "camp", "camp", "camp", "camp", "rival"];
-  const others = pts.slice(1).map((p, i) => ({ ...p, i, d: Math.hypot(p.x - 50, p.y - 40) }));
-  others.sort((a, b) => a.d - b.d);
-  const types: string[] = new Array(others.length).fill("");
-  // near ring (closest 20%) gets easy places; specials spread across mid/far
-  const nearN = Math.floor(others.length * 0.25);
-  for (let k = 0; k < others.length; k++) {
-    if (k < nearN) types[k] = R.pick(NEAR);
-    else if (k < others.length * 0.6) types[k] = R.pick(MID);
-    else types[k] = R.pick(FAR);
-  }
-  // place specials on random mid/far slots (one trader near)
-  const slots = R.shuffle([...Array(others.length).keys()].filter((k) => k >= nearN));
-  let si = 0;
-  for (const sp of specials) {
-    if (sp === "trader" && !types.slice(0, nearN).includes("trader")) {
-      types[R.int(0, Math.max(0, nearN - 1))] = "trader";
-      continue;
-    }
-    if (si < slots.length) types[slots[si++]] = sp;
-  }
-  const factions = ["order", "caravan", "flash", "ratking"];
-  let fi = 0;
-  others.forEach((p, k) => {
-    const type = types[k];
-    const id = "n" + k;
+  const slots = (mapSlots as { slots: MapSlot[] }).slots;
+  const usedNames = new Set<string>();
+  for (const s of slots) {
+    const type = s.fixed ?? R.pick(s.kinds ?? ["shop"]);
     const lt = LOC.types[type];
-    const n: MapNode = {
-      id,
+    let name = s.name ?? "";
+    if (type === "camp" && s.faction) name = `Лагерь: ${FACTIONS[s.faction].name}`;
+    else if (type === "signal") name = "Источник сигнала";
+    else if (!name) name = `${lt?.name ?? type} ${s.street ?? ""}`.trim();
+    if (usedNames.has(name)) name += " (II)";
+    usedNames.add(name);
+    nodes[s.id] = {
+      id: s.id,
       type,
-      name: nodeName(type, R),
-      x: Math.round(p.x * 10) / 10,
-      y: Math.round(p.y * 10) / 10,
-      links: [],
-      known: false,
-      visited: false,
-      danger: lt?.danger ?? (type === "camp" ? 2 : 1),
+      name,
+      x: s.x,
+      y: s.y,
+      links: [...(s.links ?? [])],
+      known: type === "home",
+      visited: type === "home",
+      faction: s.faction,
+      danger: type === "home" ? 0 : lt?.danger ?? (type === "camp" ? 2 : 1),
+      hidden: s.hidden || type === "signal" ? true : undefined,
       theme: lt ? R.pick(lt.themes) : undefined,
+      district: s.district,
     };
-    if (type === "camp") {
-      n.faction = factions[fi++ % 4];
-      n.name = `Лагерь: ${FACTIONS[n.faction].name}`;
-    }
-    if (type === "signal") n.hidden = true;
-    nodes[id] = n;
-  });
-  // hidden story nodes: the Ark (far corner) and a cache
-  const far = others[others.length - 1];
-  nodes.ark = { id: "ark", type: "ark", name: "Ковчег — Северный горный узел", x: Math.min(97, far.x + 3), y: Math.max(3, far.y - 3), links: [], known: false, visited: false, danger: 4, hidden: true, theme: "Врата Ковчега" };
-  const cachePt = others[Math.floor(others.length / 2)];
-  nodes.cache = { id: "cache", type: "cache", name: "Склад ГО по карте", x: Math.min(97, cachePt.x + 4), y: Math.min(77, cachePt.y + 4), links: [], known: false, visited: false, danger: 1, hidden: true, theme: "Довоенный склад гражданской обороны" };
-  // links: each node to its 2–3 nearest, plus MST for connectivity
-  const ids = Object.keys(nodes);
-  const dist = (a: MapNode, b: MapNode) => Math.hypot(a.x - b.x, a.y - b.y);
-  const link = (a: MapNode, b: MapNode) => {
-    if (a.id === b.id || a.links.includes(b.id)) return;
-    a.links.push(b.id);
-    b.links.push(a.id);
-  };
-  for (const id of ids) {
-    const a = nodes[id];
-    const near = ids.filter((j) => j !== id).sort((p, q) => dist(a, nodes[p]) - dist(a, nodes[q]));
-    const k = id === "home" ? 4 : R.int(2, 3);
-    for (const j of near.slice(0, k)) if (dist(a, nodes[j]) < 30) link(a, nodes[j]);
   }
-  // MST (Prim) to guarantee connectivity
-  const inTree = new Set(["home"]);
-  while (inTree.size < ids.length) {
-    let best: [string, string, number] | null = null;
-    for (const a of inTree)
-      for (const b of ids) {
-        if (inTree.has(b)) continue;
-        const d = dist(nodes[a], nodes[b]);
-        if (!best || d < best[2]) best = [a, b, d];
-      }
-    if (!best) break;
-    link(nodes[best[0]], nodes[best[1]]);
-    inTree.add(best[1]);
-  }
-  // fog: the neighbourhood is known — home's neighbours and their neighbours (a real choice on day one),
-  // plus anything within a short walk
+  // fog: the neighbourhood is known — home's neighbours and theirs (a real choice on day one)
+  const home = nodes.home;
   for (const j of home.links) {
+    if (nodes[j].hidden) continue;
     nodes[j].known = true;
     for (const k of nodes[j].links) if (!nodes[k].hidden) nodes[k].known = true;
   }
-  for (const n of Object.values(nodes)) if (!n.hidden && Math.hypot(n.x - home.x, n.y - home.y) < 22) n.known = true;
+  for (const n of Object.values(nodes)) if (!n.hidden && Math.hypot(n.x - home.x, n.y - home.y) < 16) n.known = true;
   return { nodes, home: "home" };
+}
+
+interface MapSlot {
+  id: string;
+  x: number;
+  y: number;
+  fixed?: string;
+  kinds?: string[];
+  name?: string;
+  street?: string;
+  district?: string;
+  faction?: string;
+  hidden?: boolean;
+  links?: string[];
 }
 
 /** Travel time in game hours between linked nodes. */

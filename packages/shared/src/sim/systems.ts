@@ -94,7 +94,7 @@ export function generation(w: World): number {
     if (o.broken) continue;
     switch (o.kind) {
       case "bike_gen":
-        if (o.st.rider) g += BAL.bikeKw * (o.st.oil > 30 ? 1 : 0.6) * (o.wear > 20 ? 1 : 0.7);
+        if (o.st.rider) g += BAL.bikeKw * (o.st.oil > 30 ? 1 : 0.6) * (o.wear > 20 ? 1 : 0.7) * (o.st.boost ?? 1);
         break;
       case "diesel_gen":
         if (o.on && o.st.running && (w.res.fuel ?? 0) > 0) g += BAL.dieselKw;

@@ -31,11 +31,25 @@ export class PrologueUI {
   private promptKey = "";
   private lastSiren = -1;
   private lastDelivered = 0;
+  // the end of the world, seen from the street: distant strikes, mushroom clouds, ash, the radio
+  private strikes = [
+    { t: 6, dx: -4.5, size: 0.7 },
+    { t: 23, dx: 5, size: 0.9 },
+    { t: 40, dx: -1.5, size: 1.15 },
+  ];
+  private fired = new Set<number>();
+  private clouds: { g: THREE.Group; born: number; size: number; stem: THREE.Mesh; cap: THREE.Mesh; ring: THREE.Mesh }[] = [];
+  private ash: THREE.Points | null = null;
+  private shake = 0;
+  private strikeFlash = h("div.strike-flash");
+  private radio = h("div.raid-radio.hidden");
+  private radioKey = "";
+  private boomed = false;
 
   constructor(private r: WorldRenderer) {
     this.site.scene.add(this.dyn);
     this.markers.append(this.hatchLabel);
-    ui().append(this.hud, this.prompt, this.markers, this.flash);
+    ui().append(this.hud, this.prompt, this.markers, this.flash, this.strikeFlash, this.radio);
   }
   get p(): any { return net.pub?.phase === "prologue" ? net.pub.mods?.prologue : null; }
   update() {
@@ -43,7 +57,14 @@ export class PrologueUI {
     this.active = !!p;
     this.hud.classList.toggle("hidden", !p);
     this.markers.classList.toggle("hidden", !p);
-    if (!p) { this.prompt.classList.add("hidden"); this.flash.classList.add("hidden"); this.built = false; return; }
+    if (!p) {
+      this.prompt.classList.add("hidden"); this.flash.classList.add("hidden"); this.radio.classList.add("hidden"); this.built = false;
+      for (const c of this.clouds) this.site.scene.remove(c.g);
+      this.clouds = []; this.fired.clear(); this.boomed = false;
+      if (this.ash) { this.site.scene.remove(this.ash); this.ash = null; }
+      return;
+    }
+    this.updateRadio(p);
     if (!this.built) {
       const floors = p.H / 2, walk: boolean[] = [];
       for (let lv = 0; lv < floors; lv++) for (let x = 0; x < p.W; x++) walk.push(p.grid[lv * 2 * p.W + x] === 0);
@@ -76,6 +97,119 @@ export class PrologueUI {
     }
     this.flash.classList.toggle("hidden", !p.done);
     if (p.done) this.flash.style.opacity = String(Math.max(0,1-p.flashT/4));
+    if (p.done && !this.boomed) {
+      // the big one: right over the district as the hatch slams shut
+      this.boomed = true;
+      audio.sfx("nuke", 1);
+      this.shake = 2.2;
+    }
+  }
+
+  /** Civil-defence radio over the street: what is happening, in a few terse lines. */
+  private updateRadio(p: any) {
+    const t = p.t;
+    const lines: [number, string][] = [
+      [0, "📻 «Внимание всем! Воздушная тревога! Всем немедленно проследовать в укрытия!»"],
+      [7, "📻 «…удар по Северному району. Повторяю: удар по Северному району…»"],
+      [18, "📻 «Берите воду, еду, лекарства. Не смотрите на вспышки!»"],
+      [24, "📻 «Вторая волна. Промзона… связь с Промзоной потеряна…»"],
+      [35, "📻 «Гермодвери убежищ закроются через двадцать секунд!»"],
+      [41, "📻 «…всем, кто нас слышит… держитесь…» (помехи)"],
+      [52, "📻 (только шипение)"],
+    ];
+    let cur = lines[0][1];
+    for (const [at, text] of lines) if (t >= at) cur = text;
+    const k = p.done ? "" : cur;
+    if (k === this.radioKey) return;
+    this.radioKey = k;
+    this.radio.textContent = k;
+    this.radio.classList.toggle("hidden", !k);
+    this.radio.classList.remove("in");
+    void this.radio.offsetWidth;
+    this.radio.classList.add("in");
+  }
+
+  private spawnCloud(x: number, size: number, born: number) {
+    const g = new THREE.Group();
+    const fire = new THREE.MeshBasicMaterial({ color: 0xffb060, transparent: true, opacity: 0.95, depthWrite: false });
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.9, 1, 10), fire.clone());
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), fire.clone());
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.28, 8, 18), fire.clone());
+    ring.rotation.x = Math.PI / 2;
+    // billowing puffs around the cap so it reads as smoke, not a ball
+    for (let i = 0; i < 7; i++) {
+      const puff = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 8), fire.clone());
+      const a = (i / 7) * Math.PI * 2;
+      puff.position.set(Math.cos(a) * 0.95, (i % 2) * 0.25 - 0.1, Math.sin(a) * 0.5);
+      cap.add(puff);
+    }
+    g.add(stem, cap, ring);
+    g.position.set(x, this.site.camY - 1.6, -17);
+    g.renderOrder = -5;
+    this.site.scene.add(g);
+    this.clouds.push({ g, born, size, stem, cap, ring });
+  }
+
+  private updateSky(p: any, dt: number) {
+    const t = p.t;
+    for (let i = 0; i < this.strikes.length; i++) {
+      const s = this.strikes[i];
+      if (t < s.t || this.fired.has(i)) continue;
+      this.fired.add(i);
+      this.spawnCloud(this.site.camX + s.dx, s.size, s.t);
+      // the flash comes first, the sound a moment later (it is far away)
+      this.strikeFlash.style.transition = "none";
+      this.strikeFlash.style.opacity = String(0.35 + s.size * 0.2);
+      void this.strikeFlash.offsetWidth;
+      this.strikeFlash.style.transition = "opacity 1.4s ease-out";
+      this.strikeFlash.style.opacity = "0";
+      setTimeout(() => { audio.sfx("rumble", 0.5 + s.size * 0.3); this.shake = 0.5 + s.size * 0.4; }, 1200);
+      if (!this.ash) this.makeAsh();
+    }
+    for (const c of this.clouds) {
+      const age = Math.max(0, t - c.born);
+      const k = Math.min(1, age / 9);
+      const hgt = (1 + 3.2 * k) * c.size;
+      c.stem.scale.set(c.size * (0.35 + k * 0.3), hgt, c.size * (0.35 + k * 0.3));
+      c.stem.position.y = hgt / 2;
+      const r = (0.45 + 1.25 * k) * c.size;
+      c.cap.scale.set(r * 1.3, r * 0.75, r);
+      c.cap.position.y = hgt + r * 0.3;
+      c.ring.scale.setScalar(c.size * (0.35 + k * 0.6));
+      c.ring.position.y = hgt * 0.55;
+      // from white-hot to fire to dirty grey
+      const col = new THREE.Color().lerpColors(new THREE.Color(0xfff2c0), new THREE.Color(0xff7a30), Math.min(1, age / 2.5));
+      if (age > 2.5) col.lerp(new THREE.Color(0x6a5a50), Math.min(1, (age - 2.5) / 8));
+      for (const m of [c.stem, c.cap, c.ring, ...(c.cap.children as THREE.Mesh[])]) ((m as THREE.Mesh).material as THREE.MeshBasicMaterial).color.copy(col);
+    }
+    if (this.ash) {
+      const pos = this.ash.geometry.getAttribute("position") as THREE.BufferAttribute;
+      for (let i = 0; i < pos.count; i++) {
+        let y = pos.getY(i) - dt * (0.5 + (i % 7) * 0.08);
+        let x = pos.getX(i) + Math.sin(t * 0.8 + i) * dt * 0.3;
+        if (y < this.site.camY - 6) {
+          y = this.site.camY + 6;
+          x = this.site.camX + (Math.random() - 0.5) * 30;
+        }
+        pos.setXY(i, x, y);
+      }
+      pos.needsUpdate = true;
+    }
+    this.shake = Math.max(0, this.shake - dt * 1.6);
+  }
+
+  private makeAsh() {
+    const n = 500;
+    const arr = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      arr[i * 3] = this.site.camX + (Math.random() - 0.5) * 30;
+      arr[i * 3 + 1] = this.site.camY + (Math.random() - 0.5) * 12;
+      arr[i * 3 + 2] = -1 + Math.random() * 3;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(arr, 3));
+    this.ash = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xd8d0c4, size: 3, sizeAttenuation: false, transparent: true, opacity: 0.8, depthWrite: false }));
+    this.site.scene.add(this.ash);
   }
   returnHome() {
     const p = this.p; if (!p || p.done) return;
@@ -138,7 +272,11 @@ export class PrologueUI {
       this.site.viewH=window.innerWidth<800?9:8;
       this.site.camX+=(x-this.site.camX)*Math.min(1,dt*4); this.site.camY=-1.0;
     }
+    this.updateSky(p, dt);
+    const shakeX = this.shake > 0 ? (Math.random() - 0.5) * this.shake * 0.25 : 0, shakeY = this.shake > 0 ? (Math.random() - 0.5) * this.shake * 0.2 : 0;
+    this.site.camX += shakeX; this.site.camY += shakeY;
     this.site.render(this.r.renderer);
+    this.site.camX -= shakeX; this.site.camY -= shakeY;
     const [hx,hy]=this.site.pos(p.hatchX,1),[hsx,hsy]=this.site.toScreen(hx,hy+1.1);
     this.hatchLabel.style.left=Math.max(90,Math.min(window.innerWidth-90,hsx))+"px";
     this.hatchLabel.style.top=Math.max(220,Math.min(window.innerHeight-110,hsy))+"px";

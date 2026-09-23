@@ -52,7 +52,7 @@ if (spot) {
   // let the residents work (fast-forward)
   await ev(() => window.__net.send({ k: "debug", op: "speed", arg: 10 }));
   let last = "";
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < 60; i++) { // 3 residents build slower than 5 did: allow up to ~2.5 game days
     await page.waitForTimeout(5000);
     const st = await ev(() => {
       const r = Object.values(window.__net.pub.rooms).find((r) => r.type === "hydro" && r.state !== "done") ?? Object.values(window.__net.pub.rooms).filter((r) => r.type === "hydro").pop();

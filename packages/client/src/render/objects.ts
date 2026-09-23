@@ -15,6 +15,8 @@ export function vkey(o: any): string {
       return `${s.rabbits}|${s.dirty > 50 ? 1 : 0}`;
     case "door_blast":
       return `${s.closed}|${s.barricade}`;
+    case "intercom":
+      return `${s.ring ? 1 : 0}`;
     case "trash_bin":
       return `${s.fill > 70 ? 1 : 0}`;
     case "compost":
@@ -331,6 +333,16 @@ export function buildObject(o: any): THREE.Group {
       g.add(box(0.4, 0.3, 0.35, PAL.metal, 0, 0.3, Z + 0.2));
       g.add(cyl(0.05, 0.6, 0x222222, 0.35, 0.45, Z + 0.2, 6).rotateZ(Math.PI / 2));
       break;
+    case "intercom": {
+      // a wall box by the blast door: speaker grille, handset, a lamp that blinks while it rings
+      g.add(box(0.34, 0.46, 0.08, 0x5b5e57, 0.18, 1.05, Z - 0.55));
+      for (let i = 0; i < 4; i++) g.add(box(0.2, 0.025, 0.02, 0x2b2d2a, 0.18, 1.18 - i * 0.05, Z - 0.5));
+      g.add(box(0.08, 0.26, 0.07, 0x1f2120, 0.3, 0.92, Z - 0.48));
+      const lamp = box(0.07, 0.07, 0.04, s.ring ? 0xff4030 : 0x5a2a24, 0.08, 1.24, Z - 0.49, s.ring ? mat(0xff4030, { emissive: 0xcc2010 }) : undefined);
+      lamp.name = s.ring ? "blink" : "";
+      g.add(lamp);
+      break;
+    }
     case "periscope":
       g.add(cyl(0.08, 1.9, PAL.metal, 0, 0, Z - 0.1, 8));
       g.add(box(0.25, 0.18, 0.2, PAL.metalDark, 0, 1.0, Z + 0.05));

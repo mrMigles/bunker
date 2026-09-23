@@ -326,7 +326,8 @@ export function tickTasks(w: World, dt: number) {
       stopTask(w, c);
       continue;
     }
-    const sp = taskSpeed(w, c, a, t);
+    // a player with the minigame open works by hand: the task barely moves on its own
+    const sp = taskSpeed(w, c, a, t) * ((task as any).mini ? 0.25 : 1);
     task.t += dt * sp;
     c.anim = a.anim ?? "work";
     const fin = a.tick?.(ctx, dt * sp);

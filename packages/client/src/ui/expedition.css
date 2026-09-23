@@ -552,3 +552,56 @@
 .exp-sendbots .row { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
 .exp-sendbots select { flex: 1; }
 .exp-odds { display: flex; gap: 14px; font-size: 12px; }
+/* iteration 3: an always-visible context menu with a highlighted default */
+.exp-action { justify-content: flex-start; }
+.exp-action > span:nth-child(2) { flex: 1; }
+.exp-action .key {
+  flex: none;
+  min-width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 4px;
+  border: 1px solid #ffffff30;
+  font-size: 11px;
+  color: #cfd3cc;
+}
+.exp-action.sel {
+  background: #e8c98a26;
+  box-shadow: inset 3px 0 0 #eac98a;
+}
+.exp-action.sel .key {
+  background: #eac98a;
+  color: #1a1d1e;
+  border-color: #eac98a;
+  font-weight: 800;
+}
+.exp-task.rush > span { color: #ff9a6a; font-weight: 700; animation: rushPulse 0.5s infinite alternate; }
+@keyframes rushPulse { from { opacity: 1 } to { opacity: 0.6 } }
+.exp-bubbles { position: fixed; inset: 0; pointer-events: none !important; z-index: 9; }
+.exp-bubble {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  max-width: 220px;
+  padding: 5px 9px;
+  border-radius: 9px;
+  background: #f3ecd9f0;
+  color: #1d1b17;
+  font-size: 12px;
+  line-height: 1.25;
+  box-shadow: 0 3px 10px #0007;
+  white-space: normal;
+  text-align: center;
+}
+.exp-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  margin-left: -6px;
+  border: 6px solid transparent;
+  border-bottom: 0;
+  border-top-color: #f3ecd9f0;
+}
+.exp-bubble.mine { background: #fff7c8f2; }
+.exp-bodies { margin: 8px 0; padding: 8px 10px; border: 1px dashed #e0a06a88; border-radius: 6px; background: #3a221818; }
