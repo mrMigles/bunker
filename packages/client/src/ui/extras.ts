@@ -129,7 +129,7 @@ export function installExtras(game: GameUI) {
   // one body class per full-screen mode, so bunker panels step aside instead of overlapping
   let lastMode = "";
   GameUI.extraFrame.push(() => {
-    const mode = pro.active ? "prologue" : combat.active ? "combat" : exp.mode === "site" ? "site" : exp.mode === "map" ? "map" : table.active ? "table" : "bunker";
+    const mode = pro.active ? "prologue" : combat.active ? "combat" : exp.mode === "site" ? "site" : exp.mode === "map" ? "map" : table.active ? "table" : game.build.active ? "build" : "bunker";
     if (mode !== lastMode) {
       document.body.classList.remove("mode-" + lastMode);
       document.body.classList.add("mode-" + mode);

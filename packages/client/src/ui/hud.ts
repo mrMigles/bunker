@@ -107,7 +107,7 @@ export class Hud {
     this.meKey = key;
     clear(this.me);
     const pd = PROFS[c.card.prof];
-    this.me.append(art(portraitTile(c.card.prof),"survivor-portrait"));
+    this.me.append(art(portraitTile(c.card.prof, c.card.gender),"survivor-portrait"));
     add(this.me,
       h("div.row", null, h("span.name", null, `${pd?.icon ?? ""} ${c.card.name}`), h("span.dim", null, pd?.name)),
       c.status !== "ok" ? h("div.bad", null, c.status === "down" ? `Без сознания! ${c.downT} с` : c.status === "breakdown" ? "Нервный срыв!" : c.status === "dead" ? "Погиб" : "") : null,

@@ -778,6 +778,20 @@ inputHooks.push((w, c, inp) => {
   const sneak = !!inp.run; // in a site Shift means sneaking
   c.run = false;
   const before = c.x;
+  // walking into an unlocked door opens it (quietly when sneaking); a locked one says what it needs
+  if (mx && !c.climbing) {
+    const cell = Math.floor(c.x + mx * 0.62);
+    const d = e.site.doors.find((x) => x.lv === c.lv && x.x === cell);
+    if (d?.state === "closed") {
+      setDoorState(e.site, d, "open");
+      e.site.noise = clamp(e.site.noise + (sneak ? 1 : 4));
+      fx(w, { k: "sound", id: "door" });
+    } else if (d?.state === "locked" && !(d as any).hinted) {
+      (d as any).hinted = 1;
+      elog(e, "🔒 Дверь заперта: отмычка, лом или выбить (подойдите и нажмите E).");
+      fx(w, { k: "toast", text: "🔒 Заперто — отмычка, лом или выбить (E)" });
+    }
+  }
   stepMove(siteWorld(e.site), c, mx, my, sneak ? dt * SNEAK_SPEED : dt);
   c.seq = inp.seq;
   if (mx || my) {

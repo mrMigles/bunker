@@ -17,7 +17,14 @@ export class MouseNavigation {
     const v = net.pub;
     if (!v) return null;
     if (v.phase === "prologue") return v.mods.prologue ? prologueWorld(v.mods.prologue) : null;
-    if (net.myChar()?.status === "away") return v.mods.expedition?.site ? siteWorld(v.mods.expedition.site) : null;
+    if (net.myChar()?.status === "away") {
+      const s = v.mods.expedition?.site;
+      if (!s) return null;
+      // unlocked doors open as you walk into them, so routes may pass through them
+      const grid = [...s.grid];
+      for (const d of s.doors ?? []) if (d.state === "closed") for (const r of [0, 1]) grid[(d.lv * 2 + r) * s.W + d.x] = 0;
+      return siteWorld({ ...s, grid });
+    }
     return v as unknown as World;
   }
 

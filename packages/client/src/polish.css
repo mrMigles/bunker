@@ -82,3 +82,5 @@ body.mode-combat .hud-feed,body.mode-combat .hud-me,body.mode-combat .help,body.
 body.mode-table .hud-feed,body.mode-table .action-dock,
 body.mode-map .hud-me,body.mode-map .action-dock,body.mode-map .hud-feed,
 body.mode-site .hud-feed{display:none!important}
+body.mode-build .objectives,body.mode-build .hud-feed,body.mode-build .hud-me,body.mode-build .action-dock{display:none!important}
+.build-need{margin:4px 0 8px;padding:8px 10px;border:1px solid #eac98a;border-radius:6px;background:#eac98a14;cursor:pointer;color:#f3e6c8}.build-need:hover{background:#eac98a24}

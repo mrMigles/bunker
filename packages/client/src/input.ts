@@ -1,6 +1,8 @@
 // Keyboard/mouse state. Game code subscribes to key presses and reads held keys.
 
 export const held = new Set<string>();
+/** keys released before the input loop saw them: a quick tap still counts for one sample */
+const tapped = new Set<string>();
 type KeyHandler = (e: KeyboardEvent) => boolean | void;
 const downHandlers: KeyHandler[] = [];
 const upHandlers: KeyHandler[] = [];
@@ -33,6 +35,7 @@ window.addEventListener("keydown", (e) => {
 
 window.addEventListener("keyup", (e) => {
   held.delete(e.code);
+  tapped.add(e.code);
   if (typing()) return;
   for (const h of [...upHandlers]) if (h(e) === true) break;
 });
@@ -46,8 +49,13 @@ window.addEventListener("blur", () => {
 });
 
 export function axis(): { mx: number; my: number; run: boolean } {
-  if (typing()) return { mx: 0, my: 0, run: false };
-  const mx = (held.has("KeyD") || held.has("ArrowRight") ? 1 : 0) - (held.has("KeyA") || held.has("ArrowLeft") ? 1 : 0);
-  const my = (held.has("KeyS") || held.has("ArrowDown") ? 1 : 0) - (held.has("KeyW") || held.has("ArrowUp") ? 1 : 0);
+  if (typing()) {
+    tapped.clear();
+    return { mx: 0, my: 0, run: false };
+  }
+  const on = (c: string) => held.has(c) || tapped.has(c);
+  const mx = (on("KeyD") || on("ArrowRight") ? 1 : 0) - (on("KeyA") || on("ArrowLeft") ? 1 : 0);
+  const my = (on("KeyS") || on("ArrowDown") ? 1 : 0) - (on("KeyW") || on("ArrowUp") ? 1 : 0);
+  tapped.clear();
   return { mx, my, run: held.has("ShiftLeft") || held.has("ShiftRight") };
 }

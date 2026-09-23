@@ -2,6 +2,19 @@ import * as THREE from "three";
 import { BOX_NAMES, ENEMIES, FACTIONS, ITEMS, LOC, PROFS, itemName, listSiteActions, mapPath, travelHours, type SiteAction } from "@bunker/shared";
 
 const profName = (p: string) => PROFS[p]?.name ?? p;
+
+/** One line that answers «what now?» inside a building. */
+function siteHint(e: any, s: any, me: any): string {
+  if (!s || !me) return "";
+  const hunting = s.threats.some((t: any) => t.state === "alert" || t.detect > 40);
+  if (hunting) return "⚠ Вас ищут: отойдите за дверь или приготовьтесь к бою";
+  const room = s.rooms.find((r: any) => r.lv === me.lv && me.x >= r.x && me.x < r.x + r.w);
+  if (room?.dark && !e.light?.[me.id]) return "Темно — включите фонарик (L), так видно ловушки";
+  const open = s.conts.filter((c: any) => c.searched < 1);
+  if (open.length) return `Щёлкните ◇ (${open.length}), чтобы обыскать`;
+  if (s.rooms.some((r: any) => !r.revealed && !r.stairs)) return "Идите дальше: A/D по этажу, W/S по лестнице — комнаты открываются, когда войдёте";
+  return "Здание обыскано — жмите «К выходу»";
+}
 import { audio } from "../audio/audio";
 import { net } from "../net";
 import { CharView } from "../render/chars";
@@ -683,7 +696,7 @@ export class ExpeditionUI {
     const e = this.e,
       s = e.site,
       me = net.priv?.char;
-    const key = JSON.stringify([s.noise, e.light, e.log, e.loot, e.weight, e.tasks[me ?? ""]?.t > 0, e.radio?.ok]);
+    const key = JSON.stringify([s.noise, e.light, e.log, e.loot, e.weight, e.tasks[me ?? ""]?.t > 0, e.radio?.ok, siteHint(e, s, net.myChar())]);
     if (key === this.hudKey) return;
     this.hudKey = key;
     clear(this.siteHud);
@@ -702,18 +715,18 @@ export class ExpeditionUI {
       ),
       h(
         "details.exp-journal",
-        null,
+        { open: true },
         h("summary", null, "Журнал вылазки"),
         h(
           "div.exp-log",
           null,
-          (e.log ?? []).slice(-5).map((l: string) => h("div", null, l)),
+          (e.log ?? []).slice(-4).map((l: string) => h("div", null, l)),
         ),
       ),
     );
     add(
       this.dock,
-      h("span.exp-dock-hint", null, "Щёлкните предмет, чтобы подойти"),
+      h("span.exp-dock-hint", null, siteHint(e, s, net.myChar())),
       h(
         "button",
         {

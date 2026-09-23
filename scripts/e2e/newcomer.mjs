@@ -119,8 +119,25 @@ try {
     await page.keyboard.up("KeyD");
   };
   let fights = 0;
+  // search what is visible: walk to each unsearched container and search it (like clicking ◇)
+  const searchVisible = async () => {
+    for (let k = 0; k < 4; k++) {
+      if (await ev(() => !!window.__net.pub.mods.battle)) return;
+      const ct = await ev(() => {
+        const s = window.__net.pub.mods.expedition?.site, c = window.__net.myChar();
+        if (!s) return null;
+        return s.conts.filter((o) => o.searched < 1 && !o.locked && !o.coop && o.lv === c.lv).sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))[0] ?? null;
+      });
+      if (!ct) return;
+      await ev((ct) => new Promise((res) => window.__game.navigation.go(ct.x + 0.5, ct.lv, () => { window.__net.send({ k: "sdo", a: "search", id: ct.id }); res(); })), ct);
+      await page.waitForFunction((id) => { const s = window.__net.pub.mods.expedition?.site; return !s || window.__net.pub.mods.battle || (s.conts.find((c) => c.id === id)?.searched ?? 1) >= 1; }, ct.id, { timeout: 30000 }).catch(() => {});
+    }
+  };
+  const trace = [];
   for (let i = 0; i < 6; i++) {
+    await searchVisible();
     await walk(1500);
+    trace.push(await ev(() => { const s = window.__net.pub.mods.expedition?.site, c = window.__net.myChar(); return s ? `x${c.x.toFixed(1)} lv${c.lv} conts${s.conts.length}/${s.conts.filter((o) => o.searched < 1).length} rooms${s.rooms.filter((r) => r.revealed).length}/${s.rooms.length}` : "no site"; }));
     if (await ev(() => !!window.__net.pub.mods.battle)) {
       fights++;
       // let the bots fight it out: plan automatically by ending turns
@@ -131,10 +148,11 @@ try {
   }
   const site = await ev(() => {
     const e = window.__net.pub.mods.expedition;
-    return { log: e?.log?.slice(-8), squad: e?.squad.map((id) => ({ hp: Math.round(window.__net.pub.chars[id].needs.health), status: window.__net.pub.chars[id].status })) };
+    return { loot: e?.loot, log: e?.log?.slice(-8), squad: e?.squad.map((id) => ({ hp: Math.round(window.__net.pub.chars[id].needs.health), status: window.__net.pub.chars[id].status })) };
   });
   const alive = site.squad?.every((s) => s.status !== "dead");
   step("site: squad survives the first exploration", !!alive, { fights, ...site });
+  step("site: searching finds loot", Object.keys(site.loot ?? {}).length > 0, { loot: site.loot, trace });
   await shot("06-site-explored");
   // go home
   await ev(() => window.__net.send({ k: "debug", op: "speed", arg: 8 }));

@@ -8,9 +8,14 @@ export function art(tile: number, cls = "") {
   });
 }
 
-export function portraitTile(prof: string) {
-  if (/engineer|mechanic|miner|builder/.test(prof)) return 9;
-  if (/medic|doctor|nurse/.test(prof)) return 10;
+/** Atlas portraits: 8 scout (woman), 9 engineer (man), 10 medic (woman), 11 soldier (man). Gender wins over profession. */
+export function portraitTile(prof: string, gender?: number) {
+  const tech = /engineer|mechanic|miner|builder|electrician/.test(prof);
+  const med = /medic|doctor|nurse/.test(prof);
+  if (gender === 1) return med ? 10 : 8;
+  if (gender === 0) return tech ? 9 : 11;
+  if (tech) return 9;
+  if (med) return 10;
   if (/soldier|guard|hunter/.test(prof)) return 11;
   return 8;
 }

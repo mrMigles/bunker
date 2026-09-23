@@ -67,7 +67,7 @@ export class PrologueUI {
       add(this.hud,
         h("div.mission-caption", null, "ПОСЛЕДНИЙ СБОР"),
         h("div.prologue-timer" + (left <= 20 ? ".urgent" : ""), null, p.done ? "ВСПЫШКА" : `${Math.floor(left/60)}:${String(left%60).padStart(2,"0")}`),
-        h("div", null, p.done ? "Держитесь. Люк закрывается…" : "Соберите припасы. Вернитесь к люку."),
+        h("div", null, p.done ? "Держитесь. Люк закрывается…" : "Лучшее — в дальних домах и на вторых этажах. Успейте к люку!"),
         h("div.countdown-track", null, h("i", {style:{width:`${100*left/p.dur}%`}})),
         h("div.mission-saved", null, `В убежище: ${saved} припасов`, h("span.dim",null," · общий запас")));
       if (saved > this.lastDelivered) audio.sfx("find",.3);

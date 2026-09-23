@@ -28,7 +28,7 @@ export class ObjectivesUI {
   update() {
     const v = net.pub;
     const list: any[] = v?.mods?.objectives ?? [];
-    const show = !!v && (v.phase === "day" || v.phase === "night") && net.myChar()?.status !== "away" && !this.busy() && list.length > 0;
+    const show = !!v && v.phase === "day" && net.myChar()?.status !== "away" && !this.busy() && list.length > 0;
     this.el.classList.toggle("hidden", !show);
     if (!show) return;
     const key = JSON.stringify([list, this.collapsed]);

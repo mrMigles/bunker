@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { ROOMS, canPlaceRoom, costText, roomAt, roomCost, roomLocked } from "@bunker/shared";
+import { ROOMS, canPlaceRoom, costText, neededRoom, roomAt, roomCost, roomLocked } from "@bunker/shared";
 import { net } from "../net";
 import type { WorldRenderer } from "../render/world";
 import { clear, h, ui, toast } from "./dom";
@@ -66,6 +66,24 @@ export class BuildMode {
       h("div", { style: { color: "var(--warm)", marginBottom: "6px" } }, "🏗 Стройка (B — выход)"),
       h("div.dim", { style: { marginBottom: "6px" } }, "ЛКМ — разметить · Shift+колесо / [ ] — ширина · Shift+ПКМ — отменить/снести. Размеченное надо выкопать (E у породы), вынести грунт к люку и построить каркас."),
     );
+    // what the colony needs right now goes first, with the reason
+    let need: { type: string; why: string } | null = null;
+    try {
+      need = v ? neededRoom(v as any) : null;
+    } catch {
+      need = null;
+    }
+    if (need && ROOMS[need.type]) {
+      const d = ROOMS[need.type];
+      this.panel.appendChild(
+        h(
+          "div.build-need",
+          { onclick: () => this.select(need!.type) },
+          h("b", null, `★ Сейчас нужно: ${d.name}`),
+          h("div.dim", null, need.why[0].toUpperCase() + need.why.slice(1) + " · " + costText(d.cost)),
+        ),
+      );
+    }
     for (const id of ORDER) {
       const d = ROOMS[id];
       if (!d) continue;
