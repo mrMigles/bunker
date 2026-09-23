@@ -13,16 +13,19 @@ function runToEnd(s: CombatState, maxRounds = 60) {
 }
 
 describe("combat", () => {
-  it("move costs: 1 step = 1 AP, 3 steps = 2 AP", () => {
+  it("move costs (XCOM-like): up to 4 cells = 1 AP, up to 8 = 2 AP", () => {
     expect(moveCost(1)).toBe(1);
-    expect(moveCost(3)).toBe(2);
-    expect(moveCost(4)).toBe(3);
+    expect(moveCost(4)).toBe(1);
+    expect(moveCost(5)).toBe(2);
+    expect(moveCost(8)).toBe(2);
+    expect(moveCost(9)).toBe(3);
   });
 
   it("validates plans: AP budget and reachable cells", () => {
     const s = createCombat(makeArena(1), [ally("a", 1)], [enemy("e", 12)], 1);
     expect(validatePlan(s, "a", [{ t: "move", col: 4, floor: 0 }])).toBeNull();
-    expect(validatePlan(s, "a", [{ t: "move", col: 9, floor: 0 }])).toMatch(/ОД/);
+    // a long dash (3 AP) leaves nothing for the pistol shot
+    expect(validatePlan(s, "a", [{ t: "move", col: 11, floor: 0 }, { t: "shoot", target: "e" }])).toMatch(/ОД/);
     expect(validatePlan(s, "a", [{ t: "shoot", target: "e" }, { t: "shoot", target: "e" }, { t: "shoot", target: "e" }, { t: "shoot", target: "e" }])).toMatch(/ОД/);
     expect(validatePlan(s, "a", [{ t: "melee", target: "a" }])).toBeTruthy();
   });

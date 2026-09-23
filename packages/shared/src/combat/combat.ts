@@ -95,6 +95,10 @@ export interface UnitInit {
   tags?: string[];
   maxHp?: number;
   icon?: string;
+  /** perks from levelling */
+  hpBonus?: number;
+  aimBonus?: number;
+  apBonus?: number;
 }
 
 export interface Unit {
@@ -134,6 +138,7 @@ export interface Unit {
   items: Record<string, number>;
   nvg: boolean;
   carried?: Record<string, number>; // loot stolen by raiders
+  aim?: number; // perk: flat hit bonus
 }
 
 export type Action =
@@ -240,8 +245,10 @@ export function pathTo(s: CombatState, u: Unit, col: number, floor: number): { c
   return out.reverse();
 }
 
+/** XCOM-like movement: one AP covers a short move (up to 4 cells), two a dash (up to 8). */
 export function moveCost(steps: number) {
-  return steps <= 1 ? steps : Math.ceil((steps * 2) / 3);
+  if (steps <= 0) return 0;
+  return steps <= 4 ? 1 : steps <= 8 ? 2 : 3;
 }
 
 /** Clear horizontal line of fire on the same floor (closed doors between block it). */
@@ -281,7 +288,7 @@ export function hitChance(s: CombatState, a: Unit, t: Unit, aimed = false, part?
   if (a.st.suppressed) ch -= 15;
   if (a.st.aimDebuff) ch -= 20;
   if (a.st.panic) ch -= 20;
-  if (a.side === "ally") ch += s.hitBonus;
+  if (a.side === "ally") ch += s.hitBonus + (a.aim ?? 0);
   if (t.st.hidden) return 0;
   return Math.max(5, Math.min(95, ch));
 }
@@ -326,7 +333,8 @@ export function makeUnit(init: UnitInit): Unit {
     };
   }
   const st = init.stats ?? { sil: 2, lov: 2, int: 2, vyn: 2, har: 2 };
-  const maxHp = init.maxHp ?? 12 + st.vyn * 4;
+  // squad members take a few hits before going down (XCOM-like: 3–4 hits from a raider)
+  const maxHp = init.maxHp ?? 20 + st.vyn * 4 + (init.hpBonus ?? 0);
   const w = WEAPONS[init.weapon ?? "fists"] ?? WEAPONS.fists;
   return {
     id: init.id,
@@ -344,10 +352,11 @@ export function makeUnit(init: UnitInit): Unit {
     lov: st.lov,
     sil: st.sil,
     har: st.har,
-    ap: 3,
-    maxAp: 3,
+    ap: 3 + (init.apBonus ?? 0),
+    maxAp: 3 + (init.apBonus ?? 0),
     stress: 0,
     skills: init.skills ?? { shooting: 1, melee: 1, medicine: 1 },
+    aim: init.aimBonus ?? 0,
     ability: init.ability,
     cd: 0,
     st: {},
@@ -1072,6 +1081,71 @@ export function resolveRound(s: CombatState, autoPlan: (u: Unit) => Action[] = (
     }
     if (checkEnd(s)) break;
   }
+  endOfRound(s);
+}
+
+// ================================================================ phased turns (XCOM-style)
+// The squad acts one action at a time and sees the result immediately; when everyone ends the turn,
+// bot allies act, then enemies re-plan against the current positions and act one by one.
+
+/** Executes one ally action right now. Returns an error text or null. `s.events` holds just this action. */
+export function actNow(s: CombatState, uid: string, a: Action): string | null {
+  if (s.phase !== "plan") return "Сейчас ход противника";
+  const u = s.units[uid];
+  if (!u || u.side !== "ally") return "Это не ваш боец";
+  const err = validatePlan(s, uid, [a]);
+  if (err) return err;
+  s.events = [];
+  if (a.t === "overwatch") {
+    u.st.overwatch = 1;
+    ev(s, { u: u.id, k: "text", text: "в ожидании" });
+  } else execAction(s, u, a);
+  (u as any).acted = 1;
+  if (checkEnd(s)) s.phase = "over";
+  return null;
+}
+
+/** Ends the squad's turn: bot allies act, then the enemies; then the round ends. */
+export function enemyPhase(s: CombatState, botAllies: string[], autoPlan: (u: Unit) => Action[] = (u) => allyBotPlan(s, u)) {
+  if (s.phase !== "plan") return;
+  s.events = [];
+  const R = new Rng(s.rng);
+  for (const id of botAllies) {
+    const u = s.units[id];
+    if (!u || !alive(u)) continue;
+    const plan = autoPlan(u);
+    if (plan[0]?.t === "overwatch") u.st.overwatch = 1;
+    for (const a of plan) {
+      if (!alive(u)) break;
+      execAction(s, u, a);
+      if (checkEnd(s)) break;
+    }
+    if (checkEnd(s)) break;
+  }
+  if (!checkEnd(s)) {
+    // enemies read the situation as it is now, then act in initiative order
+    planEnemies(s);
+    ev(s, { u: "", k: "text", text: "Ход противника" });
+    const order = Object.values(s.units)
+      .filter((u) => u.side === "enemy" && alive(u))
+      .map((u) => ({ u, init: u.lov + R.int(1, 6) + (u.tags.includes("pack") ? 2 : 0) }))
+      .sort((a, b) => b.init - a.init || (a.u.id < b.u.id ? -1 : 1));
+    for (const { u } of order) {
+      if (!alive(u)) continue;
+      for (const a of u.intent ?? []) {
+        if (!alive(u)) break;
+        const ok = execAction(s, u, a);
+        if (!ok && (a.t === "shoot" || a.t === "melee")) {
+          const t = nearest(s, u, "ally");
+          const w = weaponOf(u);
+          if (t && t.floor === u.floor && Math.abs(t.col - u.col) <= w.range && lineOfFire(s, u, t) && u.ap >= w.ap) attack(s, u, t);
+        }
+        if (checkEnd(s)) break;
+      }
+      if (checkEnd(s)) break;
+    }
+  }
+  for (const u of Object.values(s.units)) delete (u as any).acted;
   endOfRound(s);
 }
 

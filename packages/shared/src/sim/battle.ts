@@ -1,4 +1,4 @@
-import { ENEMIES, allyBotPlan, createCombat, resolveRound, submitPlan, unitAlive, unitSummary, type Action, type CombatState, type Field, type UnitInit } from "../combat/combat";
+import { ENEMIES, actNow, allyBotPlan, createCombat, enemyPhase, unitAlive, unitSummary, type Action, type CombatState, type Field, type UnitInit } from "../combat/combat";
 import { bunkerField, makeArena } from "../combat/fields";
 import { PROFS } from "../data/characters";
 import { modViews } from "../net/view";
@@ -57,7 +57,8 @@ export function charUnit(w: World, c: Char, col: number, floor: number, taken: R
     char: c.id,
     col,
     floor,
-    hpFrac: Math.max(0.15, c.needs.health / 100),
+    // wounds count, but nobody walks into a fight one hit from dropping
+    hpFrac: Math.max(0.6, c.needs.health / 100),
     stats: c.card.stats,
     skills: { shooting: skillLevel(c, "shooting"), melee: skillLevel(c, "melee"), medicine: skillLevel(c, "medicine") },
     weapon,
@@ -97,14 +98,41 @@ function myUnit(w: World, pid: string): string | null {
   return u && unitAlive(u) ? u.id : null;
 }
 
+/** Seconds of animation for a batch of combat events. */
+function animFor(b: BattleMod) {
+  const ev = b.state.events;
+  return Math.min(12, 0.3 + ev.filter((e) => e.k !== "move").length * 0.55 + ev.filter((e) => e.k === "move").length * 0.12);
+}
+
+/** One action of my fighter, executed right away (XCOM-style). */
+registerCmd("cact", (w, p, cmd) => {
+  const b = battle(w);
+  if (!b || b.state.phase !== "plan") return "Сейчас ход противника";
+  if (b.animLeft > 0.25) return "Подождите, пока закончится действие";
+  const uid = myUnit(w, p.id);
+  if (!uid) return "Вы не в бою";
+  const err = actNow(b.state, uid, cmd.action as Action);
+  if (err) return err;
+  b.eventsRound++;
+  b.animLeft = animFor(b);
+  syncBunkerPositions(w, b);
+});
+
+/** Legacy: a queued plan is simply executed action by action now. */
 registerCmd("cplan", (w, p, cmd) => {
   const b = battle(w);
-  if (!b || b.state.phase !== "plan" || b.animLeft > 0) return "Сейчас нельзя планировать";
+  if (!b || b.state.phase !== "plan") return "Сейчас ход противника";
   const uid = myUnit(w, p.id);
   if (!uid) return "Вы не в бою";
   const acts = (Array.isArray(cmd.actions) ? cmd.actions : []).slice(0, 8) as Action[];
-  const err = submitPlan(b.state, uid, acts);
-  if (err) return err;
+  for (const a of acts) {
+    const err = actNow(b.state, uid, a);
+    if (err) return err;
+  }
+  if (acts.length) {
+    b.eventsRound++;
+    b.animLeft = animFor(b);
+  }
   b.ready[p.id] = !!cmd.ready;
 });
 
@@ -151,24 +179,33 @@ onTick("battle", "*", (w, dt) => {
   const humans = humanPlayersInBattle(w);
   const allReady = humans.length > 0 && humans.every((pid) => b.ready[pid]);
   if (b.planLeft <= 0 || allReady || humans.length === 0) {
-    resolveRound(b.state, (u) => allyBotPlan(b.state, u));
-    b.eventsRound = b.state.round;
+    // the squad's turn is over: bots act (and idle players' fighters, so nobody just stands there), then enemies
+    const humanUnits = new Set(humans.filter((pid) => b.ready[pid] || (b.state.units["u_" + w.players[pid].char] as any)?.acted).map((pid) => "u_" + w.players[pid].char));
+    const bots = Object.values(b.state.units)
+      .filter((u) => u.side === "ally" && unitAlive(u) && !humanUnits.has(u.id))
+      .map((u) => u.id);
+    enemyPhase(b.state, bots, (u) => allyBotPlan(b.state, u));
+    b.eventsRound++;
     for (const h of battleRoundHooks) h(w, b);
-    if (b.where === "bunker") {
-      for (const u of Object.values(b.state.units)) {
-        const c = u.char ? w.chars[u.char] : undefined;
-        if (!c) continue;
-        c.x = b.state.field.originX + u.col + 0.5;
-        c.lv = b.state.field.originLv + u.floor;
-        c.y = feetY(c.lv);
-        c.climbing = false;
-      }
-    }
-    b.animLeft = Math.min(10, 0.6 + b.state.events.filter((e) => e.k !== "move").length * 0.55 + b.state.events.filter((e) => e.k === "move").length * 0.12);
+    syncBunkerPositions(w, b);
+    b.animLeft = animFor(b);
     b.planLeft = w.settings.combatTurnTime;
     b.ready = {};
   }
 });
+
+/** In bunker fights the residents' real positions follow their combat units. */
+function syncBunkerPositions(w: World, b: BattleMod) {
+  if (b.where !== "bunker") return;
+  for (const u of Object.values(b.state.units)) {
+    const c = u.char ? w.chars[u.char] : undefined;
+    if (!c) continue;
+    c.x = b.state.field.originX + u.col + 0.5;
+    c.lv = b.state.field.originLv + u.floor;
+    c.y = feetY(c.lv);
+    c.climbing = false;
+  }
+}
 
 function finishBattle(w: World, b: BattleMod) {
   const s = b.state;

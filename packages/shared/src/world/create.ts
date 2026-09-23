@@ -12,7 +12,7 @@ export const DEFAULT_SETTINGS: Settings = {
   storyteller: "classic",
   short: false,
   traitor: false,
-  combatTurnTime: 20,
+  combatTurnTime: 45,
   tableTurnTime: 30,
   tableLeave: "bot",
   skipPrologue: false,

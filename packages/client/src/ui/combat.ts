@@ -7,6 +7,7 @@ import {
   moveCost,
   pathTo,
   validatePlan,
+  weaponOf,
   type Action,
   type CEvent,
   type CombatState,
@@ -45,6 +46,8 @@ export class CombatUI {
   top = h("div.combat-top.hidden");
   mode: Mode = null;
   plan: Action[] = [];
+  private reach: { col: number; floor: number; dash: boolean }[] = [];
+  private reachKey = "";
   aimPart: "legs" | "arms" | "head" | undefined;
   queue: CEvent[] = [];
   qT = 0;
@@ -154,26 +157,28 @@ export class CombatUI {
     return ap;
   }
 
+  /** XCOM-style: every action is executed right away; the result plays out before the next one. */
   tryAdd(a: Action) {
     const s = this.cs;
     const u = this.myUnit();
-    if (!s || !u || s.phase !== "plan" || u.dead || u.down || u.fled) return;
-    const next = [...this.plan, a];
-    const err = validatePlan(s as any, u.id, next);
+    if (!s || !u || s.phase !== "plan" || u.dead || u.down || u.fled || this.queue.length) return;
+    const err = validatePlan(s as any, u.id, [a]);
     if (err) {
       floatText(this.mouse.x, this.mouse.y - 10, err, "#ff8a6a");
       audio.sfx("click", 0.5);
       return;
     }
-    this.plan = next;
+    this.plan = [];
     audio.sfx("blip", 0.5);
-    if (a.t !== "move") this.mode = null;
-    this.sync(false);
+    this.mode = null;
+    net.send({ k: "cact", action: a });
+    this.key = "";
   }
 
+  /** «Конец хода» — the enemies move after everyone ends the turn (or the clock runs out). */
   sync(ready: boolean) {
     if (this.cs?.phase !== "plan") return;
-    net.send({ k: "cplan", actions: this.plan, ready });
+    net.send({ k: "cready", v: ready });
     this.key = "";
   }
 
@@ -483,6 +488,28 @@ export class CombatUI {
       m.userData.plan = true;
       this.overlay.add(m);
     };
+    // XCOM-style reach: blue = you can still shoot after moving there, yellow = a dash
+    if (!this.queue.length && u.ap > 0 && !u.down && (this.mode === null || this.mode === "move")) {
+      const key = JSON.stringify([u.col, u.floor, u.ap, Object.values(s.units).map((x) => [x.col, x.floor, x.dead]), s.field.doors.map((d) => d.closed)]);
+      if (key !== this.reachKey) {
+        this.reachKey = key;
+        this.reach = [];
+        const wap = weaponOf(u as Unit).ap;
+        for (let fl = 0; fl < s.field.floors; fl++)
+          for (let col = 0; col < s.field.cols; col++) {
+            if (col === u.col && fl === u.floor) continue;
+            if (!s.field.walk[fl * s.field.cols + col]) continue;
+            // standing room only: cells taken by anyone alive are not destinations
+            if (Object.values(s.units).some((o) => o.col === col && o.floor === fl && !o.dead && !o.fled)) continue;
+            const path = pathTo(s as any, u as Unit, col, fl);
+            if (!path) continue;
+            const cost = moveCost(path.length);
+            if (cost > u.ap) continue;
+            this.reach.push({ col, floor: fl, dash: u.ap - cost < wap });
+          }
+      }
+      for (const r of this.reach) addMark(r.col, r.floor, r.dash ? 0xe8c14a : 0x4fa8ff, 0.3);
+    }
     // my plan
     let p = { col: u.col, floor: u.floor };
     for (const a of this.plan)
@@ -614,7 +641,7 @@ export class CombatUI {
         "div.combat-clock" + (s.phase === "plan" && s.planLeft <= 8 ? ".urgent" : ""),
         null,
         h("strong", null, s.phase === "plan" ? `${Math.ceil(s.planLeft)}` : s.phase === "anim" ? "•••" : "✓"),
-        h("span", null, s.phase === "plan" ? "сек. на план" : s.phase === "anim" ? "Действия отряда" : "Бой завершён"),
+        h("span", null, s.phase === "plan" ? "сек. — ваш ход" : s.phase === "anim" ? "Идёт действие…" : "Бой завершён"),
       ),
       h("div.combat-forces", null, h("span", null, `Отряд ${allies}`), h("b", null, `Противники ${enemies}`)),
     );
@@ -657,7 +684,7 @@ export class CombatUI {
         this.intel,
         h("div.combat-eyebrow", null, "ТАКТИЧЕСКАЯ ОБСТАНОВКА"),
         h("h3", null, "Держитесь вместе"),
-        h("p.dim", null, "Выберите противника, чтобы оценить шанс попадания. Все планы выполняются одновременно."),
+        h("p.dim", null, "Синие клетки — можно дойти и ещё выстрелить, жёлтые — рывок. Щёлкните врага, чтобы увидеть шанс попадания. После «Конец хода» враги делают то, что подписано над ними."),
       );
     add(
       this.intel,
@@ -735,26 +762,11 @@ export class CombatUI {
       h(
         "div.combat-plan-line",
         null,
-        h("span.combat-eyebrow", null, "ПЛАН ДЕЙСТВИЙ"),
+        h("span.combat-eyebrow", null, "ВАШ ХОД"),
         h(
           "div.combat-queue",
           null,
-          this.plan.length
-            ? this.plan.map((a, i) => h("span.combat-order", null, h("b", null, String(i + 1)), describe(a)))
-            : h("span.dim", null, "Выберите действие или клетку на поле"),
-        ),
-        h(
-          "button.combat-undo",
-          {
-            title: "Отменить последний шаг",
-        "aria-label": "Отменить последний шаг",
-            disabled: !this.plan.length || !canPlan,
-            onclick: () => {
-              this.plan.pop();
-              this.sync(false);
-            },
-          },
-          "↶",
+          h("span.dim", null, u.ap > 0 ? `Осталось ${u.ap} ОД. Клетка — идти, враг — атаковать. Действия выполняются сразу.` : "ОД кончились — нажмите «Конец хода»."),
         ),
       ),
       h(
@@ -903,13 +915,13 @@ export class CombatUI {
               },
             },
             "Ускорить",
-            h("small", null, "Разыгрываем планы…"),
+            h("small", null, "Смотрим, что вышло…"),
           )
         : h(
             "button.combat-ready" + (s.ready?.[net.priv!.pid] ? ".confirmed" : ""),
             { disabled: !canPlan, onclick: () => this.sync(true) },
-            s.ready?.[net.priv!.pid] ? "✓ План готов" : "Завершить план",
-            h("small", null, s.ready?.[net.priv!.pid] ? "Ждём остальных" : "Выполнить вместе с отрядом"),
+            s.ready?.[net.priv!.pid] ? "✓ Ход завершён" : "Конец хода",
+            h("small", null, s.ready?.[net.priv!.pid] ? "Ждём остальных" : "Затем ходят враги"),
           ),
       h(
         "span.dim",
