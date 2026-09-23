@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+.git
+.github
+.claude
+artifacts
+data
+**/data/*.sqlite*
+*.log
+PLAYER_ROLE_REVIEW.md

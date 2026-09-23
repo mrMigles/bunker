@@ -643,6 +643,19 @@ pnpm sim --players 6 --days 10
 
 Один процесс Node раздаёт и игру, и статику клиента.
 
+### Docker
+
+Готовый образ собирает GitHub Actions (`.github/workflows/docker.yml`: типы, тесты, сборка клиента, затем образ) и публикует в GHCR при каждом пуше в `main` и на тегах `v*`:
+
+```bash
+docker compose up -d          # образ ghcr.io/mrmigles/bunker:latest → http://localhost:8080
+docker compose up -d --build  # собрать образ из исходников
+```
+
+Сохранения лежат в томе `glubzhe-data` (`/data` в контейнере). Порт снаружи меняется переменной `GLUBZHE_PORT`.
+
+### Без Docker
+
 1. Установить зависимости:
 
    ```bash

@@ -1,0 +1,20 @@
+# docker compose up -d  → http://localhost:8080
+# Uses the image published by CI; `docker compose up --build` builds it locally instead.
+services:
+  glubzhe:
+    image: ghcr.io/mrmigles/bunker:latest
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${GLUBZHE_PORT:-8080}:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATA_DIR: /data
+      # seconds an empty room stays in memory before it is saved and unloaded
+      EMPTY_UNLOAD_SEC: 300
+    volumes:
+      - glubzhe-data:/data
+
+volumes:
+  glubzhe-data:
