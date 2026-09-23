@@ -1,5 +1,5 @@
 import { Client, type Room } from "@colyseus/sdk";
-import { MSG, applyPatch, clone, siteWorld, stepMove, type Cmd, type Fx, type InputMsg, type PrivateView, type PublicView } from "@bunker/shared";
+import { MSG, applyPatch, clone, prologueWorld, siteWorld, stepMove, type Cmd, type Fx, type InputMsg, type PrivateView, type PublicView } from "@bunker/shared";
 
 export const SERVER = import.meta.env.DEV ? `${location.protocol}//${location.hostname}:2567` : location.origin;
 
@@ -130,7 +130,7 @@ export class Net {
     if (!moving && this.pending.length === 0 && !(c as any).__lastMoving) return;
     (c as any).__lastMoving = moving;
     this.room.send(MSG.input, inp);
-    if ((c.status !== "ok" && c.status !== "away") || this.pub.phase !== "day" || c.task) return;
+    if ((c.status !== "ok" && c.status !== "away") || (this.pub.phase !== "day" && this.pub.phase !== "prologue") || c.task) return;
     this.pending.push(inp);
     if (this.pending.length > 60) this.pending.shift();
     this.predictStep(inp);
@@ -164,6 +164,11 @@ export class Net {
   /** Same movement rules as the server: in an expedition site Shift means sneaking at reduced speed. */
   private step(tmp: any, inp: InputMsg) {
     const site = this.pub?.mods?.expedition?.site;
+    const pro = this.pub?.mods?.prologue;
+    if (this.pub?.phase === "prologue") {
+      if (pro && !pro.done) stepMove(prologueWorld(pro) as any, tmp, inp.mx, inp.my, inp.dt);
+      return;
+    }
     if (tmp.status === "away") {
       if (!site || this.pub?.mods?.combat?.active) return;
       tmp.run = false;

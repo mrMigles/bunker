@@ -80,7 +80,7 @@ function loop(now: number) {
   game?.frame(dt);
   fpsAcc = fpsAcc * 0.95 + (dt > 0 ? 1 / dt : 60) * 0.05;
   (window as any).__fps = fpsAcc;
-  const atSite = game?.combat?.frame(dt) || game?.exp?.frame(dt);
+  const atSite = game?.pro?.frame(dt) || game?.combat?.frame(dt) || game?.exp?.frame(dt);
   const atTable = atSite || game?.table?.frame(dt);
   if (!atTable) renderer.frame(dt, net.pub, net.priv?.char ?? null, pred);
   hud?.labels.classList.toggle("hidden", !!atTable);

@@ -26,10 +26,6 @@ onTick("time", "day", (w, dt) => {
   }
 });
 
-onTick("prologue-fallback", "prologue", (w) => {
-  if (!w.mods.prologue) beginDay(w);
-});
-
 onTick("night-timeout", "night", (w) => {
   if (!w.council && w.phaseT > w.settings.nightLength) endNight(w);
 });

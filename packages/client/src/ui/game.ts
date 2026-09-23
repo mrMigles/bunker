@@ -20,6 +20,7 @@ export class GameUI {
   table: import("./tableui").TableUI | null = null;
   combat: import("./combat").CombatUI | null = null;
   exp: import("./expedition").ExpeditionUI | null = null;
+  pro: import("./prologue").PrologueUI | null = null;
   private lastPhase = "";
   static extraKeys: ((e: KeyboardEvent, g: GameUI) => boolean | void)[] = [];
   static extraFrame: ((dt: number, g: GameUI) => void)[] = [];
@@ -149,7 +150,10 @@ export class GameUI {
     }
   }
 
+  static extraKeysUp: ((e: KeyboardEvent, g: GameUI) => boolean | void)[] = [];
+
   keyUp(e: KeyboardEvent): boolean | void {
+    for (const k of GameUI.extraKeysUp) if (k(e, this)) return true;
     if (e.code === "KeyE" || /^Digit[1-7]$/.test(e.code)) this.prompt.release();
   }
 

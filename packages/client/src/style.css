@@ -915,6 +915,40 @@ textarea {
   font-size: 13px;
   z-index: 9;
 }
+.prologue-hud {
+  position: fixed;
+  left: 50%;
+  top: 44px;
+  transform: translateX(-50%);
+  text-align: center;
+  background: rgba(40, 10, 8, 0.7);
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 12;
+}
+.prologue-timer {
+  font-family: var(--title);
+  font-size: 40px;
+  color: var(--warm);
+  text-shadow: 2px 2px 0 #000;
+}
+.prologue-timer.urgent {
+  color: #ff4a3a;
+  animation: pulse 0.5s infinite alternate;
+}
+@keyframes pulse {
+  to {
+    transform: scale(1.08);
+  }
+}
+.flash {
+  position: fixed;
+  inset: 0;
+  background: #fffbe8;
+  pointer-events: none;
+  z-index: 60;
+}
 .dayvote {
   position: fixed;
   right: 10px;
