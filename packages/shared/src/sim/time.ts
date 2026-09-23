@@ -12,7 +12,7 @@ export const nightHooks: { start: ((w: World) => void)[]; end: ((w: World) => vo
 
 /** Effective time multiplier for the bunker (skip-time ×3, combat ×0.25). */
 export function timeMult(w: World) {
-  let m = w.speed;
+  let m = w.speed * (w.flags._dbgSpeed || 1);
   if (w.mods.combat?.active && w.mods.combat.where === "expedition") m *= BAL.combatTimeMult;
   if (w.mods.combat?.active && w.mods.combat.where !== "expedition") m = 0; // a fight inside the bunker freezes the clock
   return m;

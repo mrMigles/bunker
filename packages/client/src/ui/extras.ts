@@ -7,6 +7,7 @@ import { DayVoteUI, InstrumentUI, RadioUI } from "./radio";
 import { TableUI } from "./tableui";
 import { CombatUI } from "./combat";
 import { openDebug } from "./debug";
+import { ExpeditionUI } from "./expedition";
 import { openBoard, openBooks, openCanvas, openCharacter, openClipping, openCook, openCraft, openPeriscope, openSettings } from "./screens";
 
 /** Hooks the 5b screens (radio, instruments, board, papers…) into the game UI. */
@@ -15,6 +16,8 @@ export function installExtras(game: GameUI) {
   game.table = table;
   const combat = new CombatUI(game.r);
   game.combat = combat;
+  const exp = new ExpeditionUI(game.r);
+  game.exp = exp;
   const radio = new RadioUI();
   const instr = new InstrumentUI();
   const dayVote = new DayVoteUI();
@@ -66,6 +69,7 @@ export function installExtras(game: GameUI) {
       }
       return e.code !== "KeyC";
     }
+    if (exp.mode !== "none" && exp.handleKey(e)) return true;
     if (table.active && e.code === "Escape") {
       table.leave();
       return true;
@@ -97,6 +101,7 @@ export function installExtras(game: GameUI) {
     dayVote.update();
     table.update();
     combat.update();
+    exp.update();
   });
 
   // click a character to inspect

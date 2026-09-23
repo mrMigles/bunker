@@ -19,6 +19,7 @@ export class GameUI {
   aquarium = false;
   table: import("./tableui").TableUI | null = null;
   combat: import("./combat").CombatUI | null = null;
+  exp: import("./expedition").ExpeditionUI | null = null;
   private lastPhase = "";
   static extraKeys: ((e: KeyboardEvent, g: GameUI) => boolean | void)[] = [];
   static extraFrame: ((dt: number, g: GameUI) => void)[] = [];
@@ -74,7 +75,7 @@ export class GameUI {
   }
 
   inputBlocked() {
-    return typing() || isModalOpen() || this.aquarium || !!this.table?.active || !!this.combat?.active;
+    return typing() || isModalOpen() || this.aquarium || !!this.table?.active || !!this.combat?.active || this.exp?.mode === "map";
   }
 
   keyDown(e: KeyboardEvent): boolean | void {

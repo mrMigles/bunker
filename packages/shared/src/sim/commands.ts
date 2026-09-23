@@ -21,12 +21,16 @@ export function applyCmd(w: World, pid: string, cmd: Cmd): string | void {
   return h(w, p, cmd);
 }
 
+/** Other modules (expeditions) may take over movement input for away characters. */
+export const inputHooks: ((w: World, c: import("../types").Char, inp: InputMsg) => boolean)[] = [];
+
 /** Movement input from a player (applied immediately, prediction-compatible). */
 export function applyInput(w: World, pid: string, inp: InputMsg) {
   const p = w.players[pid];
   if (!p?.char) return;
   const c = w.chars[p.char];
   if (!c || c.ctrl !== pid) return;
+  for (const h of inputHooks) if (h(w, c, inp)) return;
   if (c.status !== "ok" || w.phase !== "day" || w.paused || p.aquarium || c.mind.plan === "combat") {
     c.seq = inp.seq;
     return;

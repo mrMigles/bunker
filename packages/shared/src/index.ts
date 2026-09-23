@@ -45,4 +45,7 @@ export * from "./sim/tables";
 export * from "./combat/combat";
 export * from "./combat/fields";
 export * from "./sim/battle";
+export * from "./expedition/map";
+export * from "./expedition/site";
+export * from "./sim/expedition";
 export * from "./sim/debug";

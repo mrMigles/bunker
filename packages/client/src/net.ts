@@ -1,5 +1,5 @@
 import { Client, type Room } from "@colyseus/sdk";
-import { MSG, applyPatch, clone, stepMove, type Cmd, type Fx, type InputMsg, type PrivateView, type PublicView } from "@bunker/shared";
+import { MSG, applyPatch, clone, siteWorld, stepMove, type Cmd, type Fx, type InputMsg, type PrivateView, type PublicView } from "@bunker/shared";
 
 export const SERVER = import.meta.env.DEV ? `${location.protocol}//${location.hostname}:2567` : location.origin;
 
@@ -130,7 +130,7 @@ export class Net {
     if (!moving && this.pending.length === 0 && !(c as any).__lastMoving) return;
     (c as any).__lastMoving = moving;
     this.room.send(MSG.input, inp);
-    if (c.status !== "ok" || this.pub.phase !== "day" || c.task) return;
+    if ((c.status !== "ok" && c.status !== "away") || this.pub.phase !== "day" || c.task) return;
     this.pending.push(inp);
     if (this.pending.length > 60) this.pending.shift();
     this.predictStep(inp);
@@ -151,7 +151,7 @@ export class Net {
     if (!this.pred) this.syncPred();
     const p = this.pred!;
     const tmp = { ...c, x: p.x, y: p.y, lv: p.lv, climbing: p.climbing, run: inp.run, drunk: 0 };
-    stepMove(this.pub as any, tmp as any, inp.mx, inp.my, inp.dt);
+    this.step(tmp, inp);
     p.prevX = p.x;
     p.prevY = p.y;
     p.x = tmp.x;
@@ -159,6 +159,18 @@ export class Net {
     p.lv = tmp.lv;
     p.climbing = tmp.climbing;
     p.stepT = 0;
+  }
+
+  /** Same movement rules as the server: in an expedition site Shift means sneaking at reduced speed. */
+  private step(tmp: any, inp: InputMsg) {
+    const site = this.pub?.mods?.expedition?.site;
+    if (tmp.status === "away") {
+      if (!site || this.pub?.mods?.combat?.active) return;
+      tmp.run = false;
+      stepMove(siteWorld(site) as any, tmp, inp.mx, inp.my, inp.run ? inp.dt * 0.55 : inp.dt);
+      return;
+    }
+    stepMove(this.pub as any, tmp, inp.mx, inp.my, inp.dt);
   }
 
   private reconcile() {
@@ -172,7 +184,7 @@ export class Net {
     const tmp = clone({ ...c, drunk: 0 });
     for (const inp of this.pending) {
       tmp.run = inp.run;
-      stepMove(this.pub as any, tmp as any, inp.mx, inp.my, inp.dt);
+      this.step(tmp, inp);
     }
     if (!this.pred) {
       this.syncPred();

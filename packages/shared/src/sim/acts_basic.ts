@@ -500,7 +500,7 @@ defAction({
       log(w, `${firstName(c)} замечает в перископ чужаков у входа. Готовьтесь к налёту!`, "bad");
       fx(w, { k: "toast", text: "👁 У входа видели чужаков!" });
     }
-    fx(w, { k: "news", to: c.ctrl ?? undefined, id: "periscope", data: { weather: w.weather.today, day: w.day } });
+    if (c.ctrl && !isBotDriven(w, c.id)) fx(w, { k: "news", to: c.ctrl, id: "periscope", data: { weather: w.weather.today, day: w.day } });
   },
 });
 

@@ -31,7 +31,7 @@ export const debugOps: Record<string, (w: World, arg: any, pid: string) => strin
     for (const t of ["tech_turret", "tech_diesel", "tech_chem", "tech_radio", "tech_lift"]) if (!w.tech.includes(t)) w.tech.push(t);
   },
   speed: (w, s) => {
-    w.speed = Math.max(0.25, Math.min(20, Number(s) || 1));
+    w.flags._dbgSpeed = Math.max(0.25, Math.min(20, Number(s) || 1));
   },
   notice: (w, n) => {
     w.notice = Number(n) || 0;
