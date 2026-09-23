@@ -84,3 +84,7 @@ body.mode-map .hud-me,body.mode-map .action-dock,body.mode-map .hud-feed,
 body.mode-site .hud-feed{display:none!important}
 body.mode-build .objectives,body.mode-build .hud-feed,body.mode-build .hud-me,body.mode-build .action-dock{display:none!important}
 .build-need{margin:4px 0 8px;padding:8px 10px;border:1px solid #eac98a;border-radius:6px;background:#eac98a14;cursor:pointer;color:#f3e6c8}.build-need:hover{background:#eac98a24}
+/* nested full-screen layers (HUD labels inside the HUD root) must stay click-through too:
+   `.layer > *` would otherwise turn the inner layer into an invisible wall over the canvas */
+.layer > .layer{pointer-events:none!important}
+.layer > .layer > *{pointer-events:auto}

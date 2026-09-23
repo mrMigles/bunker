@@ -123,6 +123,16 @@ export function reachable(w: World, x0: number, lv0: number, x1: number, lv1: nu
 }
 
 /** Where a character must stand to dig slot (x, lv). Horizontal neighbours first, then from above. */
+/** Every open neighbour a slot can be dug from (sides first, then above/below). */
+export function slotAccesses(w: World, x: number, lv: number): { x: number; lv: number }[] {
+  const out: { x: number; lv: number }[] = [];
+  if (walkable(w, x - 1, lv)) out.push({ x: x - 1, lv });
+  if (walkable(w, x + 1, lv)) out.push({ x: x + 1, lv });
+  if (lv - 1 >= 0 && walkable(w, x, lv - 1)) out.push({ x, lv: lv - 1 });
+  if (walkable(w, x, lv + 1)) out.push({ x, lv: lv + 1 });
+  return out;
+}
+
 export function slotAccess(w: World, x: number, lv: number): { x: number; lv: number } | null {
   if (walkable(w, x - 1, lv)) return { x: x - 1, lv };
   if (walkable(w, x + 1, lv)) return { x: x + 1, lv };

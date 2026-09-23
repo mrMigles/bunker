@@ -141,7 +141,7 @@ export function refreshChores(w: World) {
     const [x, lv] = unnode(w, Number(key));
     if (walkable(w, x, lv)) continue;
     if (!slotAccess(w, x, lv)) continue;
-    add({ kind: "dig", cell: Number(key), urgency: 0.4 });
+    add({ kind: "dig", cell: Number(key), urgency: 0.55 });
   }
   // power: somebody should pedal when the battery is low
   const p = w.power;

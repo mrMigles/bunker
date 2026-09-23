@@ -147,6 +147,12 @@ export function placeRoom(w: World, type: string, x: number, lv: number, width: 
       }
     }
     r.state = allOpen ? "frame" : "dig";
+    // no side neighbour → stairs to the room above/below
+    const side = roomAt(w, x - 1, lv) || roomAt(w, x + width, lv);
+    if (!side && !ROOMS[type]?.shaft) {
+      const st = stairFor(w, x, lv, width);
+      if (st) r.stair = st;
+    }
   }
   return r;
 }
@@ -162,6 +168,22 @@ export function spawnRoomObjects(w: World, r: RoomInst) {
 }
 
 /** Validates a room placement. Returns error string or null. */
+/** Ladder cell connecting a new room to a dug room right above or below it (lower cell of the pair). */
+export function stairFor(w: World, x: number, lv: number, width: number): { x: number; lv: number } | null {
+  const dug = (r: RoomInst | undefined) => !!r && (r.state === "done" || r.state === "frame") && !ROOMS[r.type]?.shaft;
+  const busy = (cx: number, clv: number) => Object.values(w.objs).some((o) => o.lv === clv && o.x === cx && o.kind !== "ladder");
+  for (const [dl, ladderLv] of [[-1, lv], [1, lv + 1]] as const) {
+    if (lv + dl < 0) continue;
+    for (let i = 0; i < width; i++) {
+      const cx = x + i;
+      if (!dug(roomAt(w, cx, lv + dl))) continue;
+      if (w.grid[(lv * 2) * w.W + cx] === 7) continue;
+      if (!busy(cx, ladderLv)) return { x: cx, lv: ladderLv };
+    }
+  }
+  return null;
+}
+
 export function canPlaceRoom(w: World, type: string, x: number, lv: number, width: number): string | null {
   const def = ROOMS[type];
   if (!def) return "Неизвестный тип комнаты";
@@ -181,12 +203,14 @@ export function canPlaceRoom(w: World, type: string, x: number, lv: number, widt
   if (def.shaft) {
     if (roomAt(w, x, lv - 1) || roomAt(w, x, lv + 1)) adjacent = true;
   }
+  // directly above/below a dug room: a ladder is added automatically (see stairFor)
+  if (!adjacent && stairFor(w, x, lv, width)) adjacent = true;
   for (let i = 0; i < width && !adjacent; i++) {
     const above = roomAt(w, x + i, lv - 1);
     if (above && above.type === "shaft") adjacent = true;
     const below = roomAt(w, x + i, lv + 1);
     if (below && below.type === "shaft") adjacent = true;
   }
-  if (!adjacent) return "Комната должна примыкать к существующей (или к шахте)";
+  if (!adjacent) return "Комната должна примыкать к существующей сбоку, сверху или снизу";
   return null;
 }

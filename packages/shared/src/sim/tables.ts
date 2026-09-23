@@ -71,6 +71,11 @@ function seated(t: TableState) {
   return t.seats.filter((s): s is string => !!s);
 }
 
+/** Bots keep the table for evenings and lunch: 8–12 and 13–18 are for work. */
+function workHours(w: World) {
+  return (w.hour >= 8 && w.hour < 12) || (w.hour >= 13 && w.hour < 18);
+}
+
 /** Thinking games get a longer clock. */
 function turnTime(w: World, t: TableState) {
   return w.settings.tableTurnTime * (["chess", "checkers", "backgammon"].includes(t.game ?? "") ? 3 : 1);
@@ -115,8 +120,8 @@ defAction({
   tick: ({ w, c, o }) => {
     const t = tableFor(w, o!.id);
     c.anim = "play";
-    // bots leave when their leisure time is over and no game is running
-    if (isBotDriven(w, c.id) && t.status !== "playing" && w.phaseT > (c.mind.until ?? 0) + 20) return true;
+    // bots leave when their leisure time is over and no game is running — and during work hours
+    if (isBotDriven(w, c.id) && t.status !== "playing" && (w.phaseT > (c.mind.until ?? 0) + 20 || workHours(w))) return true;
     if (c.needs.food < 15 || c.needs.water < 15) return true;
   },
   stop: ({ w, c, o }) => {
@@ -318,7 +323,7 @@ onTick("tables", "*", (w, dt) => {
       const s = seated(t);
       const humans = s.filter((x) => !isBotDriven(w, x));
       const fits = availableGames(w).filter((gid) => s.length >= GAMES[gid].minPlayers && s.length <= GAMES[gid].maxPlayers && gid !== "chess");
-      if (s.length >= 2 && humans.length === 0 && fits.length) {
+      if (s.length >= 2 && humans.length === 0 && fits.length && !workHours(w)) {
         w.flags["_tbl_idle_" + id] = (w.flags["_tbl_idle_" + id] ?? 0) + dt;
         if (w.flags["_tbl_idle_" + id] > 4) {
           w.flags["_tbl_idle_" + id] = 0;

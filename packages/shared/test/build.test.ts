@@ -7,9 +7,32 @@ describe("digging & building", () => {
     const w = startedWorld();
     expect(canPlaceRoom(w, "hydro", 29, 1, 4)).toBeNull(); // right next to the starting hydroponics (25..28)
     expect(canPlaceRoom(w, "hydro", 40, 1, 4)).toMatch(/примыкать/);
+    // directly below the living quarters (12..19, lv1): allowed, a ladder will be added
+    expect(canPlaceRoom(w, "hydro", 13, 2, 4)).toBeNull();
     expect(canPlaceRoom(w, "hydro", 25, 1, 4)).toMatch(/занято/);
     expect(canPlaceRoom(w, "shaft", 21, 2, 1)).toBeNull(); // below the tech room
   });
+
+  it("a room stacked under another gets its own ladder and is reachable", () => {
+    const w = startedWorld({ players: 1 });
+    for (const k of ["scrap", "parts", "wood", "chem", "cloth"]) w.res[k] = 60;
+    w.res.pickaxe = 2;
+    w.res.food_can = 60;
+    w.res.water = 60;
+    expect(applyCmd(w, "p0", { k: "plan", type: "hydro", x: 13, lv: 2, w: 4 })).toBeUndefined();
+    const r = Object.values(w.rooms).find((x) => x.type === "hydro" && x.lv === 2)!;
+    expect(r.stair).toBeTruthy();
+    let done = false;
+    for (let i = 0; i < 40 && !done; i++) {
+      for (const pid in w.players) if (w.council) w.council.ready[pid] = true;
+      run(w, 30);
+      done = r.state === "done";
+    }
+    expect(done).toBe(true);
+    expect(Object.keys(w.ladders).some((k) => k.endsWith(",2"))).toBe(true);
+    // walk from the living room down into the new room
+    expect(findPath(w, 16.5, 1, 14.5, 2)).toBeTruthy();
+  }, 60000);
 
   it("bots dig a shaft down and build hydroponics on the new level", () => {
     const w = startedWorld({ players: 1 });

@@ -3,7 +3,7 @@ import { PROFS } from "../data/characters";
 import { ITEMS } from "../data/items";
 import { OBJECTS } from "../data/objects";
 import type { Char, Chore, World } from "../types";
-import { feetY, findPath, slotAccess, unnode, walkable } from "../world/grid";
+import { feetY, findPath, slotAccess, slotAccesses, unnode, walkable } from "../world/grid";
 import { ROOMS, roomAt } from "../world/rooms";
 import { ACTIONS, CHORE_DEFS, inReach, listActions, startAction, stopTask, type Target, type TargetType } from "./actions";
 import { CHORE_ACTION } from "./chores";
@@ -379,7 +379,19 @@ function execPlan(w: World, c: Char, p: Plan) {
     m.dest = undefined;
     return;
   }
-  if (!pos || !goTo(w, c, pos.x, pos.lv)) {
+  // digging: a freshly dug pit next to the slot may be unreachable — try every side
+  let routed = !!pos && goTo(w, c, pos.x, pos.lv);
+  if (!routed && p.tt === "slot") {
+    const [sx, slv] = unnode(w, Number(p.t));
+    for (const a of slotAccesses(w, sx, slv)) {
+      const tx = a.lv === slv ? a.x + (a.x < sx ? 0.75 : 0.25) : sx + 0.5;
+      if (goTo(w, c, tx, a.lv)) {
+        routed = true;
+        break;
+      }
+    }
+  }
+  if (!routed) {
     const d = ((w.mods as any)._botErr ??= {}) as Record<string, number>;
     d[p.a + ": нет пути"] = (d[p.a + ": нет пути"] ?? 0) + 1;
     releaseChore(w, c);
@@ -410,6 +422,8 @@ function shouldStop(w: World, c: Char): boolean {
   }
   if (REST_ACTIONS.has(t.action) && t.action !== "sleep") {
     if (c.needs.water < 30 || c.needs.food < 30) return true;
+    // the work day started and something real waits: back to work (unless the mind really needs the rest)
+    if (scheduleBlock(w, c) === "work" && c.needs.sanity >= 35 && Object.values(w.chores).some((ch) => !ch.by && ch.urgency >= 0.4)) return true;
     if (c.needs.energy < 18 && t.action !== "sit") return true;
   }
   return false;

@@ -149,6 +149,8 @@ export interface RoomInst {
   name?: string;
   sturdy?: boolean; // pre-war concrete: never collapses and supports neighbours
   paid?: boolean; // construction materials already paid
+  /** where a ladder appears once dug: rooms placed directly above/below another room get their own stairs */
+  stair?: { x: number; lv: number };
 }
 
 export interface Obj {

@@ -80,7 +80,8 @@ export const BAL = {
   fireSpreadPerHour: 0.25,
 
   // --- digging (cells per minute at skill 1)
-  digRate: { 1: 3, 2: 2, 3: 0.7, 4: 0.3, 5: 1.2, 6: 0.9 } as Record<number, number>,
+  // cells per minute of one digger; doubled so a room visibly moves within a few minutes of play
+  digRate: { 1: 6, 2: 4, 3: 1.4, 4: 0.6, 5: 2.4, 6: 1.8 } as Record<number, number>,
   digSkillBonus: 0.15, // per skill level
   collapseSpan: 6, // max unsupported width of a room without supports
   collapseChancePerDay: 0.35,

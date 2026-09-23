@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import { ROOMS, canPlaceRoom, costText, neededRoom, roomAt, roomCost, roomLocked } from "@bunker/shared";
+import { ROOMS, canPlaceRoom, costText, neededRoom, roomAt, roomCost, roomLocked, stairFor } from "@bunker/shared";
 import { net } from "../net";
 import type { WorldRenderer } from "../render/world";
-import { clear, h, ui, toast } from "./dom";
+import { add, clear, h, ui, toast } from "./dom";
 
 const ORDER = ["corridor", "shaft", "support", "living", "storage", "hydro", "mushroom", "kitchen", "mess", "rabbits", "waterworks", "genroom", "batteries", "workshop", "chemlab", "med", "radioroom", "rec", "chapel", "armory", "range", "defense", "turretroom", "lift", "airlock2", "brig", "tech", "airlock"];
 
@@ -15,11 +15,16 @@ export class BuildMode {
   info = h("div.prompt.hidden");
   hover: { x: number; lv: number } | null = null;
   labels = h("div.layer");
+  /** green frames on every spot where the selected room fits right now */
+  private spots = new THREE.Group();
+  private spotsKey = "";
+  private savedCam: { x: number; y: number; h: number } | null = null;
 
   constructor(private r: WorldRenderer) {
     this.ghost = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1.7), new THREE.MeshBasicMaterial({ color: 0x66ff66, transparent: true, opacity: 0.3, depthWrite: false }));
     this.ghost.visible = false;
     r.scene.add(this.ghost);
+    r.scene.add(this.spots);
     this.panel.classList.add("hidden");
     ui().append(this.panel, this.info, this.labels);
     const canvas = r.renderer.domElement;
@@ -45,7 +50,64 @@ export class BuildMode {
     this.panel.classList.toggle("hidden", !v);
     this.ghost.visible = false;
     this.info.classList.add("hidden");
-    if (v) this.renderPanel();
+    this.spots.visible = v;
+    this.spotsKey = "";
+    if (v) {
+      this.renderPanel();
+      this.frameBunker();
+    } else if (this.savedCam) {
+      // back to following the character
+      this.r.viewH = this.savedCam.h;
+      this.r.follow = true;
+      this.r.updateCamera();
+      this.savedCam = null;
+    }
+  }
+
+  /** Zoom out so the whole base and the rock around it (where new rooms go) is on screen. */
+  frameBunker() {
+    const v = net.pub;
+    if (!v) return;
+    const rooms = Object.values(v.rooms as Record<string, any>);
+    if (!rooms.length) return;
+    const x0 = Math.min(...rooms.map((r) => r.x)) - 6,
+      x1 = Math.max(...rooms.map((r) => r.x + r.w)) + 6;
+    const lv1 = Math.max(...rooms.map((r) => r.lv)) + 2;
+    this.savedCam = { x: this.r.camX, y: this.r.camY, h: this.r.viewH };
+    this.r.follow = false;
+    const aspect = window.innerWidth / window.innerHeight;
+    // leave room for the palette on the left
+    this.r.viewH = Math.max((x1 - x0) / aspect / 0.75, (lv1 + 1) * 2 + 3);
+    this.r.camX = (x0 + x1) / 2 - (this.r.viewH * aspect) * 0.1;
+    this.r.camY = -(lv1 + 1);
+    this.r.updateCamera();
+  }
+
+  /** Recompute the green «fits here» frames for the selected room type and width. */
+  private updateSpots(v: any) {
+    const key = JSON.stringify([this.type, this.width, Object.values(v.rooms).map((r: any) => [r.x, r.lv, r.w, r.state])]);
+    if (key === this.spotsKey) return;
+    this.spotsKey = key;
+    for (const m of this.spots.children as THREE.Mesh[]) m.geometry.dispose();
+    this.spots.clear();
+    if (lockedRoom(v, this.type)) return;
+    const maxLv = Math.max(...Object.values(v.rooms).map((r: any) => r.lv)) + 1;
+    const mat = new THREE.MeshBasicMaterial({ color: 0x66ff66, transparent: true, opacity: 0.16, depthWrite: false });
+    for (let lv = 0; lv <= maxLv; lv++) {
+      const ok: number[] = [];
+      for (let x = 1; x + this.width < v.W - 1; x++) if (!canPlaceRoom(v, this.type, x, lv, this.width)) ok.push(x);
+      // merge overlapping anchors into runs to keep it readable
+      for (let i = 0; i < ok.length; ) {
+        let j = i;
+        while (j + 1 < ok.length && ok[j + 1] === ok[j] + 1) j++;
+        const from = ok[i],
+          to = ok[j] + this.width;
+        const m = new THREE.Mesh(new THREE.BoxGeometry(to - from - 0.1, 1.9, 0.2), mat);
+        m.position.set((from + to) / 2, -(lv * 2 + 1), 0.4);
+        this.spots.add(m);
+        i = j + 1;
+      }
+    }
   }
 
   setWidth(n: number) {
@@ -113,6 +175,7 @@ export class BuildMode {
       this.updateLabels();
       return;
     }
+    this.updateSpots(v);
     const lv = Math.floor(-mouseWy / 2);
     const x = Math.floor(mouseWx - this.width / 2 + 0.5);
     this.hover = { x, lv };
@@ -126,7 +189,7 @@ export class BuildMode {
     this.info.style.top = sy + "px";
     this.info.classList.remove("hidden");
     clear(this.info);
-    this.info.append(h("b", null, `${ROOMS[this.type].name} ×${this.width}`), h("div.dim", null, costText(roomCost(this.type, this.width))), err ? h("div.bad", null, err) : h("div.good", null, "ЛКМ — разметить"));
+    add(this.info, h("b", null, `${ROOMS[this.type].name} ×${this.width}`), h("div.dim", null, costText(roomCost(this.type, this.width))), err ? h("div.bad", null, err) : h("div.good", null, "ЛКМ — разметить"), !err && !roomAt(v as any, x - 1, lv) && !roomAt(v as any, x + this.width, lv) && stairFor(v as any, x, lv, this.width) ? h("div.dim", null, "🪜 Лестница к соседнему этажу появится сама") : null);
     this.updateLabels();
   }
 

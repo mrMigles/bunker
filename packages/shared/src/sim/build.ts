@@ -66,7 +66,7 @@ defAction({
     const [x, lv] = unnode(w, Number(t.id));
     if (!w.marks[t.id] || walkable(w, x, lv)) return true;
     const work = slotWork(w, x, lv);
-    w.dig[t.id] = (w.dig[t.id] ?? 0) + (dt * digSpeed(c)) / Math.max(1, work);
+    w.dig[t.id] = (w.dig[t.id] ?? 0) + (dt * timeMult(w) * digSpeed(c)) / Math.max(1, work);
     c.needs.energy = clamp(c.needs.energy - dt * hoursPerSec(w) * 4);
     c.skills.digging += dt * 0.08;
     if (c.lv !== lv) c.dir = 1;
@@ -105,6 +105,16 @@ export function finishDig(w: World, c: Char | null, x: number, lv: number) {
   }
   // shaft → ladder right away
   if (r && ROOMS[r.type]?.shaft && !w.ladders[x + "," + lv]) addObj(w, "ladder", x, lv, r.id);
+  // rooms stacked on another room: their ladder appears as soon as both cells are open
+  for (const rr of Object.values(w.rooms)) {
+    const st = rr.stair;
+    if (!st || w.ladders[st.x + "," + st.lv]) continue;
+    if (walkable(w, st.x, st.lv) && walkable(w, st.x, st.lv - 1)) {
+      addObj(w, "ladder", st.x, st.lv, roomAt(w, st.x, st.lv)?.id);
+      delete rr.stair;
+      log(w, `🪜 Лестница в «${ROOMS[rr.type]?.name}» готова.`, "good");
+    }
+  }
   // hidden find
   const find = w.finds[key];
   if (find) {
@@ -155,7 +165,7 @@ defAction({
   tick: ({ w, c, t }, dt) => {
     const r = w.rooms[t.id];
     if (!r || r.state !== "frame") return true;
-    r.work += dt;
+    r.work += dt * timeMult(w);
     c.skills.repair += dt * 0.05;
     if (r.work >= (ROOMS[r.type]?.work ?? 30)) {
       completeRoom(w, r, c);
