@@ -1,5 +1,7 @@
 import * as THREE from "three";
-import { BOX_NAMES, FACTIONS, ITEMS, LOC, itemName, listSiteActions, type SiteAction } from "@bunker/shared";
+import { BOX_NAMES, ENEMIES, FACTIONS, ITEMS, LOC, PROFS, itemName, listSiteActions, mapPath, travelHours, type SiteAction } from "@bunker/shared";
+
+const profName = (p: string) => PROFS[p]?.name ?? p;
 import { audio } from "../audio/audio";
 import { net } from "../net";
 import { CharView } from "../render/chars";
@@ -111,6 +113,34 @@ export class ExpeditionUI {
     this.renderBanner();
   }
 
+  /** What a place promises and threatens, and how far it is — the reasons to pick it. */
+  nodeIntel(v: any, e: any, n: any) {
+    const t = LOC.types[n.type];
+    const map = v.mods.wmap;
+    let hours = 0;
+    const path = map && e.node !== n.id ? mapPath(map, e.node, n.id, false) : null;
+    if (path) for (let i = 1; i < path.length; i++) hours += travelHours(map.nodes[path[i - 1]], map.nodes[path[i]], v.weather?.today) / 2;
+    const loot: [string, number, number[]][] = t ? (LOC.loot[t.loot] ?? []) : [];
+    const top = [...loot].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const threats = t ? [...new Set<string>(t.threats ?? [])] : [];
+    return h(
+      "div.exp-intel",
+      null,
+      top.length
+        ? h("div", null, h("div.exp-eyebrow", null, "ВОЗМОЖНАЯ ДОБЫЧА"), h("div.exp-intel-row", null, ...top.map(([k]) => h("span.exp-intel-item", { title: itemName(k) }, `${ITEMS[k]?.icon ?? "◇"} ${itemName(k)}`))))
+        : null,
+      threats.length
+        ? h("div", null, h("div.exp-eyebrow", null, "РИСКИ"), h("div.exp-intel-row", null, ...threats.map((k) => h("span.exp-intel-risk", null, `☠ ${ENEMIES[k]?.name ?? k}`))))
+        : null,
+      h(
+        "div.exp-intel-facts",
+        null,
+        path ? h("span", null, `⏱ В пути ~${hours < 1 ? Math.max(1, Math.round(hours * 60)) + " мин" : hours.toFixed(1) + " ч"}`) : null,
+        n.looted ? h("span", null, `Обыскано ${Math.round(n.looted * 100)}%`) : n.visited ? null : h("span", null, "Ещё не обыскано"),
+      ),
+    );
+  }
+
   // ---------------------------------------------------------------- prep
   openPrep() {
     const render = () => {
@@ -148,13 +178,71 @@ export class ExpeditionUI {
             )
           : null,
       );
-      body.append(
-        squad,
-        h(
-          "div.exp-squad-members",
+      const member = (id: string) => {
+        const c = v.chars[id];
+        if (!c) return null;
+        const hp = Math.round(c.needs?.health ?? 100);
+        return h(
+          "div.exp-member",
           null,
-          ...e.squad.map((id: string) => h("span.tag", null, "◈ " + (v.chars[id]?.card.name ?? id))),
-        ),
+          h("b", null, c.card.name.split(" ")[0]),
+          h("span.dim", null, profName(c.card.prof)),
+          h("span.exp-member-hp", { style: { color: hp < 50 ? "#e07a5f" : "#8fcf6a" } }, `♥ ${hp}`),
+          id === me
+            ? null
+            : h(
+                "button.small.exp-member-x",
+                {
+                  title: "Оставить в убежище",
+                  onclick: () => {
+                    net.send({ k: "expRemove", char: id });
+                    rerender();
+                  },
+                },
+                "×",
+              ),
+        );
+      };
+      const candidates = Object.values(v.chars as Record<string, any>).filter(
+        (c) => c.status === "ok" && !e.squad.includes(c.id) && !c.ctrl && (c.needs?.health ?? 100) > 40,
+      );
+      add(
+        body,
+        squad,
+        h("div.exp-squad-members", null, ...e.squad.map(member)),
+        e.squad.length < 3 && candidates.length
+          ? h(
+              "div.exp-candidates",
+              null,
+              h("span.dim", null, "Взять с собой: "),
+              ...candidates.slice(0, 5).map((c: any) =>
+                h(
+                  "button.small",
+                  {
+                    title: `${c.card.name} · ${profName(c.card.prof)} · здоровье ${Math.round(c.needs?.health ?? 100)}`,
+                    onclick: () => {
+                      net.send({ k: "expAdd", char: c.id });
+                      rerender();
+                    },
+                  },
+                  `+ ${c.card.name.split(" ")[0]} (${profName(c.card.prof)})`,
+                ),
+              ),
+              h(
+                "button.small.primary",
+                {
+                  onclick: () => {
+                    net.send({ k: "expAuto" });
+                    rerender();
+                  },
+                },
+                "Автоподбор",
+              ),
+            )
+          : null,
+        e.squad.length === 1
+          ? h("p.exp-warn", null, "⚠ В одиночку опасно: любая стычка может закончиться ранением. Возьмите 1–2 жильцов.")
+          : null,
       );
       const capacity = h(
         "div.exp-capacity",
@@ -236,32 +324,7 @@ export class ExpeditionUI {
             {
               disabled: !e.squad.length,
               onclick: () => {
-                const count = Math.max(1, e.squad.length);
-                const kit: Record<string, number> = {
-                  food_can: count * 2,
-                  water: count * 2,
-                  flashlight: 1,
-                  batteries: 2,
-                  meds: 1,
-                  crowbar: 1,
-                  pipe: 1,
-                };
-                let used = Object.entries(e.gear)
-                  .filter(([k]) => !(k in kit))
-                  .reduce((sum, [k, n]) => sum + Number(n) * (ITEMS[k]?.weight ?? 0), 0);
-                for (const [item, target] of Object.entries(kit)) {
-                  const weight = ITEMS[item]?.weight ?? 0;
-                  const n = Math.max(
-                    0,
-                    Math.min(
-                      target,
-                      Math.floor(v.res[item] ?? 0),
-                      weight ? Math.floor((e.cap - used) / weight) : target,
-                    ),
-                  );
-                  used += n * weight;
-                  net.send({ k: "expGear", item, n });
-                }
+                net.send({ k: "expKit" });
                 rerender();
               },
             },
@@ -480,6 +543,7 @@ export class ExpeditionUI {
           { class: selected?.danger >= 3 ? "bad" : "dim" },
           `Опасность: ${selected?.danger >= 3 ? "высокая" : selected?.danger > 0 ? "умеренная" : "низкая"} ${"◆".repeat(selected?.danger ?? 0)}`,
         ),
+        selected ? this.nodeIntel(v, e, selected) : null,
         e.stage === "map" && selected?.id !== e.node && this.selectedNode && this.selectedNode !== e.node
           ? h(
               "button.primary",

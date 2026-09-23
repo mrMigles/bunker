@@ -37,6 +37,41 @@ for (const k in FURNITURE) {
 // Keepsakes from the prologue become shelf decor.
 const KEEPSAKES: Record<string, string> = { album: "keepsake", iron: "keepsake", teddy: "keepsake", gnome: "keepsake", radio_portable: "keepsake", plant_pot: "plant", guitar: "keepsake" };
 
+/**
+ * Keepsakes carried in during the prologue are unpacked straight into the living spaces
+ * instead of piling up at the airlock (and cluttering everyone's action list).
+ * Returns the items that found no free spot.
+ */
+export function settleKeepsakes(w: World, items: string[]): string[] {
+  const rooms = Object.values(w.rooms)
+    .filter((r) => r.state === "done" && ["living", "mess", "rec", "storage"].includes(r.type))
+    .sort((a, b) => ["living", "mess", "rec", "storage"].indexOf(a.type) - ["living", "mess", "rec", "storage"].indexOf(b.type));
+  const left: string[] = [];
+  const placed: string[] = [];
+  for (const item of items) {
+    const kind = KEEPSAKES[item];
+    let done = false;
+    for (const r of rooms) {
+      const used = new Set(objsInRoom(w, r.id).map((o) => o.x));
+      for (let x = r.x; x < r.x + r.w && !done; x++) {
+        if (used.has(x) || w.ladders[x + "," + r.lv]) continue;
+        addObj(w, kind, x, r.lv, r.id, { item });
+        if (item === "album") w.flags.album_home = 1;
+        placed.push(itemName(item));
+        done = true;
+      }
+      if (done) break;
+    }
+    if (!done) left.push(item);
+  }
+  if (placed.length) log(w, `🏠 Памятные вещи расставлены по бункеру: ${placed.join(", ")}. Стало уютнее.`, "good");
+  return left;
+}
+
+export function isKeepsake(item: string) {
+  return !!KEEPSAKES[item];
+}
+
 const DECOR: Record<string, number> = { armchair: 6, rug: 5, lamp: 5, poster: 4, plant: 6, keepsake: 5, bookshelf: 4, piano: 4, drawing_wall: 3, pet_bed: 2, altar: 4, radio: 3, tape_player: 2, game_table: 3, grave: -3 };
 
 export function computeComfort(w: World) {

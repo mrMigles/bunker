@@ -1,0 +1,133 @@
+{
+  "steps": [
+    {
+      "name": "lobby cards readable (light text on dark card)",
+      "ok": true,
+      "text": "⛏️\nСтепан Сухарев\nШахтёр, 22 лет\nКопает в два раза быстрее.\n5\nСИЛ\n2\nЛОВ\n2\nИНТ\n1\n",
+      "lum": 224.33333333333334
+    },
+    {
+      "name": "prologue: 60 s, 6 houses, wide street",
+      "ok": true,
+      "dur": 60,
+      "W": 58,
+      "houses": 6,
+      "items": 52,
+      "hatch": 28
+    },
+    {
+      "name": "prologue: selecting loot walks there and picks it up",
+      "ok": true,
+      "before": {
+        "x": 24.9,
+        "hands": 0
+      },
+      "after": {
+        "x": 19.09,
+        "hands": [
+          "newspaper"
+        ]
+      },
+      "target": {
+        "id": "pi37",
+        "x": 19.1
+      }
+    },
+    {
+      "name": "prologue: carried loot drops into the hatch",
+      "ok": true,
+      "delivered": 3
+    },
+    {
+      "name": "prologue ends; waiting at the hatch keeps you unhurt",
+      "ok": true,
+      "rad": 0,
+      "injury": null,
+      "waited": 58
+    },
+    {
+      "name": "day 1: «Задачи» panel shows priorities and the first tutorial step",
+      "ok": true,
+      "list": [
+        "need:Воды на 1.2 дн.",
+        "need:Коек 4 на 6 человек",
+        "tutorial:Покрутите генератор-велосипед"
+      ],
+      "panel": true
+    },
+    {
+      "name": "day 1: no keepsake junk piled at the airlock",
+      "ok": true,
+      "floor": [
+        "ball"
+      ],
+      "clutter": 8
+    },
+    {
+      "name": "objective click walks to its target",
+      "ok": true
+    },
+    {
+      "name": "sortie prep: squad pre-filled (me + residents) and a base kit packed",
+      "ok": true,
+      "squad": 3,
+      "weight": 7.8,
+      "gear": {
+        "water": 6,
+        "food_can": 3,
+        "meds": 1,
+        "batteries": 1
+      }
+    },
+    {
+      "name": "travel to the first location",
+      "ok": true,
+      "dest": "Разрушенный магазин в Заречье",
+      "seconds": 2
+    },
+    {
+      "name": "site: squad survives the first exploration",
+      "ok": true,
+      "fights": 0,
+      "log": [
+        "Отряд поднялся наверх. Пепел хрустит под ногами.",
+        "Путь: Разрушенный магазин в Заречье (~1.3 ч).",
+        "Прибыли: Разрушенный магазин в Заречье.",
+        "Вошли: Разрушенный магазин в Заречье. «Кооператив «Изобилие»»."
+      ],
+      "squad": [
+        {
+          "hp": 100,
+          "status": "away"
+        },
+        {
+          "hp": 100,
+          "status": "away"
+        },
+        {
+          "hp": 100,
+          "status": "away"
+        }
+      ]
+    },
+    {
+      "name": "squad returns home",
+      "ok": true,
+      "home": true,
+      "me": "ok",
+      "log": [
+        "[debug] Новичок: speed 8",
+        "[debug] Новичок: speed 1",
+        "[debug] Новичок: speed 8",
+        "🏠 Отряд вернулся с пустыми руками. Разберите добычу у шлюза!"
+      ]
+    },
+    {
+      "name": "no page errors",
+      "ok": true,
+      "errors": []
+    }
+  ],
+  "errors": [],
+  "ok": true
+}

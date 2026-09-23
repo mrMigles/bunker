@@ -38,6 +38,12 @@ function setupSquad(seed: number) {
   Object.assign(w.res, { food_can: 20, water: 20, lockpick: 1, flashlight: 1, batteries: 3, pistol: 1, ammo: 12, meds: 3 });
   const c0 = toTerminal(w, "p0");
   expect(startAction(w, c0, "sortie", { type: "obj", id: objsOfKind(w, "sortie_terminal")[0].id })).toBeUndefined();
+  // the terminal pre-fills the squad with the opener + two residents and a base kit; this test builds its own
+  const e = w.mods.expedition;
+  expect(e.squad).toContain(c0.id);
+  expect(e.squad.length).toBe(3);
+  for (const id of [...e.squad]) if (id !== c0.id) expect(applyCmd(w, "p0", { k: "expRemove", char: id })).toBeUndefined();
+  e.gear = {};
   expect(applyCmd(w, "p0", { k: "expJoin" })).toBeUndefined();
   toTerminal(w, "p1");
   expect(applyCmd(w, "p1", { k: "expJoin" })).toBeUndefined();

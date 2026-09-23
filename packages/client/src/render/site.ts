@@ -92,6 +92,8 @@ export class SiteRenderer {
   viewH = 10;
   private key = "";
   mode: "auto" | "street" | "ruin" = "auto";
+  /** street layout (prologue): where the hatch is and what the houses are called */
+  street: { hatch: number; names: string[] } | null = null;
   private panorama: THREE.Mesh;
   theme = { wall: 0x6a5f52, floor: 0x3a3028, solid: 0x2a221c, sky: 0x1a1412 };
 
@@ -116,7 +118,7 @@ export class SiteRenderer {
 
   build(f: FieldLike, extra?: { lit?: boolean[]; decor?: { col: number; floor: number; kind: string }[] }) {
     const street = this.mode === "street" || (this.mode === "auto" && f.cols === 40 && f.floors === 2);
-    const key = JSON.stringify([this.mode, f.cols, f.floors, f.walk, f.ladders, f.covers.map((c) => [c.col, c.floor, c.kind, c.hp > 0]), f.doors, extra?.lit]);
+    const key = JSON.stringify([this.mode, this.street, f.cols, f.floors, f.walk, f.ladders, f.covers.map((c) => [c.col, c.floor, c.kind, c.hp > 0]), f.doors, extra?.lit]);
     if (key === this.key) return;
     const resetCamera = !this.key || this.fieldCols !== f.cols || this.fieldFloors !== f.floors;
     this.key = key;
@@ -180,7 +182,7 @@ export class SiteRenderer {
         b(0.74, height, 0.4, 0x696253, r.start + n + 0.5, 0.28, -1.15);
       }
       if (width > 2.5) {
-        const titles = street ? ["ГАСТРОНОМ · 24", "ДОМ № 17", "ЛАБОРАТОРИЯ", "МАСТЕРСКАЯ"] : ["УНИВЕРСАМ", "СЛУЖЕБНЫЙ ВХОД", "СКЛАД № 04"];
+        const titles = street ? this.street?.names ?? ["ГАСТРОНОМ · 24", "ДОМ № 17", "ЛАБОРАТОРИЯ", "МАСТЕРСКАЯ"] : ["УНИВЕРСАМ", "СЛУЖЕБНЫЙ ВХОД", "СКЛАД № 04"];
         this.group.add(sceneSign(titles[i % titles.length], Math.min(width - 0.4, 5.2), (r.start + r.end) / 2, -0.16, i % 2 ? "#3b5552" : "#844736", 0.42));
       }
     }
@@ -225,11 +227,13 @@ export class SiteRenderer {
       for (let j = 0; j < 3; j++) b(0.05, 0.4 + j * 0.1, 0.05, 0x687345, x + 0.35 + j * 0.12, streetY, -1.9, (j - 1) * 0.3);
     }
     if (street) {
-      for (const x of [9.6, 30.7]) {
+      const hatch = (this.street?.hatch ?? 20) + 0.5;
+      for (const x of [hatch - 10.9, hatch + 10.2]) {
+        if (x < 1 || x > f.cols - 1) continue;
         const car = buildSiteProp("car"); car.position.set(x, streetY, -1.35); this.group.add(car);
       }
-      this.group.add(sceneSign("УБЕЖИЩЕ  ↓", 2.15, 20.5, -2.25, "#4c6450", 0.48));
-      b(2.15, 0.08, 0.16, 0xbeac7b, 20.5, -2.5, -0.72);
+      this.group.add(sceneSign("УБЕЖИЩЕ  ↓", 2.15, hatch, -2.25, "#4c6450", 0.48));
+      b(2.15, 0.08, 0.16, 0xbeac7b, hatch, -2.5, -0.72);
     }
     for (let i = 0; i < f.cols * 2; i++) {
       const x = vhash(i, 66) * f.cols;

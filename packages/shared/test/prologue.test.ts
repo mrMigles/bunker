@@ -10,14 +10,15 @@ function world(players: number) {
   return w;
 }
 
-describe("prologue «90 секунд»", () => {
+describe("prologue «60 секунд»", () => {
   it("starts on the street with items, neighbours and a timer", () => {
     const w = world(2);
     expect(w.phase).toBe("prologue");
     const p = w.mods.prologue as Prologue;
     expect(p.items.length).toBeGreaterThan(30);
     expect(p.npcs.length).toBe(3);
-    expect(p.houses.length).toBe(4);
+    expect(p.houses.length).toBe(6);
+    expect(p.dur).toBe(60);
   });
 
   it("players pick up, throw and drop things into the hatch", () => {
@@ -45,7 +46,7 @@ describe("prologue «90 секунд»", () => {
     expect(c1.hands.some((h) => h.item === "food_can")).toBe(true);
   });
 
-  it("bots scavenge for 90 seconds, the flash hits, supplies depend on what was saved", () => {
+  it("bots scavenge for 60 seconds, the flash hits, supplies depend on what was saved", () => {
     const w = world(1);
     applyCmd(w, "p0", { k: "aquarium", v: true }); // the player's character runs on autopilot too
     for (let i = 0; i < 20 * 96 && w.phase === "prologue"; i++) {

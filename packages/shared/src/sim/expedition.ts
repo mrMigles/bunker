@@ -147,8 +147,13 @@ defAction({
   done: ({ w, c }) => {
     const e = w.mods.expedition as Expedition | undefined;
     if (!e?.active) {
-      w.mods.expedition = newExpedition(w);
+      const e = newExpedition(w);
+      w.mods.expedition = e;
       wmap(w);
+      // sensible defaults: whoever opened the terminal leads, two residents come along, a base kit is packed
+      if (c.status === "ok") e.squad.push(c.id);
+      autoSquad(w, e);
+      baseKit(w, e);
     }
     if (c.ctrl) fx(w, { k: "news", to: c.ctrl, id: "expedition" });
   },
@@ -165,6 +170,87 @@ registerCmd("expJoin", (w, p, cmd) => {
     e.squad.push(c.id);
     if (c.card.minus === "claustro") c.needs.sanity = clamp(c.needs.sanity + 5);
   }
+});
+
+/** Residents fit to go out: healthy, awake, not already someone's character (players join themselves). */
+export function sortieCandidates(w: World, e: Expedition): Char[] {
+  return Object.values(w.chars)
+    .filter((c) => c.status === "ok" && !e.squad.includes(c.id) && isBotDriven(w, c.id) && !w.players[c.ctrl ?? ""]?.online && c.needs.health > 40 && c.needs.energy > 30)
+    .sort((a, b) => sortieScore(b) - sortieScore(a));
+}
+
+function sortieScore(c: Char) {
+  const role = ["soldier", "doctor", "miner", "engineer"].includes(c.card.prof) ? 3 : 0;
+  return role + c.card.stats.sil + c.card.stats.lov + c.needs.health / 25;
+}
+
+/** Fill the squad up to three, always leaving at least two residents at home. */
+export function autoSquad(w: World, e: Expedition) {
+  const home = () => Object.values(w.chars).filter((c) => c.status === "ok" && !e.squad.includes(c.id)).length;
+  for (const c of sortieCandidates(w, e)) {
+    if (e.squad.length >= 3 || home() <= 2) break;
+    e.squad.push(c.id);
+  }
+}
+
+/** A sensible pack for the current squad: food and water for the road, light, meds, whatever weapons we have. */
+export function baseKit(w: World, e: Expedition) {
+  const n = Math.max(1, e.squad.length);
+  const want: [string, number][] = [
+    ["water", n * 2],
+    ["food_can", n],
+    ["meds", 1],
+    ["medkit", 1],
+    ["flashlight", 1],
+    ["batteries", 2],
+    ["rifle", 1],
+    ["shotgun", 1],
+    ["pistol", 1],
+    ["ammo", 8],
+    ["crowbar", 1],
+    ["pipe", 1],
+    ["knife", n],
+  ];
+  e.gear = {};
+  const cap = capacity(w, e.squad);
+  for (const [k, target] of want) {
+    let take = Math.min(target, Math.floor(w.res[k] ?? 0));
+    while (take > 0 && weightOf({ ...e.gear, [k]: take }) > cap) take--;
+    if (take > 0) e.gear[k] = take;
+  }
+}
+
+registerCmd("expAdd", (w, p, cmd) => {
+  const e = exped(w);
+  if (!e || e.stage !== "prep") return;
+  const c = w.chars[String(cmd.char)];
+  if (!c || !sortieCandidates(w, e).includes(c)) return "Этот жилец не может пойти";
+  if (e.squad.length >= 3) return "В отряде максимум трое";
+  e.squad.push(c.id);
+});
+
+registerCmd("expRemove", (w, p, cmd) => {
+  const e = exped(w);
+  if (!e || e.stage !== "prep") return;
+  const id = String(cmd.char);
+  const c = w.chars[id];
+  // players leave on their own (expJoin); anyone may send a bot back
+  if (c && !isBotDriven(w, id) && c.ctrl !== p.id) return "Игрок решает сам";
+  e.squad = e.squad.filter((x) => x !== id);
+});
+
+registerCmd("expAuto", (w) => {
+  const e = exped(w);
+  if (!e || e.stage !== "prep") return;
+  autoSquad(w, e);
+  baseKit(w, e);
+});
+
+registerCmd("expKit", (w) => {
+  const e = exped(w);
+  if (!e || e.stage !== "prep") return;
+  if (!e.squad.length) return "Сначала отряд";
+  baseKit(w, e);
 });
 
 registerCmd("expGear", (w, p, cmd) => {
@@ -217,6 +303,7 @@ export function departExpedition(w: World, e: Expedition): string | void {
     c.hands = [];
     c.climbing = false;
   }
+  if (squadChars(w, e).some((c) => c.ctrl)) w.flags.tut_sortie = 1;
   e.stage = "map";
   e.node = "home";
   const names = squadChars(w, e).map(firstName).join(", ");
@@ -541,11 +628,17 @@ battleEndHooks.expedition = (w, b: BattleMod) => {
     const R = rng(w);
     for (const c of squadChars(w, e)) {
       if (c.status === "dead") continue;
-      if (R.chance(0.4)) killChar(w, c, "погиб(ла) в вылазке");
-      else c.needs.health = Math.max(5, c.needs.health);
+      // being overrun costs loot and blood; death is the exception, not the rule
+      const n = wmap(w).nodes[e.node];
+      if (R.chance(0.05 * (n?.danger ?? 1))) killChar(w, c, "погиб(ла) в вылазке");
+      else {
+        c.needs.health = Math.max(12, Math.min(c.needs.health, 30));
+        c.injury ??= R.chance(0.5) ? "bleed" : null;
+      }
     }
     e.loot = {};
-    elog(e, "Отряд разбит. Выжившие ползут домой…");
+    for (const k in e.supplies) e.supplies[k] = Math.floor(e.supplies[k] / 2);
+    elog(e, "Отряд разбит. Бросив добычу, раненые отходят домой…");
     const path = mapPath(wmap(w), e.node, "home", false);
     if (squadChars(w, e).length && path) {
       if (e.stage === "site") leaveSite(w, e);
@@ -606,14 +699,16 @@ onTick("expedition", "*", (w, dt) => {
   }
   if (e.stage === "travel") {
     if (hours <= 0) return; // camp at night
-    e.travelLeft -= hours;
+    // legs play out twice as fast as bunker time: the road is a transition, not the game
+    e.travelLeft -= hours * 2;
     // encounters: roughly one roll per hour of travel
     w.flags._encT = (w.flags._encT ?? 0) + hours;
     if (w.flags._encT >= 1) {
       w.flags._encT = 0;
       const n = wmap(w).nodes[e.route[0]];
       const R = rng(w);
-      if (R.chance(0.08 + (n?.danger ?? 1) * 0.04)) {
+      const early = w.day <= 3 ? 0.5 : 1;
+      if (R.chance((0.06 + (n?.danger ?? 1) * 0.04) * early)) {
         const kind = R.pick(["dogs", "raiders", "trader", "ruins"]);
         if (kind === "dogs") {
           elog(e, "На дороге — стая диких собак!");
@@ -699,12 +794,14 @@ function onStep(w: World, e: Expedition, s: Site, c: Char) {
   const R = rng(w);
   for (const hz of s.hazards) {
     if (!hz.armed || hz.lv !== c.lv || hz.x !== cx) continue;
+    // a spotted wire is simply stepped over
+    if (hz.known && hz.kind === "tripwire") continue;
     switch (hz.kind) {
       case "tripwire":
         hz.armed = false;
         hz.known = true;
-        c.needs.health = clamp(c.needs.health - 18);
-        s.noise = clamp(s.noise + 45);
+        c.needs.health = clamp(c.needs.health - 14);
+        s.noise = clamp(s.noise + 30);
         elog(e, `💥 ${firstName(c)} задевает растяжку!`);
         fx(w, { k: "sound", id: "boom" });
         break;
@@ -781,6 +878,19 @@ function siteTick(w: World, e: Expedition, s: Site, dt: number) {
       for (const nx of [d.x - 1, d.x + 1]) {
         const nr = siteRoomAt(s, nx, d.lv);
         if (nr) nr.revealed = true;
+      }
+    }
+    // spotting traps a couple of steps ahead: easy with light, a gamble in the dark
+    const lit = e.light[c.id] || (r && !r.dark);
+    for (const hz of s.hazards) {
+      if (hz.known || !hz.armed || hz.lv !== c.lv || hz.kind === "glass") continue;
+      const d = (hz.x + 0.5 - c.x) * (c.dir || 1);
+      if (d < -0.3 || d > 2.8) continue;
+      if (R.chance(dt * (lit ? 1.6 : 0.5) * (1 + skillLevel(c, "stealth") * 0.1))) {
+        hz.known = true;
+        const what = hz.kind === "tripwire" ? "растяжка" : hz.kind === "weak_floor" ? "гнилой пол" : hz.kind === "gas" ? "запах газа" : "радиация";
+        elog(e, `⚠ ${firstName(c)}: «Стой! Впереди ${what}»`);
+        fx(w, { k: "toast", text: `⚠ Впереди ${what}` });
       }
     }
     if (r?.rad) c.needs.rad = clamp(c.needs.rad + dt * 0.25 * ((e.supplies.gasmask ?? 0) > 0 ? 0.5 : 1));
@@ -872,7 +982,7 @@ function threatsThink(w: World, e: Expedition, s: Site, squad: Char[], dt: numbe
       if (t.etype === "dog") range += 1.5;
       const inFront = Math.sign(dx) === t.dir || Math.abs(dx) < 1.1;
       if (!inFront || Math.abs(dx) > range || doorBetween(s, c.lv, c.x, t.x)) continue;
-      const rate = ((c as any).__sneak ? 45 : 95) * (lit ? 1 : 0.6) * (1.3 - Math.abs(dx) / range) * (1 - skillLevel(c, "stealth") * 0.04);
+      const rate = ((c as any).__sneak ? 25 : 55) * (lit ? 1 : 0.6) * (1.3 - Math.abs(dx) / range) * (1 - skillLevel(c, "stealth") * 0.04);
       t.detect = clamp(t.detect + rate * dt);
       seen = c;
     }
@@ -906,7 +1016,7 @@ export function siteFight(w: World, e: Expedition, s: Site, ambush: boolean) {
   const squad = squadChars(w, e);
   const taken: Record<string, number> = {};
   const allies = squad.map((c) => squadUnit(w, e, c, Math.floor(c.x), c.lv, taken));
-  const near = s.threats.filter((t) => t.state !== "asleep" || squad.some((c) => c.lv === t.lv && Math.abs(c.x - t.x) < 4));
+  const near = s.threats.filter((t) => squad.some((c) => c.lv === t.lv && Math.abs(c.x - t.x) < (t.state === "alert" ? 9 : t.state === "asleep" ? 3 : 6)));
   const foes: UnitInit[] = (near.length ? near : s.threats.slice(0, 2)).map((t) => ({ id: "e_" + t.id, side: "enemy", name: "", col: Math.max(1, Math.min(s.W - 2, Math.round(t.x))), floor: t.lv, etype: t.etype }));
   if (!foes.length) return;
   startBattle(w, field, allies, foes, "expedition", { coordination: e.coord + (ambush ? 1 : 0), onEnd: "expedition", tag: "site" });

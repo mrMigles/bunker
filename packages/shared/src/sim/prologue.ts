@@ -6,6 +6,7 @@ import { roomsOfType } from "../world/rooms";
 import { followPath, goTo, resetMind } from "./bots";
 import { inputHooks, registerCmd } from "./commands";
 import { addNpc } from "./events";
+import { isKeepsake, settleKeepsakes } from "./cozy";
 import { canHold, give, spawnItem } from "./items";
 import { beginDay } from "./lobby";
 import { stepMove } from "./move";
@@ -48,13 +49,16 @@ export interface Prologue {
   flashT: number;
 }
 
+/** Survival essentials: the valuable stuff that makes the first week. */
+const ESSENTIAL = new Set(["food_box", "water_jug", "toolbox", "first_aid", "meds", "pickaxe", "seed_tomato", "seed_carrot"]);
+
 const LOOT: [string, number][] = [
-  ["food_box", 3],
-  ["water_jug", 3],
-  ["toolbox", 1],
-  ["first_aid", 2],
-  ["food_can", 6],
-  ["water", 3],
+  ["food_box", 5],
+  ["water_jug", 5],
+  ["toolbox", 2],
+  ["first_aid", 3],
+  ["food_can", 8],
+  ["water", 5],
   ["guitar", 1],
   ["album", 1],
   ["iron", 1],
@@ -69,7 +73,7 @@ const LOOT: [string, number][] = [
   ["batteries", 2],
   ["seed_tomato", 1],
   ["seed_carrot", 1],
-  ["meds", 2],
+  ["meds", 3],
   ["cards52", 1],
   ["ball", 1],
   ["pickaxe", 1],
@@ -79,9 +83,11 @@ const LOOT: [string, number][] = [
 
 const NEIGHBOR_NAMES = ["Сосед Ефим", "Тётя Клава", "Дед Митрофан", "Студент Гоша", "Почтальонша Люба"];
 
+export const PROLOGUE_SECONDS = 60;
+
 export function createPrologue(seed: number): Prologue {
   const R = Rng.from(seed ^ 0x90);
-  const W = 40,
+  const W = 58,
     H = 4;
   const grid = new Array(W * H).fill(7);
   const open = (x: number, lv: number) => {
@@ -89,12 +95,16 @@ export function createPrologue(seed: number): Prologue {
     grid[(lv * 2 + 1) * W + x] = 0;
   };
   for (let x = 1; x < W - 1; x++) open(x, 1); // the street and ground floors
+  // six buildings, the hatch in the middle of the street: near houses are quick, far ones hold more
   const houses = [
     { x: 2, w: 7, name: "Дом с гастрономом" },
     { x: 11, w: 6, name: "Коммуналка" },
-    { x: 23, w: 7, name: "Дом учёного" },
-    { x: 32, w: 6, name: "Мастерские" },
+    { x: 19, w: 6, name: "Аптека" },
+    { x: 33, w: 6, name: "Дом учёного" },
+    { x: 41, w: 7, name: "Мастерские" },
+    { x: 50, w: 6, name: "Школа" },
   ];
+  const hatchX = 28;
   const ladders: Record<string, number> = {};
   for (const h of houses) {
     for (let x = h.x; x < h.x + h.w; x++) open(x, 0);
@@ -104,9 +114,11 @@ export function createPrologue(seed: number): Prologue {
   let i = 0;
   for (const [item, n] of LOOT) {
     for (let k = 0; k < n; k++) {
-      const h = R.pick(houses);
-      const inside = R.chance(0.8);
-      const lv = inside ? R.int(0, 1) : 1;
+      // essentials sit deeper: far houses and upper floors (risk for reward); junk litters the street
+      const essential = ESSENTIAL.has(item);
+      const h = essential ? R.weighted(houses, (x) => 1 + Math.abs(x.x + x.w / 2 - hatchX) / 8)! : R.pick(houses);
+      const inside = essential || R.chance(0.7);
+      const lv = inside ? (essential ? (R.chance(0.65) ? 0 : 1) : R.int(0, 1)) : 1;
       const x = inside ? h.x + 0.5 + R.range(0, h.w - 1) : R.range(1.5, W - 2);
       items.push({ id: "pi" + i++, item, x: Math.round(x * 10) / 10, lv });
     }
@@ -117,7 +129,7 @@ export function createPrologue(seed: number): Prologue {
       const h = houses[(k + 1) % houses.length];
       return { id: "nb" + k, name, x: h.x + 1.5 + k, lv: 1, dir: 1, state: "panic" as const, persuade: 0 };
     });
-  return { t: 0, dur: 90, W, H, grid, ladders, houses, hatchX: 20, items, npcs, delivered: {}, by: {}, tasks: {}, done: false, flashT: 0 };
+  return { t: 0, dur: PROLOGUE_SECONDS, W, H, grid, ladders, houses, hatchX, items, npcs, delivered: {}, by: {}, tasks: {}, done: false, flashT: 0 };
 }
 
 export function prologueWorld(p: Prologue): any {
@@ -129,7 +141,7 @@ export function beginPrologue(w: World) {
   const p = createPrologue(w.seed);
   w.mods.prologue = p;
   // the starting bunker is almost empty: supplies come from the street
-  w.res = { food_can: 2, water: 4, parts: 4, scrap: 8, wood: 4, cloth: 2, seed_lettuce: 2, seed_potato: 2, spores: 1, shovel: 1 };
+  w.res = { food_can: 8, water: 14, meds: 1, pipe: 2, parts: 4, scrap: 8, wood: 6, cloth: 2, seed_lettuce: 2, seed_potato: 2, spores: 1, shovel: 1 };
   const chars = Object.values(w.chars);
   chars.forEach((c, k) => {
     c.x = p.hatchX + 0.5 + (k - chars.length / 2) * 1.2;
@@ -139,7 +151,7 @@ export function beginPrologue(w: World) {
     c.task = null;
     resetMind(c);
   });
-  log(w, "🚨 СИРЕНА. У вас 90 секунд, чтобы собрать всё, что сможете, и прыгнуть в люк!", "bad");
+  log(w, `🚨 СИРЕНА. У вас ${p.dur} секунд: соберите всё, что сможете, и прыгните в люк! Лучшее — в дальних домах и на верхних этажах.`, "bad");
   fx(w, { k: "sound", id: "siren" });
 }
 
@@ -252,7 +264,13 @@ onTick("prologue", "prologue", (w, dt) => {
   p.t += dt;
   // sirens & rumble escalate
   if (Math.floor(p.t) % 15 === 0 && Math.floor(p.t - dt) % 15 !== 0) fx(w, { k: "sound", id: "siren" });
-  if (p.t > 60 && Math.floor(p.t * 2) % 4 === 0 && Math.floor((p.t - dt) * 2) % 4 !== 0) fx(w, { k: "shake", data: 0.2 + (p.t - 60) / 60 });
+  for (const left of [15, 5]) {
+    if (p.dur - p.t <= left && p.dur - (p.t - dt) > left) {
+      fx(w, { k: "toast", text: left === 15 ? "⏱ 15 секунд! Бегите к люку!" : "⏱ 5 СЕКУНД!" });
+      log(w, left === 15 ? "⏱ Осталось 15 секунд — все к люку! Кто не успеет, получит ожоги и радиацию." : "⏱ 5 секунд!", "bad");
+    }
+  }
+  if (p.t > p.dur - 30 && Math.floor(p.t * 2) % 4 === 0 && Math.floor((p.t - dt) * 2) % 4 !== 0) fx(w, { k: "shake", data: 0.2 + (p.t - (p.dur - 30)) / 30 });
   // persuading neighbours
   for (const cid in p.tasks) {
     const t = p.tasks[cid];
@@ -301,7 +319,8 @@ onTick("prologue", "prologue", (w, dt) => {
   for (const c of Object.values(w.chars)) {
     if (!isBotDriven(w, c.id) || c.status !== "ok") continue;
     const m = c.mind;
-    if (c.hands.length && (c.hands.some((h) => ITEMS[h.item]?.large) || c.hands.length >= 3 || p.t > 75 || !p.items.some((x) => !x.by))) {
+    // bots carry two things at a time and head home early
+    if (c.hands.length && (c.hands.some((h) => ITEMS[h.item]?.large) || c.hands.length >= 2 || p.t > p.dur - 14 || !p.items.some((x) => !x.by))) {
       if (c.lv === 1 && Math.abs(c.x - (p.hatchX + 0.5)) < 1) {
         deliver(w, p, c);
         m.path = undefined;
@@ -316,7 +335,8 @@ onTick("prologue", "prologue", (w, dt) => {
     }
     let target = p.items.find((x) => x.by === c.id);
     if (!target) {
-      const free = p.items.filter((x) => !x.by && canHold(c, x.item)).sort((a, b) => Math.abs(a.x - c.x) + Math.abs(a.lv - c.lv) * 6 - (Math.abs(b.x - c.x) + Math.abs(b.lv - c.lv) * 6));
+      // bots only scavenge the street and ground floors near the hatch — upper floors and far houses are the players' call
+      const free = p.items.filter((x) => !x.by && canHold(c, x.item) && x.lv === 1 && Math.abs(x.x - p.hatchX) < 13).sort((a, b) => Math.abs(a.x - c.x) + Math.abs(a.lv - c.lv) * 6 - (Math.abs(b.x - c.x) + Math.abs(b.lv - c.lv) * 6));
       // prefer useful stuff
       target = free.find((x) => ["food_box", "water_jug", "first_aid", "toolbox", "food_can", "water", "meds"].includes(x.item) && Math.abs(x.x - c.x) < 14) ?? free[0];
       if (!target) continue;
@@ -325,6 +345,11 @@ onTick("prologue", "prologue", (w, dt) => {
       m.plan = "item";
     }
     if (target.lv === c.lv && Math.abs(target.x - c.x) <= 0.9) {
+      // rummaging takes a moment
+      m.idleT = (m.idleT > 0 ? m.idleT : 1.4) - dt;
+      c.anim = "work";
+      if (m.idleT > 0) continue;
+      m.idleT = 0;
       pickItem(p, c, target.id);
       m.dest = undefined;
       continue;
@@ -367,9 +392,13 @@ export function finishPrologue(w: World, p: Prologue) {
     c.climbing = false;
     resetMind(c);
   }
-  // supplies
+  // supplies; keepsakes go straight onto shelves and tables
+  const keepsakes: string[] = [];
+  for (const k in p.delivered) if (isKeepsake(k)) for (let i = 0; i < p.delivered[k]; i++) keepsakes.push(k);
+  const unplaced = settleKeepsakes(w, keepsakes);
   for (const k in p.delivered) {
-    const n = p.delivered[k];
+    const n = isKeepsake(k) ? unplaced.filter((x) => x === k).length : p.delivered[k];
+    if (!n) continue;
     const d = ITEMS[k];
     if (UNPACK[k]) for (const r in UNPACK[k]) w.res[r] = (w.res[r] ?? 0) + UNPACK[k][r] * n;
     else if (k === "newspaper") for (let i = 0; i < n; i++) w.unread.push("rand" + (w.nextId++ * 7919));

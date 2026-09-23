@@ -59,3 +59,26 @@ body[data-activity=expedition] .game-dock,body[data-activity=combat] .game-dock 
 @media(max-width:1250px){.hud-top{right:232px;padding:9px 8px}.hud-clock,.hud-time{padding-right:10px;margin-right:9px}.hud-clock strong,.hud-time strong{font-size:18px}.resource-meter{min-width:46px;padding:0 2px;grid-template-columns:25px auto;gap:0 3px}.resource-meter b{font-size:17px}.resource-meter small{font-size:10px}.resource-meter .atlas-art{width:26px;height:26px}.game-toolbar button{width:61px}.game-dock button{padding:6px 9px}.help{bottom:66px;max-width:330px}.hud-feed{width:280px}.hud-me{width:325px}.action-dock{width:280px}}
 @media(max-width:900px){.hud-top{right:170px;left:8px;min-height:64px}.hud-time{display:none}.hud-clock{max-width:120px}.hud-clock strong{font-size:16px}.hud-clock small{font-size:9px}.resource-meter:nth-last-child(-n+2){display:none}.game-toolbar{right:8px;gap:4px}.game-toolbar button{width:48px;height:48px}.hud-feed{display:none}.hud-me{width:285px;left:8px;bottom:8px;padding-left:90px}.survivor-portrait{width:66px;height:80px}.hud-me>div.dim{margin-left:-76px}.help{display:none}.game-dock{bottom:8px;right:8px}.game-dock button{padding:6px 10px}.game-dock span{display:none}.action-dock{right:8px;bottom:72px;width:260px;max-height:235px}.prologue-hud{top:80px;left:8px;width:255px}.prologue-timer{font-size:34px}.prologue-actions{bottom:8px}.lobby .cards{flex-wrap:wrap}.menu{padding:30px}.menu h1{font-size:60px}.resource-meter{min-width:38px}}
 @media(max-width:600px){.hud-top{right:8px;padding:7px;min-height:61px}.game-toolbar{top:70px}.game-toolbar small{display:none}.game-toolbar button{height:37px;min-height:37px}.hud-me{bottom:8px;min-height:130px;width:210px;padding:10px}.survivor-portrait{display:none}.hud-me .name{font-size:12px}.hud-me .row>.dim{font-size:10px}.hud-me>div.dim{display:none}.need{grid-template-columns:64px 1fr 25px;font-size:10px;margin:3px 0}.game-dock{right:5px;bottom:8px;gap:3px;padding:3px}.game-dock button{font-size:17px;padding:5px 7px}.action-dock{bottom:62px;width:200px;max-height:200px;font-size:11px}.prompt .opt{font-size:11px;padding:5px;min-height:33px}.prologue-hud{top:72px;width:215px;padding:10px;font-size:10px}.prologue-timer{font-size:28px;margin:3px 0}.mission-caption{font-size:10px}.prologue-actions{width:190px;bottom:8px}.carry-slot{padding:4px}.resource-meter small{font-size:9px}.hud-clock small{display:none}.hud-clock{margin-right:4px;padding-right:6px}.hud-clock strong{font-size:15px}.loot-marker{font-size:10px;padding:4px 6px}.modal{padding:14px;max-width:calc(100vw - 16px)}.modal h2{font-size:19px}.toast{max-width:92vw;width:max-content;top:123px}.menu{padding:22px}.menu h1{font-size:53px}.menu .box{max-width:100%}.menu .row{flex-wrap:wrap}}
+/* lobby cards on the dark theme: light ink, readable stats and goal */
+.lobby .card{color:#e8dcc4;transform:none;font-family:var(--mono)}.lobby .card:hover{transform:translateY(-3px)}.lobby .card.sel{transform:translateY(-4px)}
+.lobby .card h3{color:#f3e6c8;font-family:var(--serif);font-size:19px}.lobby .card .prof{color:#eaa36a}
+.lobby .card .stats{background:#0b12188c;border-radius:6px;padding:6px 2px;color:#b9c2c4}.lobby .card .stats b{color:#f3e6c8}
+.lobby .card .line{color:#d6cbb5}.lobby .card .goal{background:#eac98a14;border:1px solid #eac98a33;border-radius:6px;color:#eac98a}
+/* «Задачи» panel: colony priorities + first-days tutorial */
+.objectives{position:fixed;left:14px;top:92px;width:300px;max-height:calc(100vh - 330px);overflow:auto;background:linear-gradient(130deg,#1b2228f2,#0b1116f2);border:1px solid #4a5155;border-radius:9px;padding:6px;box-shadow:0 6px 18px #0004;z-index:5}
+.objectives-head{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;padding:4px 6px;color:#f3e6c8;font-size:14px;cursor:pointer;text-align:left}.objectives-head .dim{margin-left:auto}
+.objectives-badge{background:#c4513a;color:#fff;border-radius:10px;padding:0 7px;font-size:11px;font-weight:700}
+.objective{display:flex;gap:8px;align-items:flex-start;padding:7px 8px;border-radius:6px;margin-top:3px;font-size:12.5px;color:#e2d8c3;border-left:3px solid transparent}
+.objective.go{cursor:pointer}.objective.go:hover{background:#ffffff0d}
+.objective.urgent{border-left-color:#e0603f;background:#e0603f14}.objective.urgent .objective-icon{color:#ff8a6a}
+.objective.need{border-left-color:#e8a23a}.objective.need .objective-icon{color:#e8a23a}
+.objective.tutorial{border-left-color:#6fa8a0}.objective.tutorial .objective-icon{color:#8fcfc4}
+.objective.done{opacity:.55}.objective.done .objective-text{text-decoration:line-through}
+.objective-icon{width:14px;flex:none;text-align:center}.objective-text{font-weight:600;line-height:1.3}.objective-hint{color:#a9a595;font-size:11.5px;line-height:1.35;margin-top:2px}
+.objective-go{margin-left:auto;color:#eac98a;font-weight:700}
+@media(max-width:900px){.objectives{top:74px;width:240px;left:8px}.objective-hint{display:none}}
+/* full-screen modes: bunker panels step aside */
+body.mode-combat .hud-feed,body.mode-combat .hud-me,body.mode-combat .help,body.mode-combat .action-dock,
+body.mode-table .hud-feed,body.mode-table .action-dock,
+body.mode-map .hud-me,body.mode-map .action-dock,body.mode-map .hud-feed,
+body.mode-site .hud-feed{display:none!important}

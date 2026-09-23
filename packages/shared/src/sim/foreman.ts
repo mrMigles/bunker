@@ -242,11 +242,14 @@ onTick("foreman", "day", (w, dt) => {
   w.flags._demAvg = (w.flags._demAvg ?? w.power.demand) * 0.9 + w.power.demand * 0.1;
   const planners = activePlanners(w);
   if ((w.flags._autoPowerDay ?? -9) < w.day) autoPower(w);
-  const humanQuiet = !planners.length || (w.flags._humanPlanDay ?? 0) < w.day - 1;
+  // with players around, the colony only steps in after two days without any planning
+  const humanQuiet = !planners.length || (w.day >= 3 && (w.flags._humanPlanDay ?? 0) < w.day - 2);
   // rooms: only when players have left planning alone for a while
   if (humanQuiet && w.hour > 7 && w.hour < 17 && (w.flags._autoPlanDay ?? -9) < w.day) autoPlan(w);
   // sorties: in the morning, when food is short and nobody is outside
   const noSortie = !exped(w) && !w.mods.expedition;
+  // with a player at the keyboard the colony doesn't send people away on its own:
+  // the need shows up in «Задачи» and the players decide
   const want = shortage(w);
-  if (want && noSortie && w.hour > 7 && w.hour < 11 && (w.flags._autoSortieDay ?? -9) < w.day - 1 && !planners.some((p) => w.chars[p.char!]?.status === "away")) autoSortie(w, want);
+  if (want && !planners.length && noSortie && w.hour > 7 && w.hour < 11 && (w.flags._autoSortieDay ?? -9) < w.day - 1) autoSortie(w, want);
 });

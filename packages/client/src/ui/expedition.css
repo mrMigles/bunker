@@ -530,3 +530,19 @@
     padding-top: 8px;
   }
 }
+
+/* squad members and candidates in the prep modal */
+.exp-squad-members { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.exp-member { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid rgba(221, 166, 108, 0.35); border-radius: 6px; background: rgba(255, 255, 255, 0.04); }
+.exp-member .dim { font-size: 12px; }
+.exp-member-hp { font-size: 12px; font-weight: 600; }
+.exp-member-x { padding: 0 6px; line-height: 18px; }
+.exp-candidates { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.exp-warn { color: #ffb454; margin: 4px 0 10px; font-size: 13px; }
+
+/* node intel on the map side panel */
+.exp-intel { display: grid; gap: 8px; margin: 8px 0 10px; }
+.exp-intel-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.exp-intel-item { font-size: 12px; padding: 2px 7px; border-radius: 5px; background: rgba(221, 166, 108, 0.12); border: 1px solid rgba(221, 166, 108, 0.25); }
+.exp-intel-risk { font-size: 12px; padding: 2px 7px; border-radius: 5px; background: rgba(224, 96, 63, 0.12); border: 1px solid rgba(224, 96, 63, 0.3); color: #f0b2a0; }
+.exp-intel-facts { display: flex; gap: 12px; font-size: 12px; color: #b9b3a3; }

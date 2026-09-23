@@ -47,6 +47,8 @@ export class PrologueUI {
     if (!this.built) {
       const floors = p.H / 2, walk: boolean[] = [];
       for (let lv = 0; lv < floors; lv++) for (let x = 0; x < p.W; x++) walk.push(p.grid[lv * 2 * p.W + x] === 0);
+      this.site.mode = "street";
+      this.site.street = { hatch: p.hatchX, names: p.houses.map((h: any) => h.name.toUpperCase()) };
       this.site.build({ cols: p.W, floors, walk, ladders: Object.keys(p.ladders), covers: [], doors: [], exits: [] });
       this.built = true;
       this.dyn.clear(); this.loot.clear(); this.npcs.clear(); this.chars.clear();

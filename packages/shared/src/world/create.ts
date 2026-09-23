@@ -156,7 +156,7 @@ export function buildStartBunker(w: World) {
   const storage = placeRoom(w, "storage", 17, 0, 3, true);
   const airlock = placeRoom(w, "airlock", 20, 0, 4, true);
   const mess = placeRoom(w, "mess", 24, 0, 8, true);
-  placeRoom(w, "living", 16, 1, 4, true);
+  placeRoom(w, "living", 12, 1, 8, true);
   const tech = placeRoom(w, "tech", 20, 1, 5, true);
   const hydro = placeRoom(w, "hydro", 25, 1, 4, true);
   void storage;

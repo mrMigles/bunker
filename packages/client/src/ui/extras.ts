@@ -5,6 +5,7 @@ import { GameUI } from "./game";
 import { CLIENT_SCREENS } from "./prompt";
 import { DayVoteUI, InstrumentUI, RadioUI } from "./radio";
 import { TableUI } from "./tableui";
+import { ObjectivesUI } from "./objectives";
 import { CombatUI } from "./combat";
 import { openDebug } from "./debug";
 import { ExpeditionUI } from "./expedition";
@@ -52,6 +53,7 @@ export function installExtras(game: GameUI) {
   const dayVote = new DayVoteUI();
 
   const ending = new EndingUI();
+  const objectives = new ObjectivesUI(game);
   CLIENT_SCREENS.research = (a) => (openResearch(a), true);
   CLIENT_SCREENS.craft_item = (a) => (openCraftItem(a), true);
   CLIENT_SCREENS.cook = (a) => (openCook(a), true);
@@ -124,6 +126,16 @@ export function installExtras(game: GameUI) {
     return false;
   });
 
+  // one body class per full-screen mode, so bunker panels step aside instead of overlapping
+  let lastMode = "";
+  GameUI.extraFrame.push(() => {
+    const mode = pro.active ? "prologue" : combat.active ? "combat" : exp.mode === "site" ? "site" : exp.mode === "map" ? "map" : table.active ? "table" : "bunker";
+    if (mode !== lastMode) {
+      document.body.classList.remove("mode-" + lastMode);
+      document.body.classList.add("mode-" + mode);
+      lastMode = mode;
+    }
+  });
   GameUI.extraFrame.push(() => {
     radio.frame();
     instr.frame();
@@ -137,6 +149,7 @@ export function installExtras(game: GameUI) {
     exp.update();
     pro.update();
     ending.update();
+    objectives.update();
   });
 
   // click a character to inspect

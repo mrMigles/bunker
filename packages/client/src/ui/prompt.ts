@@ -28,7 +28,14 @@ export class Prompt {
     const p = net.pred;
     const me = { ...c, x: p ? p.x : c.x, lv: p ? p.lv : c.lv, climbing: p ? p.climbing : c.climbing };
     try {
-      const all = listActions(v as any, me as any);
+      // identical labels (e.g. the same action offered by two neighbouring objects) show once
+      const seen = new Set<string>();
+      const all = listActions(v as any, me as any).filter((a) => {
+        const k = a.a + "|" + a.label;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
       if (this.focused && all.some(a => a.t.id === this.focused)) return all.filter(a => a.t.id === this.focused).slice(0, 7);
       this.focused = null;
       this.title = "Рядом с вами";

@@ -171,13 +171,18 @@ defAction({
   },
 });
 
+/** Defence chores only show up once raiders are a real prospect: the bunker is noticed or a warning came. */
+function defenseRelevant(w: World) {
+  return w.notice >= 30 || !!w.director?.raidWarn || w.day >= 4;
+}
+
 defAction({
   id: "barricade",
   type: "obj",
   kinds: ["door_blast"],
   prio: 9,
   avail: ({ w, o }) => {
-    if (o!.st.barricade) return null;
+    if (o!.st.barricade || !defenseRelevant(w)) return null;
     if ((w.res.wood ?? 0) < 2 || (w.res.scrap ?? 0) < 2) return { label: "🪵 Заложить дверь", reason: "Нужно 2 дерева и 2 металлолома" };
     return "🪵 Заложить дверь (2🪵 2🔩)";
   },
@@ -199,7 +204,7 @@ defAction({
   kinds: ["door_blast", "hatch_ladder"],
   prio: 12,
   avail: ({ w }) => {
-    if ((w.flags.raid_traps ?? 0) >= 3) return null;
+    if ((w.flags.raid_traps ?? 0) >= 3 || !defenseRelevant(w)) return null;
     if ((w.res.parts ?? 0) < 1 || (w.res.scrap ?? 0) < 1) return { label: "⚠ Растяжка у входа", reason: "Нужны запчасть и металлолом" };
     return `⚠ Поставить растяжку у входа (${w.flags.raid_traps ?? 0}/3)`;
   },

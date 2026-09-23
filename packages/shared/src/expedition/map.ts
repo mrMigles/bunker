@@ -138,8 +138,13 @@ export function generateMap(seed: number): WasteMap {
     link(nodes[best[0]], nodes[best[1]]);
     inTree.add(best[1]);
   }
-  // fog: home neighbours are known
-  for (const j of home.links) nodes[j].known = true;
+  // fog: the neighbourhood is known — home's neighbours and their neighbours (a real choice on day one),
+  // plus anything within a short walk
+  for (const j of home.links) {
+    nodes[j].known = true;
+    for (const k of nodes[j].links) if (!nodes[k].hidden) nodes[k].known = true;
+  }
+  for (const n of Object.values(nodes)) if (!n.hidden && Math.hypot(n.x - home.x, n.y - home.y) < 22) n.known = true;
   return { nodes, home: "home" };
 }
 
