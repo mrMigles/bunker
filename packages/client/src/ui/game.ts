@@ -197,7 +197,7 @@ export class GameUI {
         this.hoverChar = id;
       }
     }
-    this.prompt.update(this.aquarium || this.build.active || isModalOpen());
+    this.prompt.update(this.aquarium || this.build.active || isModalOpen() || !!this.combat?.active || (this.exp?.mode ?? "none") !== "none" || !!this.table?.active);
     this.build.frame(wx, wy);
     if (net.pub?.phase === "night") this.council.update();
     if (this.aquarium) {

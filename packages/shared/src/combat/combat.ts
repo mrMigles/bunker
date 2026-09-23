@@ -57,6 +57,7 @@ export interface Door {
   floor: number;
   closed: boolean;
   hp: number;
+  barricaded?: boolean;
 }
 
 export interface Field {
@@ -91,6 +92,9 @@ export interface UnitInit {
   traits?: string[];
   items?: Record<string, number>;
   nvg?: boolean;
+  tags?: string[];
+  maxHp?: number;
+  icon?: string;
 }
 
 export interface Unit {
@@ -215,6 +219,7 @@ export function pathTo(s: CombatState, u: Unit, col: number, floor: number): { c
     for (const [nc, nf] of nb) {
       if (!walkableF(f, nc, nf) && !(u.tags.includes("burrow") && nc >= 0 && nc < f.cols && nf === fl)) continue;
       if (blocked(s, nc, nf, u)) continue;
+      if (nf !== fl && blocked(s, c, fl, u)) continue; // a closed hatch can't be climbed through
       const occ = Object.values(s.units).some((o) => o.side !== u.side && !o.dead && !o.fled && !o.down && o.col === nc && o.floor === nf);
       if (occ && !(nc === col && nf === floor)) continue;
       const k = key(nc, nf);
@@ -321,7 +326,7 @@ export function makeUnit(init: UnitInit): Unit {
     };
   }
   const st = init.stats ?? { sil: 2, lov: 2, int: 2, vyn: 2, har: 2 };
-  const maxHp = 12 + st.vyn * 4;
+  const maxHp = init.maxHp ?? 12 + st.vyn * 4;
   const w = WEAPONS[init.weapon ?? "fists"] ?? WEAPONS.fists;
   return {
     id: init.id,
@@ -349,9 +354,9 @@ export function makeUnit(init: UnitInit): Unit {
     down: false,
     dead: false,
     fled: false,
-    tags: ["human"],
+    tags: init.tags ?? ["human"],
     color: init.color ?? 0x888888,
-    icon: "",
+    icon: init.icon ?? "",
     traits: init.traits ?? [],
     items: { ...(init.items ?? {}) },
     nvg: !!init.nvg,
@@ -418,6 +423,7 @@ function stepSim(s: CombatState, u: Unit, sim: Sim, a: Action): string | null {
   let cost = 0;
   switch (a.t) {
     case "move": {
+      if (u.tags.includes("static")) return "Не может двигаться";
       const p = pathTo(s, fake, a.col, a.floor);
       if (!p) return "Туда не пройти";
       cost = moveCost(p.length);
@@ -581,10 +587,30 @@ export function enemyPlan(s: CombatState, u: Unit): { actions: Action[]; text: s
       acts.push(mv);
       const p = pathTo(s, u, (mv as any).col, (mv as any).floor);
       ap -= moveCost(p?.length ?? 0);
-    } else if (u.tags.includes("breaker")) {
-      // bash the nearest closed door on the way
-      const d = s.field.doors.find((d) => d.closed && d.floor === u.floor);
-      if (d) return { actions: [{ t: "door", col: d.col, floor: d.floor }], text: "ломает дверь!" };
+    } else if (!u.tags.includes("flying")) {
+      // blocked: go for the nearest closed door on this floor and open or bash it
+      const d = s.field.doors
+        .filter((d) => d.closed && Math.abs(d.floor - u.floor) <= 1)
+        .sort((a, b) => Math.abs(a.col - u.col) + Math.abs(a.floor - u.floor) * 3 - (Math.abs(b.col - u.col) + Math.abs(b.floor - u.floor) * 3))[0];
+      if (d) {
+        const adjacent = (d.floor === u.floor && Math.abs(d.col - u.col) <= 1) || (d.col === u.col && Math.abs(d.floor - u.floor) === 1);
+        if (adjacent) {
+          const n = Math.min(3, ap);
+          return { actions: Array.from({ length: n }, () => ({ t: "door", col: d.col, floor: d.floor }) as Action), text: d.barricaded || u.tags.includes("breaker") ? "ломает дверь!" : "вскрывает дверь" };
+        }
+        const spot = d.floor === u.floor ? { col: d.col + (u.col < d.col ? -1 : 1), floor: d.floor } : { col: d.col, floor: u.floor };
+        const p = pathTo(s, u, spot.col, spot.floor);
+        if (p?.length) {
+          let steps = p.length;
+          while (steps > 0 && moveCost(steps) > ap) steps--;
+          if (steps > 0) {
+            const mvAp = moveCost(steps);
+            const acts2: Action[] = [{ t: "move", col: p[steps - 1].col, floor: p[steps - 1].floor }];
+            if (steps === p.length) for (let k = 0; k < ap - mvAp; k++) acts2.push({ t: "door", col: d.col, floor: d.floor });
+            return { actions: acts2, text: "идёт к двери" };
+          }
+        }
+      }
     }
   }
   const moved = acts.length ? { ...u, col: (acts[0] as any).col, floor: (acts[0] as any).floor } : u;
@@ -638,7 +664,7 @@ export function allyBotPlan(s: CombatState, u: Unit): Action[] {
     }
   }
   const reach = () => enemy.floor === u.floor && lineOfFire(s, u, enemy) && Math.abs(enemy.col - u.col) <= w.range;
-  if (!reach()) {
+  if (!reach() && !u.tags.includes("static")) {
     const mv = approach(s, u, enemy, Math.max(1, ap - w.ap), w.range > 1 ? Math.min(3, w.range) : 1);
     if (mv) {
       const p = pathTo(s, u, (mv as any).col, (mv as any).floor);
@@ -871,14 +897,16 @@ function execAction(s: CombatState, u: Unit, a: Action): boolean {
       const d = doorAt(s.field, a.col, a.floor);
       if (!d || u.ap < 1) return false;
       u.ap -= 1;
-      if (u.tags.includes("breaker") && d.closed) {
-        d.hp -= 6;
+      if (u.side === "enemy" && d.closed) {
+        d.hp -= u.tags.includes("breaker") ? 6 : u.tags.includes("beast") ? 2 : 3;
         if (d.hp <= 0) {
           d.closed = false;
+          d.barricaded = false;
           ev(s, { u: u.id, k: "door", col: d.col, floor: d.floor, text: "выбита!" });
-        } else ev(s, { u: u.id, k: "door", col: d.col, floor: d.floor, text: "таранит дверь" });
+        } else ev(s, { u: u.id, k: "door", col: d.col, floor: d.floor, text: "ломится в дверь" });
         return true;
       }
+      if (u.side === "enemy" && !d.closed) return false;
       d.closed = !d.closed;
       ev(s, { u: u.id, k: "door", col: d.col, floor: d.floor, text: d.closed ? "закрывает дверь" : "открывает дверь" });
       return true;

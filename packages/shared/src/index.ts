@@ -48,4 +48,5 @@ export * from "./sim/battle";
 export * from "./expedition/map";
 export * from "./expedition/site";
 export * from "./sim/expedition";
+export * from "./sim/raids";
 export * from "./sim/debug";

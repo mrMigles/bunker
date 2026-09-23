@@ -27,6 +27,7 @@ export interface BattleMod {
 }
 
 export const battleEndHooks: Record<string, (w: World, b: BattleMod) => void> = {};
+export const battleRoundHooks: ((w: World, b: BattleMod) => void)[] = [];
 
 export function battle(w: World): BattleMod | undefined {
   return w.mods.combat?.active ? (w.mods.combat as BattleMod) : undefined;
@@ -138,12 +139,21 @@ onTick("battle", "*", (w, dt) => {
     finishBattle(w, b);
     return;
   }
+  // a siege that goes nowhere: the attackers give up and leave
+  if (b.state.round > 40) {
+    for (const u of Object.values(b.state.units)) if (u.side === "enemy" && unitAlive(u)) u.fled = true;
+    b.state.result = "win";
+    b.state.phase = "over";
+    b.state.log.push("Нападавшие отступили.");
+    return;
+  }
   b.planLeft -= dt;
   const humans = humanPlayersInBattle(w);
   const allReady = humans.length > 0 && humans.every((pid) => b.ready[pid]);
   if (b.planLeft <= 0 || allReady || humans.length === 0) {
     resolveRound(b.state, (u) => allyBotPlan(b.state, u));
     b.eventsRound = b.state.round;
+    for (const h of battleRoundHooks) h(w, b);
     if (b.where === "bunker") {
       for (const u of Object.values(b.state.units)) {
         const c = u.char ? w.chars[u.char] : undefined;
@@ -259,15 +269,26 @@ export function bunkerBattle(w: World, enemyTypes: string[], entry: "airlock" | 
   const taken: Record<string, number> = {};
   for (const c of Object.values(w.chars)) {
     if (c.status !== "ok" && c.status !== "breakdown") continue;
+    if (c.card.prof === "child") continue; // children hide in the back rooms
     if (c.status === "breakdown") c.status = "ok";
     const floor = c.lv - field.originLv;
     if (floor < 0 || floor >= field.floors) continue;
-    allies.push(charUnit(w, c, Math.floor(c.x), floor, taken));
+    let col = Math.floor(c.x);
+    if (field.doors.some((d) => d.col === col && d.floor === floor)) col += 1; // don't stand in the hatch
+    allies.push(charUnit(w, c, col, floor, taken));
+  }
+  // turrets fight on our side (static units, ammo from the turret)
+  for (const o of Object.values(w.objs)) {
+    if (o.kind !== "turret" || o.broken || w.power.off.includes("defense")) continue;
+    allies.push({ id: "tur_" + o.id, side: "ally", name: "Турель", col: o.x, floor: o.lv - field.originLv, weapon: "rifle", ammo: Math.min(5, o.st.ammo ?? 0), stats: { sil: 1, lov: 3, int: 1, vyn: 1, har: 1 }, skills: { shooting: 3, melee: 0, medicine: 0 }, tags: ["machine", "static"], maxHp: 20, icon: "🔫", color: 0x555a60 });
   }
   const exit = field.exits[0];
-  const enemies: UnitInit[] = enemyTypes.map((t, i) => ({ id: "e" + i, side: "enemy", name: "", col: exit.col + (i % 2), floor: exit.floor, etype: t }));
-  if (entry === "top") for (const e of enemies) e.floor = 0;
-  return startBattle(w, field, allies, enemies, "bunker", { tag, onEnd });
+  const enemies: UnitInit[] = enemyTypes.map((t, i) => ({ id: "e" + i, side: "enemy", name: "", col: Math.max(1, exit.col + (i % 3) - 1 + (entry === "metro" ? 0 : 1)), floor: exit.floor, etype: t }));
+  const b = startBattle(w, field, allies, enemies, "bunker", { tag, onEnd });
+  // tripwires set up at the entrance
+  for (let i = 0; i < Math.min(3, w.flags.raid_traps ?? 0); i++) b.state.trips.push({ col: field.doors[0].col + (i % 2 ? -1 : 1) * (1 + Math.floor(i / 2)), floor: field.doors[0].floor });
+  w.flags.raid_traps = 0;
+  return b;
 }
 
 // ---------------------------------------------------------------- views

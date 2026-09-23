@@ -60,11 +60,19 @@ export function bunkerField(w: World, entry: "airlock" | "metro" | "top"): Field
     maxLv = Math.max(maxLv, r.lv);
   }
   if (maxLv < 0) ((minLv = 0), (maxLv = 0));
+  // floor 0 is the street above the hatch; the hatch itself is a door the attackers must get through
+  minLv = Math.min(minLv, 0) - 1;
   const floors = maxLv - minLv + 1;
   const cols = w.W;
+  const hatch = Object.values(w.objs).find((o) => o.kind === "hatch_ladder");
+  const hx = hatch?.x ?? 21;
   const walk: boolean[] = new Array(cols * floors).fill(false);
-  for (let f = 0; f < floors; f++) for (let c = 0; c < cols; c++) walk[f * cols + c] = walkable(w, c, f + minLv);
-  const ladders: string[] = [];
+  for (let f = 0; f < floors; f++)
+    for (let c = 0; c < cols; c++) {
+      const lv = f + minLv;
+      walk[f * cols + c] = lv < 0 ? Math.abs(c - hx) <= 3 : walkable(w, c, lv);
+    }
+  const ladders: string[] = [`${hx},${-minLv}`];
   for (const k in w.ladders) {
     const [x, lv] = k.split(",").map(Number);
     if (lv - minLv >= 1 && lv - minLv < floors) ladders.push(`${x},${lv - minLv}`);
@@ -72,17 +80,17 @@ export function bunkerField(w: World, entry: "airlock" | "metro" | "top"): Field
   const covers: Cover[] = [];
   const doors: Door[] = [];
   const loot: Field["loot"] = [];
+  const blast = Object.values(w.objs).find((o) => o.kind === "door_blast");
+  doors.push({ col: hx, floor: -minLv + (hatch?.lv ?? 0), closed: blast ? !!blast.st.closed : true, hp: 24 + (blast?.st.barricade ? 20 : 0), barricaded: !!blast?.st.barricade });
   for (const id in w.objs) {
     const o = w.objs[id];
     const f = o.lv - minLv;
     if (f < 0 || f >= floors) continue;
     if (COVER_OBJ[o.kind] && !covers.some((c) => c.col === o.x && c.floor === f)) covers.push({ col: o.x, floor: f, kind: COVER_OBJ[o.kind], hp: COVER_OBJ[o.kind] === "full" ? 6 : 4, name: o.kind });
-    if (o.kind === "door_blast") doors.push({ col: o.x + 1, floor: f, closed: !!o.st.closed, hp: 14 + (o.st.barricade ? 12 : 0) });
     if (o.kind === "shelf") loot.push({ col: o.x, floor: f, room: o.room });
   }
   // entry point = exit for the attackers
-  const airlock = Object.values(w.rooms).find((r) => r.type === "airlock");
-  let exit = { col: airlock ? airlock.x + 1 : 20, floor: (airlock?.lv ?? 0) - minLv };
+  let exit = { col: hx + 1, floor: 0 };
   if (entry === "metro" && w.flags.metro) exit = { col: w.flags.metro_x, floor: w.flags.metro_lv - minLv };
   return { cols, floors, walk, ladders, covers, doors, exits: [exit], loot, originX: 0, originLv: minLv };
 }
