@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addBoardGame, applyCmd, exped, generateMap, generateSite, listSiteActions, mapPath, objsOfKind, startAction, tickWorld, wmap, type Char, type World } from "../src/index";
+import { addBoardGame, applyCmd, exped, generateMap, generateSite, listSiteActions, mapPath, objsOfKind, sortieOdds, startAction, tickWorld, wmap, type Char, type World } from "../src/index";
 import { startedWorld } from "./helpers";
 
 function tick(w: World, seconds: number) {
@@ -184,5 +184,34 @@ describe("expedition (stage 7 acceptance)", () => {
     const w = startedWorld();
     addBoardGame(w, "domino");
     expect(w.games).toContain("domino");
+  });
+});
+
+describe("residents sent without a player", () => {
+  it("go alone, resolve the place by strength vs danger and come back; the player stays home", () => {
+    const w = startedWorld({ players: 1, residents: 6, seed: 77 });
+    const me = toTerminal(w, "p0");
+    expect(startAction(w, me, "sortie", { type: "obj", id: objsOfKind(w, "sortie_terminal")[0].id })).toBeUndefined();
+    const node = Object.values(wmap(w).nodes).find((n) => n.known && n.danger === 1 && n.type !== "trader" && n.type !== "camp" && n.id !== "home")!;
+    expect(applyCmd(w, "p0", { k: "expSendBots", node: node.id })).toBeUndefined();
+    const e = w.mods.expedition;
+    expect(e.squad).not.toContain(me.id);
+    expect(e.squad.length).toBeGreaterThanOrEqual(2);
+    expect(me.status).toBe("ok");
+    for (let t = 0; t < 600 && w.mods.expedition; t += 0.05) {
+      if (w.phase === "night" && w.council) for (const p in w.players) w.council.ready[p] = true;
+      tickWorld(w, 0.05);
+      w.fx = [];
+    }
+    expect(w.mods.expedition).toBeUndefined();
+    const rep = w.mods._autoReports?.[0];
+    expect(["clean", "rough", "rout"]).toContain(rep.outcome);
+  }, 60000);
+
+  it("odds grow with squad strength and fall with danger", () => {
+    const easy = sortieOdds(14, 1);
+    const hard = sortieOdds(14, 3);
+    expect(easy.clean + easy.rough).toBeGreaterThan(hard.clean + hard.rough);
+    expect(sortieOdds(20, 2).rout).toBeLessThanOrEqual(sortieOdds(12, 2).rout);
   });
 });

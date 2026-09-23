@@ -8,8 +8,10 @@ import type { Char, World } from "../types";
 import { BAL } from "../data/balance";
 import { ROOMS, addObj, canPlaceRoom, objsInRoom, objsOfKind, placeRoom, roomCost } from "../world/rooms";
 import { roomLocked } from "./build";
-import { arriveHooks, capacity, departExpedition, exped, newExpedition, startLegPublic as startAutoLeg, wmap, type Expedition } from "./expedition";
+import { arriveHooks, capacity, departExpedition, elogPublic as elog, exped, newExpedition, startLegPublic as startAutoLeg, wmap, type Expedition } from "./expedition";
+import { killChar } from "./needs";
 import { foodUnits } from "./items";
+import { registerCmd } from "./commands";
 import { onTick } from "./tick";
 import { clamp, firstName, isBotDriven, log, rng } from "./util";
 
@@ -196,6 +198,37 @@ function autoSortie(w: World, want: "food" | "materials") {
 }
 
 /** Bot squads search the place abstractly instead of walking the building room by room. */
+/** Squad strength for an unattended run: bodies, weapons, health. Compared against the place's danger. */
+export function squadPower(w: World, e: Expedition, squad: Char[]): number {
+  let p = 0;
+  for (const c of squad) p += (c.card.stats.sil + c.card.stats.lov) * 0.45 + (c.needs.health / 100) * 1.5 + ((c as any).level ?? 1) * 0.5;
+  const guns = (e.supplies.rifle ?? 0) + (e.supplies.shotgun ?? 0) + (e.supplies.pistol ?? 0);
+  const melee = (e.supplies.pipe ?? 0) + (e.supplies.knife ?? 0) + (e.supplies.crowbar ?? 0);
+  p += Math.min(squad.length, guns) * 2.5 * ((e.supplies.ammo ?? 0) > 0 ? 1 : 0.3) + Math.min(squad.length, melee) * 1;
+  if ((e.supplies.meds ?? 0) + (e.supplies.medkit ?? 0) > 0) p += 1;
+  return p;
+}
+
+const THREAT_SPREAD = 7;
+function sortieThreatBase(danger: number, looted: number) {
+  return danger * 4.5 + looted * 2;
+}
+
+/** Odds of an unattended run (threat is uniform over a 7-point spread): shown to players before sending. */
+export function sortieOdds(power: number, danger: number, looted = 0): { clean: number; rough: number; rout: number } {
+  const lo = sortieThreatBase(danger, looted);
+  // P(threat < power - 2) and P(threat < power + 3)
+  const cdf = (v: number) => Math.max(0, Math.min(1, (v - lo) / THREAT_SPREAD));
+  const clean = cdf(power - 2);
+  const notRout = cdf(power + 3);
+  return { clean: Math.round(clean * 100), rough: Math.round((notRout - clean) * 100), rout: Math.round((1 - notRout) * 100) };
+}
+
+/**
+ * Residents on their own search the place abstractly. Without a player they can't pick their fights,
+ * sneak past sleepers or choose what to open, so the outcome is a roll of squad strength vs danger:
+ * clean, rough or a rout.
+ */
 arriveHooks.push((w, e: Expedition, n) => {
   if (!e.auto || e.route.length) return false;
   const squad = e.squad.map((id) => w.chars[id]).filter((c) => c && c.status !== "dead") as Char[];
@@ -203,8 +236,13 @@ arriveHooks.push((w, e: Expedition, n) => {
   const t = LOC.types[n.type];
   const R = rng(w);
   if (t) {
+    const power = squadPower(w, e, squad);
+    const threat = sortieThreatBase(n.danger, n.looted ?? 0) + R.range(0, THREAT_SPREAD);
+    const margin = power - threat;
+    const outcome: "clean" | "rough" | "rout" = margin > 2 ? "clean" : margin > -3 ? "rough" : "rout";
     const fresh = 1 - (n.looted ?? 0);
-    const rolls = Math.max(1, Math.round((2 + squad.length * 2) * fresh));
+    const share = outcome === "clean" ? 1 : outcome === "rough" ? 0.6 : 0.2;
+    const rolls = Math.max(1, Math.round((2 + squad.length * 2) * fresh * share));
     const loot = rollLoot(t.loot, R, rolls);
     const cap = capacity(w, e.squad);
     let weight = 0;
@@ -214,14 +252,32 @@ arriveHooks.push((w, e: Expedition, n) => {
       e.loot[k] = (e.loot[k] ?? 0) + add;
       weight += add * 0.8;
     }
-    n.looted = clamp((n.looted ?? 0) + 0.35, 0, 1);
-    // danger: scrapes and bites, rarely worse
-    for (const c of squad)
-      if (R.chance(0.12 * n.danger)) {
-        const dmg = R.int(15, 35) * n.danger * 0.6;
-        c.needs.health = clamp(c.needs.health - dmg, 5, 100);
-        log(w, `🩹 ${firstName(c)} ранен(а) на вылазке (${n.name}).`, "bad");
+    n.looted = clamp((n.looted ?? 0) + 0.35 * share + 0.1, 0, 1);
+    n.visited = true;
+    const hurt: string[] = [];
+    for (const c of squad) {
+      const p = outcome === "clean" ? 0.1 * n.danger : outcome === "rough" ? 0.5 : 0.9;
+      if (!R.chance(p)) continue;
+      const dmg = R.int(12, 22) * (outcome === "rout" ? 2 : 1) * (0.6 + n.danger * 0.25);
+      if (outcome === "rout" && R.chance(0.08 * n.danger)) {
+        killChar(w, c, `погиб(ла) на вылазке без поддержки (${n.name})`);
+        continue;
       }
+      c.needs.health = clamp(c.needs.health - dmg, 6, 100);
+      if (outcome !== "clean" && R.chance(0.35)) c.injury ??= R.pick(["bleed", "leg", "arm"]);
+      hurt.push(firstName(c));
+    }
+    if (outcome === "rout") for (const k in e.supplies) e.supplies[k] = Math.floor(e.supplies[k] / 2);
+    const names = squad.map(firstName).join(", ");
+    const text =
+      outcome === "clean"
+        ? `✅ ${names}: «${n.name}» обыскали спокойно.`
+        : outcome === "rough"
+          ? `⚠ ${names}: в «${n.name}» пришлось отбиваться — взяли что успели.${hurt.length ? " Ранены: " + hurt.join(", ") + "." : ""}`
+          : `❌ ${names}: в «${n.name}» отряд нарвался на засаду и бежал почти ни с чем.${hurt.length ? " Ранены: " + hurt.join(", ") + "." : ""}`;
+    elog(e, text);
+    log(w, text, outcome === "clean" ? "good" : "bad");
+    (w.mods._autoReports ??= []).push({ day: w.day, node: n.name, outcome, power: Math.round(power), threat: Math.round(threat) });
   }
   const back = mapPath(wmap(w), n.id, "home", false);
   if (back && back.length > 1) {
@@ -229,6 +285,27 @@ arriveHooks.push((w, e: Expedition, n) => {
     startAutoLeg(w, e);
   }
   return true;
+});
+
+/** «Отправить без меня»: the squad of residents goes alone to a place the player picked. */
+registerCmd("expSendBots", (w, p, cmd) => {
+  const e = exped(w);
+  if (!e || e.stage !== "prep") return "Сначала соберите вылазку у терминала";
+  // players stay home: only residents go
+  e.squad = e.squad.filter((id) => isBotDriven(w, id) && !w.players[w.chars[id]?.ctrl ?? ""]?.online);
+  if (!e.squad.length) return "В отряде нет жильцов — добавьте кого-нибудь";
+  const m = wmap(w);
+  const node = m.nodes[String(cmd.node)];
+  if (!node || !node.known || !LOC.types[node.type] || node.type === "ark") return "Выберите известное место для обыска";
+  const path = mapPath(m, "home", node.id, false);
+  if (!path || path.length < 2) return "Туда нет дороги";
+  const err = departExpedition(w, e);
+  if (err) return err;
+  e.auto = node.id;
+  e.route = path.slice(1);
+  startAutoLeg(w, e);
+  w.flags.tut_sortie = 1;
+  log(w, `🎒 ${p.name} отправляет ${e.squad.map((id) => firstName(w.chars[id])).join(" и ")} в «${node.name}» без себя. Без игрока риск выше.`, "event");
 });
 
 // ---------------------------------------------------------------- the tick

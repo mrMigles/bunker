@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { BOX_NAMES, ENEMIES, FACTIONS, ITEMS, LOC, PROFS, itemName, listSiteActions, mapPath, travelHours, type SiteAction } from "@bunker/shared";
+import { BOX_NAMES, ENEMIES, FACTIONS, ITEMS, LOC, PROFS, itemName, listSiteActions, mapPath, sortieOdds, squadPower, travelHours, type SiteAction } from "@bunker/shared";
 
 const profName = (p: string) => PROFS[p]?.name ?? p;
 
@@ -124,6 +124,59 @@ export class ExpeditionUI {
     if (this.mode === "map") this.renderMap();
     if (this.mode === "site") this.renderHud();
     this.renderBanner();
+  }
+
+  private sendNode = "";
+
+  /** «Отправить без меня»: residents go alone; odds come from squad strength vs the place's danger. */
+  sendWithoutMe(v: any, e: any) {
+    const bots = e.squad.filter((id: string) => v.chars[id] && !v.chars[id].ctrl);
+    if (!bots.length) return null;
+    const nodes = Object.values((v.mods.wmap?.nodes ?? {}) as Record<string, any>)
+      .filter((n) => n.id !== "home" && LOC.types[n.type] && n.type !== "ark")
+      .sort((a, b) => a.danger - b.danger || (a.looted ?? 0) - (b.looted ?? 0));
+    if (!nodes.length) return null;
+    if (!nodes.some((n) => n.id === this.sendNode)) this.sendNode = nodes[0].id;
+    const power = squadPower(v, { supplies: e.gear } as any, bots.map((id: string) => v.chars[id]));
+    const odds = (n: any) => sortieOdds(power, n.danger, n.looted ?? 0);
+    const cur = nodes.find((n) => n.id === this.sendNode)!;
+    const o = odds(cur);
+    const names = bots.map((id: string) => v.chars[id].card.name.split(" ")[0]).join(", ");
+    return h(
+      "div.exp-sendbots",
+      null,
+      h("div.exp-eyebrow", null, "ИЛИ ОТПРАВИТЬ ЖИЛЬЦОВ БЕЗ МЕНЯ"),
+      h("p.dim", null, `${names} пойдут сами. Без вас они не выбирают бои и не прячутся — в опасных местах велик шанс вернуться ни с чем и ранеными.`),
+      h(
+        "div.row",
+        null,
+        h(
+          "select",
+          { onchange: (ev: Event) => ((this.sendNode = (ev.target as HTMLSelectElement).value), this.openPrep()) },
+          nodes.map((n) => {
+            const k = odds(n);
+            return h("option", { value: n.id, selected: n.id === this.sendNode }, `${n.name} · ${"◆".repeat(n.danger)} · успех ${k.clean + k.rough}%`);
+          }),
+        ),
+        h(
+          "button",
+          {
+            onclick: () => {
+              net.send({ k: "expSendBots", node: this.sendNode });
+              closeModal();
+            },
+          },
+          "Отправить без меня →",
+        ),
+      ),
+      h(
+        "div.exp-odds",
+        null,
+        h("span.good", null, `чисто ${o.clean}%`),
+        h("span.warn", null, `тяжело ${o.rough}%`),
+        h("span.bad", null, `провал ${o.rout}%`),
+      ),
+    );
   }
 
   /** What a place promises and threatens, and how far it is — the reasons to pick it. */
@@ -256,6 +309,7 @@ export class ExpeditionUI {
         e.squad.length === 1
           ? h("p.exp-warn", null, "⚠ В одиночку опасно: любая стычка может закончиться ранением. Возьмите 1–2 жильцов.")
           : null,
+        this.sendWithoutMe(v, e),
       );
       const capacity = h(
         "div.exp-capacity",

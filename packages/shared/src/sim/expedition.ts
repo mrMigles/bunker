@@ -332,7 +332,7 @@ registerCmd("expGo", (w, p, cmd) => {
   startLeg(w, e);
 });
 
-export { startLeg as startLegPublic };
+export { startLeg as startLegPublic, elog as elogPublic };
 
 function startLeg(w: World, e: Expedition) {
   const m = wmap(w);

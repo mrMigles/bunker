@@ -15,6 +15,8 @@ const SEEDS = Number(arg("seeds", "3"));
 const TELLER = arg("storyteller", "classic");
 const OUT = arg("out", "");
 const DAY_LEN = Number(arg("daylen", "360"));
+const INITIATIVE = arg("initiative", "1") !== "0";
+const HUMAN = arg("human", "0") === "1"; // 1 = a player stays online (idle): the colony may build but never sorties on its own // 0 = residents never plan or sortie on their own
 
 const NEEDS = ["food", "water", "energy", "sanity", "health"] as const;
 
@@ -36,11 +38,11 @@ interface DayRow {
 }
 
 function runGame(seed: number) {
-  const w: World = createWorld("SIM" + seed, seed, { skipPrologue: true, residents: PLAYERS, dayLength: DAY_LEN, storyteller: TELLER as any });
+  const w: World = createWorld("SIM" + seed, seed, { skipPrologue: true, residents: PLAYERS, dayLength: DAY_LEN, storyteller: TELLER as any, botInitiative: INITIATIVE });
   addPlayer(w, "p0", "Сим");
   applyCmd(w, "p0", { k: "start" });
   // nobody at the keyboard: every resident is a bot
-  w.players.p0.online = false;
+  w.players.p0.online = HUMAN;
   const rows: DayRow[] = [];
   let cur: DayRow | null = null;
   let samples = 0;
@@ -120,7 +122,7 @@ const out = (s = "") => {
   console.log(s);
 };
 
-out(`# Баланс: ${PLAYERS} жильцов, ${DAYS} дней, рассказчик «${TELLER}», ${SEEDS} сид(ов), день ${DAY_LEN} с`);
+out(`# Баланс${INITIATIVE ? "" : " (без инициативы жильцов: ни вылазок, ни стройки)"}${HUMAN ? " (игрок в игре, на вылазки не ходит)" : ""}: ${PLAYERS} жильцов, ${DAYS} дней, рассказчик «${TELLER}», ${SEEDS} сид(ов), день ${DAY_LEN} с`);
 const agg: Record<number, { alive: number[]; needs: Record<string, number[]>; crit: Record<string, number[]>; food: number[]; water: number[] }> = {};
 const actTotal: Record<string, number> = {};
 let deaths = 0;
