@@ -2,7 +2,8 @@ import { sanityGainMult } from "./needs";
 import type { Char, World } from "../types";
 import { defAction, type ActionCtx } from "./actions";
 import { timeMult } from "./time";
-import { clamp, hasTrait, hoursPerSec, isBotDriven } from "./util";
+import { clamp, hasTrait, hoursPerSec, isBotDriven, rng } from "./util";
+import barksJson from "../data/barks.json";
 
 /** Actions that count as resting for "Скоротать время". */
 export const REST_ACTIONS = new Set(["sleep", "listen_radio", "read_book", "sit", "chat_table", "play_piano", "play_guitar", "pray", "visit_grave", "pet_pet", "watch_film", "tape", "draw", "sit_table", "darts", "pullups", "shower", "tea", "smoke", "drink_moonshine"]);
@@ -76,6 +77,24 @@ function hasCompanyStoryteller(w: World, c: Char) {
 // listen_radio lives in radio.ts
 leisure("sit", ["armchair"], "🛋 Посидеть в кресле", "sit", 6, { seat: true, energy: 3 });
 leisure("chat_table", ["dining_table"], "💬 Посидеть за столом, поболтать", "sit", 5, { social: true });
+// the morning ritual: whoever is up sits at the table with a mug of chicory "coffee" and talks
+leisure("morning_coffee", ["dining_table"], (x) => (x.w.hour >= 6 && x.w.hour < 9.5 ? "☕ Утренний кофе за общим столом" : null), "eat", 9, {
+  social: true,
+  extra: (x, h) => {
+    x.c.needs.energy = clamp(x.c.needs.energy + 4 * h);
+    x.c.needs.water = clamp(x.c.needs.water + 3 * h);
+    // company at the table: everyone gets a seat of their own and chats
+    const mates = Object.values(x.w.chars).filter((o) => o.id !== x.c.id && o.task?.action === "morning_coffee" && o.task.obj === x.o?.id);
+    if (!x.c.task || (x.c.task as any).seatX === undefined) {
+      const k = mates.length;
+      const off = [0, -0.8, 0.8, -1.6, 1.6, -2.4, 2.4][k % 7];
+      if (x.c.task) (x.c.task as any).seatX = off;
+      x.c.x = (x.o?.x ?? x.c.x) + 0.5 + off;
+      x.c.dir = off > 0 ? -1 : 1;
+    }
+    if (mates.length && !x.c.bark && x.c.mind.barkCd <= 0 && rng(x.w).chance(h * 3)) coffeeTalk(x.w, x.c);
+  },
+});
 leisure("read_book", ["bookshelf"], "📖 Почитать книгу", "read", 7, {
   extra: (x, h) => {
     x.c.skills.repair += h * 0.8; // «Справочник электрика» и прочее
@@ -88,3 +107,12 @@ leisure("pet_bed_rest", ["pet_bed"], "🐾 Посидеть с питомцем"
 leisure("darts", ["darts"], "🎯 Бросать дартс", "work", 7, { social: true, extra: (x, h) => (x.c.skills.shooting += h * 0.6) });
 leisure("pullups", ["pullup_bar"], "💪 Подтягиваться", "work", 4, { extra: (x, h) => ((x.c.skills.melee += h * 0.8), (x.c.needs.energy = clamp(x.c.needs.energy - 3 * h))) });
 leisure("tape", ["tape_player"], "📼 Послушать кассету", "sit", 7, { social: true, reason: (x) => (x.w.tapes.length ? null : "Нет кассет") });
+
+/** A line over the morning coffee (small talk, a joke, the day ahead). */
+function coffeeTalk(w: World, c: Char) {
+  const R = rng(w);
+  const B = barksJson as Record<string, string[]>;
+  const pool = R.chance(0.2) ? B.joke : R.chance(0.5) ? B.coffee : B.morning;
+  c.bark = { text: R.pick(pool), t: 4.5 };
+  c.mind.barkCd = 10 + R.range(0, 12);
+}

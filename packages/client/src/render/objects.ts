@@ -422,6 +422,20 @@ export function buildObject(o: any): THREE.Group {
     case "keepsake":
       g.add(box(0.8, 0.05, 0.3, PAL.wood, 0, 1.3, Z - 0.3));
       break;
+    case "guitar_stand": {
+      // an acoustic guitar leaning on a little stand
+      const gt = new THREE.Group();
+      gt.add(cyl(0.22, 0.1, 0xad7735, 0, 0.1, 0, 12).rotateX(Math.PI / 2));
+      gt.add(cyl(0.16, 0.1, 0xad7735, 0, 0.42, 0, 12).rotateX(Math.PI / 2));
+      gt.add(cyl(0.05, 0.02, 0x2a1d12, 0, 0.3, 0.06, 10).rotateX(Math.PI / 2));
+      gt.add(box(0.06, 0.62, 0.04, 0x5a3a20, 0, 0.5, 0));
+      gt.add(box(0.1, 0.12, 0.05, 0x3a2a18, 0, 1.12, 0));
+      gt.position.set(0, 0.12, Z - 0.1);
+      gt.rotation.z = 0.18;
+      g.add(gt);
+      g.add(box(0.3, 0.12, 0.2, 0x2a2a2a, 0, 0, Z - 0.1));
+      break;
+    }
     case "cache":
       g.add(box(0.7, 0.5, 0.5, 0x6a5a3a, 0, 0, Z + 0.2));
       g.add(box(0.72, 0.08, 0.52, 0x4a3a2a, 0, 0.5, Z + 0.2));

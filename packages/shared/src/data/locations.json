@@ -80,7 +80,7 @@
   "loot": {
     "base":     [["scrap", 3, [1, 4]], ["cloth", 2, [1, 3]], ["parts", 2, [1, 2]], ["wood", 2, [1, 3]], ["food_can", 1, [1, 2]], ["batteries", 1, [1, 2]], ["newspaper", 1, [1, 1]], ["pipe", 0.6, [1, 1]], ["knife", 0.4, [1, 1]]],
     "food":     [["food_can", 5, [1, 3]], ["water_jug", 1, [1, 1]], ["seed_potato", 1, [1, 2]], ["sunflower", 1, [1, 3]], ["cigarettes", 1, [1, 2]]],
-    "misc":     [["cloth", 2, [1, 2]], ["newspaper", 2, [1, 1]], ["cigarettes", 1, [1, 2]], ["batteries", 1, [1, 1]], ["tape", 1, [1, 1]], ["book", 1, [1, 1]], ["bg_random", 1.4, [1, 1]], ["food_can", 1, [1, 1]], ["teddy", 0.3, [1, 1]], ["knife", 0.5, [1, 1]]],
+    "misc":     [["cloth", 2, [1, 2]], ["newspaper", 2, [1, 1]], ["cigarettes", 1, [1, 2]], ["batteries", 1, [1, 1]], ["tape", 1, [1, 1]], ["book", 1, [1, 1]], ["bg_random", 1.4, [1, 1]], ["food_can", 1, [1, 1]], ["teddy", 0.3, [1, 1]], ["knife", 0.5, [1, 1]], ["guitar", 0.25, [1, 1]]],
     "rare":     [["meds", 2, [1, 3]], ["parts", 2, [2, 4]], ["radpills", 1, [1, 2]], ["nvg", 0.3, [1, 1]], ["seed_strawberry", 0.6, [1, 1]], ["drill", 0.3, [1, 1]], ["bg_random", 0.6, [1, 1]], ["film", 0.5, [1, 1]]],
     "med":      [["meds", 4, [1, 3]], ["medkit", 2, [1, 1]], ["radpills", 2, [1, 2]], ["chem", 1, [1, 2]], ["cloth", 1, [1, 2]]],
     "corpse":   [["food_can", 1, [1, 1]], ["ammo", 2, [1, 4]], ["cigarettes", 1, [1, 2]], ["newspaper", 1, [1, 1]], ["knife", 0.8, [1, 1]], ["meds", 0.5, [1, 1]], ["pipe", 0.6, [1, 1]], ["pistol", 0.35, [1, 1]], ["molotov", 0.3, [1, 1]]],
@@ -92,6 +92,6 @@
     "seeds":    [["seed_tomato", 2, [1, 2]], ["seed_soy", 2, [1, 2]], ["seed_carrot", 2, [1, 2]], ["seed_peas", 2, [1, 2]], ["seed_sunflower", 1, [1, 2]], ["seed_hops", 1, [1, 1]], ["seed_tobacco", 1, [1, 1]], ["seed_strawberry", 0.4, [1, 1]], ["spores", 1, [1, 1]]],
     "radio":    [["parts", 3, [2, 4]], ["batteries", 2, [1, 3]], ["relay", 0.5, [1, 1]], ["tape", 1, [1, 1]]],
     "cache":    [["food_can", 4, [3, 6]], ["water_jug", 2, [1, 1]], ["meds", 2, [2, 4]], ["ammo", 2, [3, 6]], ["parts", 2, [2, 4]], ["bg_random", 1, [1, 1]], ["pistol", 0.6, [1, 1]], ["pipe", 1, [1, 1]]],
-    "games":    [["bg_random", 3, [1, 1]], ["bg_cards52", 1, [1, 1]], ["newspaper", 1, [1, 1]], ["cigarettes", 1, [1, 2]], ["batteries", 1, [1, 1]]]
+    "games":    [["bg_random", 3, [1, 1]], ["guitar", 0.6, [1, 1]], ["bg_cards52", 1, [1, 1]], ["newspaper", 1, [1, 1]], ["cigarettes", 1, [1, 2]], ["batteries", 1, [1, 1]]]
   }
 }

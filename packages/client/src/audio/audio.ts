@@ -1,3 +1,4 @@
+import { Soundtrack } from "./soundtrack";
 // WebAudio synthesis: SFX, ambient, radio static, procedural music and instruments. No external files.
 
 type Cat = "sfx" | "music" | "radio" | "ambient";
@@ -18,6 +19,8 @@ class AudioEngine {
   hum: OscillatorNode | null = null;
   humGain!: GainNode;
   music: MusicGen | null = null;
+  /** background music by mood (bunker / night / sortie / combat) */
+  soundtrack = new Soundtrack(this);
   speech = false;
 
   constructor() {
@@ -89,6 +92,9 @@ class AudioEngine {
     this.hum.connect(lp).connect(this.humGain).connect(this.cats.ambient);
     this.hum.start();
     this.music = new MusicGen(this);
+    this.soundtrack.attach(this.cats.music);
+    // the menu and the lobby get the calm bunker theme; the game switches moods from then on
+    this.soundtrack.setMood("bunker");
   }
 
   applyVolumes() {
@@ -117,6 +123,8 @@ class AudioEngine {
     this.radioOut.gain.setTargetAtTime(audible, t, 0.2);
     this.radioNoiseGain.gain.setTargetAtTime(audible > 0 ? 0.08 + (1 - clarity) * 0.5 : 0, t, 0.1);
     const musicOn = audible > 0 && kind === "music" && clarity > 0.2;
+    // the soundtrack steps back while the radio talks or plays
+    this.soundtrack.setDuck(audible > 0.1 ? 0.25 : 1);
     this.radioMusicGain.gain.setTargetAtTime(musicOn ? clarity * 0.9 : 0, t, 0.3);
     if (musicOn) this.music?.play(genreSeed, this.radioMusicGain);
     else this.music?.stop();
@@ -375,3 +383,4 @@ class MusicGen {
 }
 
 export const audio = new AudioEngine();
+if (import.meta.env.DEV) (window as any).__audio = audio;

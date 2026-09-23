@@ -73,6 +73,7 @@ export const OBJECTS: Record<string, ObjDef> = {
   turret: { name: "Турель", power: 0.2, group: "defense" },
   periscope: { name: "Перископ" },
   intercom: { name: "Интерком" },
+  guitar_stand: { name: "Гитара на стойке", social: true },
   shower: { name: "Горячий душ", power: 0.8, group: "comfort" },
   projector: { name: "Кинопроектор", power: 0.2, group: "comfort" },
   grave: { name: "Памятник", seat: false },

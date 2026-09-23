@@ -3,6 +3,7 @@
 // bring something from a sortie). Requests become personal quests in the «Задачи» panel.
 import { ITEMS, itemName } from "../data/items";
 import { OBJECTS } from "../data/objects";
+import barksJson from "../data/barks.json";
 import { PROFS } from "../data/characters";
 import { modViews } from "../net/view";
 import { Rng } from "../rng";
@@ -120,6 +121,17 @@ const BY_MOOD: Record<string, string[]> = {
   hurt: ["Рана ноет. Ничего, заживёт. Я крепкий… наверное."],
 };
 
+const SMALL_TALK = [
+  "Ты заметил, что генератор по утрам гудит тише? Или я привык.",
+  "Я вчера нашёл в кладовой банку без этикетки. Боюсь открывать. Вдруг там персики.",
+  "Знаешь, чего мне не хватает? Сквозняка. Нормального, с улицы.",
+  "Как спалось? Мне снилось, что я опоздал на трамвай. Смешно, да?",
+  "Если найдёте на вылазке шерстяные носки — я ваш должник навсегда.",
+  "Посчитал: до войны я пил четыре кружки кофе в день. Сейчас — ноль. И ничего, живой.",
+  "Мне кажется, наш радиоприёмник влюблён в одну станцию. Всё время на неё сползает.",
+  "Давай вечером в карты? Только чур без мухлежа.",
+];
+
 const REPLIES = [
   { id: "listen", label: "Выслушать и посочувствовать" },
   { id: "cheer", label: "«Прорвёмся. Мы же вместе»" },
@@ -206,13 +218,29 @@ export function talkToday(w: World, c: Char): TalkToday {
   const R = Rng.from((w.seed ^ (w.day * 7919)) + c.id.length * 131 + c.id.charCodeAt(c.id.length - 1) * 17);
   const quests = (w.mods.quests ?? []) as Quest[];
   const hasQuest = quests.some((q) => q.giver === c.id && !q.done);
-  const offer = !hasQuest && R.chance(0.5) ? pickRequest(w, c, R) : undefined;
+  // most days it is just talk: small talk, a joke, a memory; a request only now and then
+  const offer = !hasQuest && R.chance(0.28) ? pickRequest(w, c, R) : undefined;
+  const B = barksJson as Record<string, string[]>;
+  const roll = R.next();
+  let kind: "story" | "joke" | "small" = "story";
   const mood = moodKey(c);
   let text: string;
   if (offer) text = offer.why;
-  else if (mood && R.chance(0.6)) text = R.pick(BY_MOOD[mood]);
-  else text = R.pick(BY_PROF[c.card.prof] ?? BY_PROF.teacher);
-  const replies = offer ? [{ id: "accept", label: `«Сделаю»: ${offer.text}` }, { id: "later", label: "«Извини, сейчас не могу»" }] : REPLIES;
+  else if (mood && R.chance(0.5)) text = R.pick(BY_MOOD[mood]);
+  else if (roll < 0.3) {
+    kind = "joke";
+    text = "Слушай анекдот. " + R.pick(B.joke).replace(/^Анекдот: /, "");
+  } else if (roll < 0.62) {
+    kind = "small";
+    text = R.pick(SMALL_TALK);
+  } else text = R.pick(BY_PROF[c.card.prof] ?? BY_PROF.teacher);
+  const replies = offer
+    ? [{ id: "accept", label: `«Сделаю»: ${offer.text}` }, { id: "later", label: "«Извини, сейчас не могу»" }]
+    : kind === "joke"
+      ? [{ id: "laugh", label: "Посмеяться" }, { id: "joke", label: "Рассказать свой (ХАР)" }, { id: "groan", label: "«Бородатый…»" }]
+      : kind === "small"
+        ? [{ id: "cheer", label: "Поболтать о пустяках" }, { id: "joke", label: "Пошутить (ХАР)" }, { id: "listen", label: "Кивнуть и послушать" }]
+        : REPLIES;
   const t: TalkToday = { day: w.day, text, replies, offer };
   talks[c.id] = t;
   return t;
@@ -262,6 +290,15 @@ registerCmd("talkReply", (w, p, cmd) => {
     case "later":
       o.needs.sanity = clamp(o.needs.sanity - 2);
       t.answerText = `«Понимаю… Ладно»`;
+      break;
+    case "laugh":
+      o.needs.sanity = clamp(o.needs.sanity + 7);
+      me.needs.sanity = clamp(me.needs.sanity + 5);
+      t.answerText = `Вы оба смеётесь. ${firstName(o)}: «Вот! А ты говорил — не смешно»`;
+      break;
+    case "groan":
+      o.needs.sanity = clamp(o.needs.sanity + 2);
+      t.answerText = `${firstName(o)} фыркает: «Зато проверенный временем»`;
       break;
     case "joke": {
       const ok = R.d20() + me.card.stats.har >= 11;

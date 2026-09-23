@@ -15,6 +15,7 @@ import { nightHooks } from "./time";
 import { addNpc, effectHooks } from "./events";
 import { bark } from "./bots";
 import { spawnItem } from "./items";
+import { settleKeepsakes } from "./cozy";
 import { stepMove } from "./move";
 import { decayNeeds, killChar } from "./needs";
 import { grantXp, threatLevel } from "./progress";
@@ -516,6 +517,12 @@ export function returnHome(w: World, e: Expedition) {
       continue;
     }
     if (k === "key") continue;
+    if (k === "guitar") {
+      // a found guitar goes straight onto a stand in the living quarters
+      const left = settleKeepsakes(w, new Array(n).fill("guitar"));
+      for (const g of left) spawnItem(w, g, 1, x0 + 1, lv);
+      continue;
+    }
     if (k.startsWith("bg_")) {
       for (let j = 0; j < n; j++) addBoardGame(w, k === "bg_random" ? undefined : k.slice(3));
       continue;

@@ -167,6 +167,9 @@ export function installExtras(game: GameUI) {
     instr.frame();
     const v = net.pub;
     if (v) audio.setAmbient(Math.min(1, v.power.gen / 1.5));
+    // background music follows what is on screen
+    const act = document.body.dataset.activity;
+    audio.soundtrack.setMood(!v || v.phase === "lobby" ? "bunker" : v.phase === "ending" ? "night" : act === "combat" ? "combat" : act === "expedition" || v.phase === "prologue" ? "sortie" : v.phase === "night" ? "night" : "bunker");
   });
   GameUI.extraPatch.push(() => {
     dayVote.update();

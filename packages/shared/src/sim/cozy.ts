@@ -35,7 +35,7 @@ for (const k in FURNITURE) {
 }
 
 // Keepsakes from the prologue become shelf decor.
-const KEEPSAKES: Record<string, string> = { album: "keepsake", iron: "keepsake", teddy: "keepsake", gnome: "keepsake", radio_portable: "keepsake", plant_pot: "plant", guitar: "keepsake" };
+const KEEPSAKES: Record<string, string> = { album: "keepsake", iron: "keepsake", teddy: "keepsake", gnome: "keepsake", radio_portable: "keepsake", plant_pot: "plant", guitar: "guitar_stand" };
 
 /**
  * Keepsakes carried in during the prologue are unpacked straight into the living spaces
@@ -72,7 +72,7 @@ export function isKeepsake(item: string) {
   return !!KEEPSAKES[item];
 }
 
-const DECOR: Record<string, number> = { armchair: 6, rug: 5, lamp: 5, poster: 4, plant: 6, keepsake: 5, bookshelf: 4, piano: 4, drawing_wall: 3, pet_bed: 2, altar: 4, radio: 3, tape_player: 2, game_table: 3, grave: -3 };
+const DECOR: Record<string, number> = { armchair: 6, rug: 5, lamp: 5, poster: 4, plant: 6, keepsake: 5, guitar_stand: 4, bookshelf: 4, piano: 4, drawing_wall: 3, pet_bed: 2, altar: 4, radio: 3, tape_player: 2, game_table: 3, grave: -3 };
 
 export function computeComfort(w: World) {
   const people: Record<string, number> = {};

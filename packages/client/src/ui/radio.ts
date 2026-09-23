@@ -141,7 +141,7 @@ export class InstrumentUI {
 
   frame() {
     const me = net.myChar();
-    this.active = !!me?.task && ["play_guitar", "play_piano", "play_harmonica"].includes(me.task.action);
+    this.active = !!me?.task && ["play_guitar", "play_guitar_stand", "play_piano", "play_harmonica"].includes(me.task.action);
     this.el.classList.toggle("hidden", !this.active);
   }
 }

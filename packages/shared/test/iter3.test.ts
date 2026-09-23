@@ -12,6 +12,7 @@ import {
   objsOfKind,
   rollLoot,
   roomsOfType,
+  settleKeepsakes,
   startAction,
   startBattle,
   talkToday,
@@ -291,5 +292,37 @@ describe("iteration 3: difficulty and the map", () => {
     const known = Object.values(a.nodes).filter((n) => n.known).length;
     expect(known).toBeGreaterThan(5);
     expect(known).toBeLessThan(Object.keys(a.nodes).length - 8);
+  });
+});
+
+describe("iteration 3b: mornings and music", () => {
+  it("residents gather for the morning coffee at the table, each in their own seat", () => {
+    const w = startedWorld({ players: 1, seed: 91 });
+    w.players.p0.online = false;
+    let most = 0;
+    let spread = 0;
+    for (let i = 0; i < 20 * 120 && w.hour < 9; i++) {
+      tickWorld(w, 0.05);
+      w.fx = [];
+      const at = Object.values(w.chars).filter((c) => c.task?.action === "morning_coffee");
+      most = Math.max(most, at.length);
+      if (at.length > 1) {
+        const xs = at.map((c) => c.x).sort((a, b) => a - b);
+        spread = Math.max(spread, Math.min(...xs.slice(1).map((x, k) => x - xs[k])));
+      }
+    }
+    expect(most).toBeGreaterThanOrEqual(2);
+    expect(spread).toBeGreaterThan(0.5);
+  });
+
+  it("a guitar gets its own stand and anyone can play it", () => {
+    const w = startedWorld({ players: 1, seed: 92 });
+    settleKeepsakes(w, ["guitar"]);
+    const stand = objsOfKind(w, "guitar_stand")[0];
+    expect(stand).toBeTruthy();
+    const me = w.chars[w.players.p0.char!];
+    placeAt(me, stand.x, stand.lv);
+    expect(startAction(w, me, "play_guitar_stand", { type: "obj", id: stand.id })).toBeUndefined();
+    expect(me.task?.action).toBe("play_guitar_stand");
   });
 });

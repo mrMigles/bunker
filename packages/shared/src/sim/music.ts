@@ -15,7 +15,7 @@ function instrumentTick(w: World, c: any, dt: number, base: number) {
   let players = 0;
   for (const id in w.chars) {
     const o = w.chars[id];
-    if (o.task && ["play_guitar", "play_piano", "play_harmonica"].includes(o.task.action) && o.lv === c.lv && Math.abs(o.x - c.x) < 6) players++;
+    if (o.task && ["play_guitar", "play_guitar_stand", "play_piano", "play_harmonica"].includes(o.task.action) && o.lv === c.lv && Math.abs(o.x - c.x) < 6) players++;
   }
   const jam = players > 1 ? 1 + (players - 1) * 0.6 : 1;
   c.needs.sanity = clamp(c.needs.sanity + base * jam * sanityGainMult(c.needs.sanity) * h);
@@ -56,6 +56,27 @@ defAction({
   dur: () => 0,
   anim: "sit",
   tick: ({ w, c }, dt) => instrumentTick(w, c, dt, 8),
+});
+
+defAction({
+  id: "play_guitar_stand",
+  type: "obj",
+  kinds: ["guitar_stand"],
+  prio: 38,
+  bot: true,
+  avail: ({ w, c, o }) => {
+    for (const id in w.chars) {
+      const x = w.chars[id];
+      if (x.id !== c.id && x.task?.obj === o!.id) return { label: "🎸 Гитара", reason: "Кто-то уже играет" };
+    }
+    return "🎸 Взять гитару и сыграть";
+  },
+  dur: () => 0,
+  anim: "guitar",
+  start: ({ c, o }) => {
+    c.x = o!.x + 0.5;
+  },
+  tick: ({ w, c }, dt) => instrumentTick(w, c, dt, 10),
 });
 
 defAction({

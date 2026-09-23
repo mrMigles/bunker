@@ -346,6 +346,13 @@ export function decide(w: World, c: Char): Plan | null {
       if (p) return { ...p, thought: "Несу на склад" };
     }
   }
+  if (w.hour >= 6.2 && w.hour < 8.6 && c.mind.coffeeDay !== w.day && n.energy > 15) {
+    c.mind.coffeeDay = w.day;
+    if (rng(w).chance(0.75)) {
+      const p = bestObj(w, c, "morning_coffee", ["dining_table"]);
+      if (p) return { ...p, thought: "Утренний кофе с соседями", leisure: 22 + rng(w).range(0, 18) };
+    }
+  }
   if (n.sanity < 35 || block === "leisure" || block === "wake") {
     if (block === "wake" && rng(w).chance(0.3)) {
       c.anim = "yawn";
@@ -545,12 +552,19 @@ function converse(w: World, a: Char, b: Char) {
     a.needs.sanity = clamp(a.needs.sanity + 3);
     b.needs.sanity = clamp(b.needs.sanity + 3);
   } else {
-    bark(w, a, "talk_open", { other: firstName(b) }, b.id);
+    // most chats are just chat: small talk and jokes, now and then something deeper
+    const r = R.next();
+    const [open, reply] = r < 0.28 ? ["joke", "laugh"] : r < 0.65 ? ["smalltalk", "smalltalk_reply"] : ["talk_open", "talk_reply"];
+    bark(w, a, open, { other: firstName(b) }, b.id);
+    if (open === "joke") {
+      a.needs.sanity = clamp(a.needs.sanity + 1);
+      b.needs.sanity = clamp(b.needs.sanity + 2);
+    }
     a.rel[b.id] = rel + 1.5;
     b.rel[a.id] = (b.rel[a.id] ?? 0) + 1.5;
     a.needs.sanity = clamp(a.needs.sanity + 2);
     b.needs.sanity = clamp(b.needs.sanity + 2);
-    (w.mods as any)._replies = [...((w.mods as any)._replies ?? []), { who: b.id, to: a.id, at: w.phaseT + 2.2 }];
+    (w.mods as any)._replies = [...((w.mods as any)._replies ?? []), { who: b.id, to: a.id, at: w.phaseT + (open === "joke" ? 3.2 : 2.2), cat: reply }];
   }
   a.dir = b.x > a.x ? 1 : -1;
   b.dir = a.x > b.x ? 1 : -1;
@@ -558,13 +572,13 @@ function converse(w: World, a: Char, b: Char) {
 
 onTick("bots", "day", (w, dt) => {
   // delayed replies in conversations
-  const reps = (w.mods as any)._replies as { who: string; to: string; at: number }[] | undefined;
+  const reps = (w.mods as any)._replies as { who: string; to: string; at: number; cat?: string }[] | undefined;
   if (reps?.length) {
     const due = reps.filter((r) => r.at <= w.phaseT);
     (w.mods as any)._replies = reps.filter((r) => r.at > w.phaseT);
     for (const r of due) {
       const c = w.chars[r.who];
-      if (c && c.status === "ok") bark(w, c, "talk_reply", {}, r.to);
+      if (c && c.status === "ok") bark(w, c, r.cat ?? "talk_reply", {}, r.to);
     }
   }
   const hr = (w.mods as any)._helpReq;

@@ -84,6 +84,8 @@ export interface BotMind {
   thinkT?: number;
   cdir?: number; // climbing direction while following a path
   lastBark?: string;
+  /** day of the last morning coffee */
+  coffeeDay?: number;
 }
 
 export type CharStatus = "ok" | "down" | "dead" | "away" | "breakdown";
