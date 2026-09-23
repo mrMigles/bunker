@@ -333,6 +333,8 @@ export function tickTasks(w: World, dt: number) {
     if (!c.task) continue; // tick may stop it
     if (fin === true || (task.dur > 0 && task.t >= task.dur)) {
       a.done?.(ctx);
+      // finished work teaches a little (rest and chatter don't)
+      if (task.dur > 0 && a.skill) c.xp = (c.xp ?? 0) + 2;
       finishTask(w, c, a, ctx);
     }
   }

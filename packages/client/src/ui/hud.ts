@@ -1,7 +1,7 @@
-import { ITEMS, NEED_NAMES, PROFS, itemName, type Fx } from "@bunker/shared";
+import { ITEMS, NEED_NAMES, PERKS, PROFS, itemName, xpForLevel, type Fx } from "@bunker/shared";
 import { net } from "../net";
 import type { WorldRenderer } from "../render/world";
-import { add, bar, clear, esc, floatText, h, needColor, toast, ui } from "./dom";
+import { add, bar, clear, closeModal, esc, floatText, h, isModalOpen, modal, needColor, toast, ui } from "./dom";
 import { art, portraitTile } from "./art";
 
 const FOOD_KEYS = Object.keys(ITEMS).filter((k) => ITEMS[k].cat === "food");
@@ -102,7 +102,7 @@ export class Hud {
       add(this.me,h("div.name", null, p?.ghost ? "👻 Голос в рации" : "Нет персонажа"), h("div.dim", null, p?.ghost ? "Вы погибли. Смотрите, советуйте в чат, голосуйте с половинным весом. Как только появится свободный жилец — возьмите его." : ""));
       return;
     }
-    const key = JSON.stringify([c.needs, c.hands, c.task?.action, c.status, c.thought, net.priv?.goal, c.injury, c.sick, c.downT]);
+    const key = JSON.stringify([c.needs, c.hands, c.task?.action, c.status, c.thought, net.priv?.goal, c.injury, c.sick, c.downT, c.xp, c.level, c.perks, c.perkOffer]);
     if (key === this.meKey) return;
     this.meKey = key;
     clear(this.me);
@@ -110,6 +110,8 @@ export class Hud {
     this.me.append(art(portraitTile(c.card.prof, c.card.gender),"survivor-portrait"));
     add(this.me,
       h("div.row", null, h("span.name", null, `${pd?.icon ?? ""} ${c.card.name}`), h("span.dim", null, pd?.name)),
+      levelLine(c),
+      c.perkOffer?.length ? h("button.small.primary.perk-btn", { onclick: () => openPerkChoice() }, "⭐ Новый уровень — выберите умение") : null,
       c.status !== "ok" ? h("div.bad", null, c.status === "down" ? `Без сознания! ${c.downT} с` : c.status === "breakdown" ? "Нервный срыв!" : c.status === "dead" ? "Погиб" : "") : null,
       ...(["health", "food", "water", "energy", "sanity"] as const).map((k) =>
         h("div.need", null, h("span", null, NEED_NAMES[k]), bar(c.needs[k]), h("span", { style: { color: needColor(c.needs[k]) } }, c.needs[k])),
@@ -182,3 +184,59 @@ function goalShort(g: string) {
   return GOALS[g]?.desc ?? g;
 }
 
+
+/** Level, experience to the next level and learned perks. */
+function levelLine(c: any) {
+  const lv = c.level ?? 1;
+  const xp = c.xp ?? 0;
+  const from = xpForLevel(lv),
+    to = xpForLevel(lv + 1);
+  const pct = Math.max(0, Math.min(100, ((xp - from) / Math.max(1, to - from)) * 100));
+  return h(
+    "div.level-line",
+    { title: `Опыт ${Math.floor(xp)} / ${to}. Опыт дают работа, обыск на вылазках, бои и возвращение домой.` },
+    h("b", null, `Ур. ${lv}`),
+    bar(pct, "#eac98a"),
+    h("span.perk-icons", null, ...(c.perks ?? []).map((p: string) => h("span", { title: `${PERKS[p]?.name}: ${PERKS[p]?.desc}` }, PERKS[p]?.icon ?? "★"))),
+  );
+}
+
+let perkShownFor = "";
+/** Three perk cards to choose from after a level-up. */
+export function openPerkChoice() {
+  const c = net.myChar();
+  if (!c?.perkOffer?.length) return;
+  perkShownFor = `${c.id}:${c.level}:${c.perkOffer.join()}`;
+  const body = h(
+    "div.perk-choice",
+    null,
+    h("p.dim", null, `${c.card.name.split(" ")[0]} достиг(ла) уровня ${c.level}. Выберите одно умение — оно останется навсегда.`),
+    h(
+      "div.perk-cards",
+      null,
+      ...c.perkOffer.map((id: string) =>
+        h(
+          "button.perk-card",
+          {
+            onclick: () => {
+              net.send({ k: "perkPick", perk: id });
+              closeModal();
+            },
+          },
+          h("span.perk-icon", null, PERKS[id]?.icon ?? "★"),
+          h("b", null, PERKS[id]?.name ?? id),
+          h("span", null, PERKS[id]?.desc ?? ""),
+        ),
+      ),
+    ),
+  );
+  modal("⭐ Новое умение", body, { cls: "perk-modal" });
+}
+
+/** Offer the choice once per level-up, when nothing else is on screen. */
+export function maybeOpenPerkChoice() {
+  const c = net.myChar();
+  if (!c?.perkOffer?.length || isModalOpen() || document.body.classList.contains("mode-combat")) return;
+  const k = `${c.id}:${c.level}:${c.perkOffer.join()}`;
+  if (k !== perkShownFor) openPerkChoice();
+}

@@ -25,6 +25,8 @@ export function skillLevel(c: Char, s: keyof Char["skills"]) {
 
 export function addXp(c: Char, s: keyof Char["skills"], xp: number) {
   c.skills[s] = (c.skills[s] ?? 0) + xp;
+  // skill practice also counts toward the character's level
+  c.xp = (c.xp ?? 0) + xp * 0.5;
 }
 
 export function alive(c: Char) {
@@ -56,8 +58,9 @@ export function firstName(c: Char) {
   return c.card.name.split(" ")[0];
 }
 
+/** Card traits and learned perks share one namespace. */
 export function hasTrait(c: Char, t: string) {
-  return c.card.plus === t || c.card.minus === t;
+  return c.card.plus === t || c.card.minus === t || !!c.perks?.includes(t);
 }
 
 export function dist(c: { x: number; lv: number }, x: number, lv: number) {

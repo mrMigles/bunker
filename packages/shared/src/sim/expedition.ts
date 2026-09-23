@@ -16,6 +16,7 @@ import { addNpc, effectHooks } from "./events";
 import { spawnItem } from "./items";
 import { stepMove } from "./move";
 import { decayNeeds, killChar } from "./needs";
+import { grantXp } from "./progress";
 import { onTick } from "./tick";
 import { timeMult } from "./time";
 import { clamp, firstName, fx, hasTrait, hoursPerSec, isBotDriven, log, rng, skillLevel } from "./util";
@@ -450,6 +451,7 @@ export function returnHome(w: World, e: Expedition) {
   const lv = airlock?.lv ?? 0;
   for (const c of e.squad.map((id) => w.chars[id]).filter(Boolean)) {
     if (c.status === "dead") continue;
+    grantXp(c, 25);
     c.status = "ok";
     c.x = x0 + 0.5;
     c.lv = lv;
@@ -999,7 +1001,7 @@ function threatsThink(w: World, e: Expedition, s: Site, squad: Char[], dt: numbe
       if (t.etype === "dog") range += 1.5;
       const inFront = Math.sign(dx) === t.dir || Math.abs(dx) < 1.1;
       if (!inFront || Math.abs(dx) > range || doorBetween(s, c.lv, c.x, t.x)) continue;
-      const rate = ((c as any).__sneak ? 25 : 55) * (lit ? 1 : 0.6) * (1.3 - Math.abs(dx) / range) * (1 - skillLevel(c, "stealth") * 0.04);
+      const rate = (hasTrait(c, "shadow") ? 0.65 : 1) * ((c as any).__sneak ? 25 : 55) * (lit ? 1 : 0.6) * (1.3 - Math.abs(dx) / range) * (1 - skillLevel(c, "stealth") * 0.04);
       t.detect = clamp(t.detect + rate * dt);
       seen = c;
     }
@@ -1326,7 +1328,7 @@ function finishSiteTask(w: World, e: Expedition, s: Site, c: Char, t: SquadTask)
     case "search": {
       if (!cont || cont.searched >= 1) return;
       const dark = siteRoomAt(s, cont.x, cont.lv)?.dark && !e.light[c.id];
-      const rolls = Math.max(1, Math.round(cont.size / 3) + R.int(-1, 1) - (dark ? 1 : 0));
+      const rolls = Math.max(1, Math.round(cont.size / 3) + R.int(-1, 1) - (dark ? 1 : 0) + (hasTrait(c, "scavenger") ? 1 : 0));
       const loot = rollLoot(cont.table, R, rolls);
       for (const g of cont.guaranteed ?? []) loot[g] = (loot[g] ?? 0) + 1;
       cont.searched = 1;
@@ -1335,6 +1337,7 @@ function finishSiteTask(w: World, e: Expedition, s: Site, c: Char, t: SquadTask)
       elog(e, `${firstName(c)} обыскивает «${cont.name}»: ${got.length ? got.join(", ") : "пусто"}${dark ? " (в темноте могли что-то упустить)" : ""}.`);
       if (cont.kind === "weapon_crate") for (const id of e.squad) if (w.chars[id]?.card.goal === "armory") w.flags["_goal_armory_" + id] = 1;
       c.skills.stealth += 1;
+      grantXp(c, 3);
       break;
     }
     case "unlock":

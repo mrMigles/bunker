@@ -7,7 +7,7 @@ import { spawnItem } from "./items";
 import { onTick } from "./tick";
 import { timeMult } from "./time";
 import { nightHooks } from "./time";
-import { clamp, firstName, hoursPerSec, log, rng, homeChars } from "./util";
+import { clamp, hasTrait, firstName, hoursPerSec, log, rng, homeChars } from "./util";
 import { igniteRoom } from "./systems";
 
 // ---------------------------------------------------------------- incident chores (set by day events)
@@ -161,7 +161,7 @@ defAction({
   done: ({ w, c, t }) => {
     const x = w.chars[t.id];
     if (!x) return;
-    const bonus = c.card.prof === "doctor" ? 2 : 1;
+    const bonus = (c.card.prof === "doctor" ? 2 : 1) * (hasTrait(c, "medic") ? 1.5 : 1);
     if (x.needs.rad >= 40 && (w.res.radpills ?? 0) >= 1) {
       w.res.radpills -= 1;
       x.needs.rad = clamp(x.needs.rad - 40 * bonus);
@@ -171,7 +171,7 @@ defAction({
       if (x.injury && rng(w).chance(0.5 * bonus)) x.injury = null;
       x.needs.rad = clamp(x.needs.rad - 10 * bonus);
     }
-    x.needs.health = clamp(x.needs.health + 10);
+    x.needs.health = clamp(x.needs.health + 10 * (hasTrait(c, "medic") ? 1.5 : 1));
     x.rel[c.id] = (x.rel[c.id] ?? 0) + 5;
   },
 });

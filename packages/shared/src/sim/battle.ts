@@ -11,6 +11,7 @@ import { spawnItem } from "./items";
 import { beginDay } from "./lobby";
 import { killChar, knockDown } from "./needs";
 import { onTick } from "./tick";
+import { combatBonuses, grantXp } from "./progress";
 import { clamp, fx, log, rng, skillLevel } from "./util";
 
 export interface BattleMod {
@@ -65,7 +66,8 @@ export function charUnit(w: World, c: Char, col: number, floor: number, taken: R
     armor,
     ability: PROFS[c.card.prof]?.ability,
     color: c.card.color,
-    traits: [c.card.plus, c.card.minus],
+    traits: [c.card.plus, c.card.minus, ...(c.perks ?? [])],
+    ...combatBonuses(c),
     items,
     nvg: (w.res.nvg ?? 0) >= 1,
   };
@@ -222,6 +224,9 @@ function finishBattle(w: World, b: BattleMod) {
       if (u.items.__rad) c.needs.rad = clamp(c.needs.rad + u.items.__rad);
       c.skills.shooting += 4;
       c.skills.melee += 2;
+      // experience: surviving, winning and every foe put down
+      const foes = Object.values(s.units).filter((x) => x.side === "enemy" && (x.dead || x.captured || x.fled)).length;
+      if (!u.dead) grantXp(c, (s.result === "win" ? 15 : 6) + foes * 4);
       if (u.dead) killChar(w, c, "погиб(ла) в бою");
       else if (u.down) {
         if (b.where === "bunker" || b.where === "arena") knockDown(w, c, "ранение в бою");

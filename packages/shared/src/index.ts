@@ -57,5 +57,6 @@ export * from "./sim/prologue";
 export * from "./sim/tech";
 export * from "./sim/ending";
 export * from "./sim/foreman";
+export * from "./sim/progress";
 export * from "./sim/objectives";
 export * from "./sim/debug";

@@ -124,6 +124,12 @@ export interface Char {
   npc: boolean; // joined during game
   pinned?: string; // chore pinned by player
   deathCause?: string;
+  /** progression */
+  xp?: number;
+  level?: number;
+  perks?: string[];
+  perkOffer?: string[];
+  perkPending?: number;
 }
 
 export type TerrainId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;

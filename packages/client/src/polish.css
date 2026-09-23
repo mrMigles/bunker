@@ -88,3 +88,8 @@ body.mode-build .objectives,body.mode-build .hud-feed,body.mode-build .hud-me,bo
    `.layer > *` would otherwise turn the inner layer into an invisible wall over the canvas */
 .layer > .layer{pointer-events:none!important}
 .layer > .layer > *{pointer-events:auto}
+/* progression */
+.level-line{display:flex!important;align-items:center;gap:8px;margin:2px 0 6px;font-size:11px;color:#eac98a}.level-line .bar{flex:1;height:5px}.perk-icons{display:flex;gap:2px;font-size:13px}
+.perk-btn{margin:0 0 6px;animation:perkPulse 1.6s ease-in-out infinite}@keyframes perkPulse{50%{box-shadow:0 0 0 3px #eac98a55}}
+.perk-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}.perk-card{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;padding:14px 10px;border:1px solid #56636a;border-radius:8px;background:#141c23;color:#e2d8c3;cursor:pointer}.perk-card:hover{border-color:#eac98a;background:#1c2630}.perk-card .perk-icon{font-size:28px}.perk-card b{color:#f3e6c8}.perk-card span{font-size:12px;color:#b9b3a3}
+@media(max-width:700px){.perk-cards{grid-template-columns:1fr}}

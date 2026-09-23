@@ -39,6 +39,10 @@ function pubChar(c: Char) {
     run: c.run,
     seq: c.seq,
     legacy: c.legacy,
+    xp: c.xp ?? 0,
+    level: c.level ?? 1,
+    perks: c.perks ?? [],
+    perkOffer: c.perkOffer,
   };
 }
 

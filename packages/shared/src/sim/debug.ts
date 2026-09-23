@@ -73,6 +73,12 @@ export const debugOps: Record<string, (w: World, arg: any, pid: string) => strin
       for (const c of Object.values(w.chars)) if (c.seat === t.obj && !t.seats.includes(c.id)) c.seat = undefined;
     }
   },
+  /** experience for my character (to test levels and perks) */
+  xp: (w, n, pid) => {
+    const c = w.chars[w.players[pid]?.char ?? ""];
+    if (!c) return "Нет персонажа";
+    c.xp = (c.xp ?? 0) + (Number(n) || 100);
+  },
   games: (w) => {
     for (const g of ["cards36", "cards52", "domino", "checkers", "chess", "backgammon", "dice", "lotto", "magnate", "wasteland", "mafia"]) if (!w.games.includes(g)) w.games.push(g);
   },

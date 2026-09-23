@@ -19,6 +19,7 @@ import {
   itemName,
   matchRecipe,
   skillLevel,
+  PERKS,
   type Clipping,
 } from "@bunker/shared";
 import { audio } from "../audio/audio";
@@ -546,6 +547,8 @@ export function openCharacter(id: string) {
         c.sick > 10 ? h("div.bad", null, `Болеет: ${c.sick}%`) : null,
         h("div", null, "➕ ", TRAITS_PLUS[c.card.plus]?.name, h("span.dim", null, " — " + (TRAITS_PLUS[c.card.plus]?.desc ?? ""))),
         h("div", null, "➖ ", TRAITS_MINUS[c.card.minus]?.name, h("span.dim", null, " — " + (TRAITS_MINUS[c.card.minus]?.desc ?? ""))),
+        h("div", null, `⭐ Уровень ${c.level ?? 1}`, h("span.dim", null, ` · опыт ${Math.floor(c.xp ?? 0)}`)),
+        ...(c.perks ?? []).map((p: string) => h("div", null, `${PERKS[p]?.icon ?? "★"} `, PERKS[p]?.name ?? p, h("span.dim", null, " — " + (PERKS[p]?.desc ?? "")))),
         h("div.dim", null, `😨 ${c.card.phobia} · 🧳 ${c.card.baggage} · 🎂 день ${c.card.birthday}`),
         isMe && net.priv?.goal ? h("div.warn", null, "🔒 ", GOALS[net.priv.goal]?.name, ": ", GOALS[net.priv.goal]?.desc) : null,
         free ? h("button.primary", { onclick: () => (net.send({ k: "take", char: id }), closeModal()) }, "🎮 Играть за этого жильца") : null,

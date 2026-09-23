@@ -6,6 +6,7 @@ import { CLIENT_SCREENS } from "./prompt";
 import { DayVoteUI, InstrumentUI, RadioUI } from "./radio";
 import { TableUI } from "./tableui";
 import { ObjectivesUI } from "./objectives";
+import { maybeOpenPerkChoice } from "./hud";
 import { CombatUI } from "./combat";
 import { openDebug } from "./debug";
 import { ExpeditionUI } from "./expedition";
@@ -150,6 +151,7 @@ export function installExtras(game: GameUI) {
     pro.update();
     ending.update();
     objectives.update();
+    maybeOpenPerkChoice();
   });
 
   // click a character to inspect

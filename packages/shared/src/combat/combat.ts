@@ -874,7 +874,7 @@ function execAction(s: CombatState, u: Unit, a: Action): boolean {
       else if ((u.items.meds ?? 0) > 0) u.items.meds--;
       else return false;
       u.ap -= 2;
-      const amt = 5 + u.skills.medicine * 2;
+      const amt = Math.round((5 + u.skills.medicine * 2) * (u.traits.includes("medic") ? 1.5 : 1));
       tgt.hp = Math.min(tgt.maxHp, Math.max(tgt.hp, 0) + amt);
       if (tgt.down) {
         tgt.down = false;
