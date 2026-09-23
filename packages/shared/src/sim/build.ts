@@ -302,7 +302,7 @@ export function collapseRisk(w: World, r: RoomInst): number {
     right = n.x + n.w;
   }
   const span = right - left;
-  const limit = BAL.collapseSpan + (supported ? 6 : 0) + (r.lv === 0 ? 8 : 0);
+  const limit = BAL.collapseSpan + (supported ? 6 : 0) + (r.lv === 0 ? 8 : 0) + (w.tech.includes("tech_supports") ? 4 : 0);
   if (span <= limit) return 0;
   return Math.min(1, (span - limit) / 8);
 }

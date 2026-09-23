@@ -9,6 +9,7 @@ import { CombatUI } from "./combat";
 import { openDebug } from "./debug";
 import { ExpeditionUI } from "./expedition";
 import { PrologueUI } from "./prologue";
+import { EndingUI, openCraftItem, openResearch } from "./tech";
 import { openBoard, openBooks, openCanvas, openCharacter, openClipping, openCook, openCraft, openPeriscope, openSettings } from "./screens";
 
 /** Hooks the 5b screens (radio, instruments, board, papers…) into the game UI. */
@@ -26,6 +27,9 @@ export function installExtras(game: GameUI) {
   const instr = new InstrumentUI();
   const dayVote = new DayVoteUI();
 
+  const ending = new EndingUI();
+  CLIENT_SCREENS.research = (a) => (openResearch(a), true);
+  CLIENT_SCREENS.craft_item = (a) => (openCraftItem(a), true);
   CLIENT_SCREENS.cook = (a) => (openCook(a), true);
   CLIENT_SCREENS.craft = (a) => (openCraft(a), true);
   CLIENT_SCREENS.board = () => (openBoard(), true);
@@ -108,6 +112,7 @@ export function installExtras(game: GameUI) {
     combat.update();
     exp.update();
     pro.update();
+    ending.update();
   });
 
   // click a character to inspect

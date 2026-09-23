@@ -39,5 +39,6 @@
   "compost":           { "name": "Отнести объедки в компост",     "icon": "♻️", "dur": 6,  "skill": "cooking",  "obj": "compost", "desc": "Замкнутый цикл — повод для гордости." },
   "pedal":             { "name": "Покрутить генератор",           "icon": "🚲", "dur": 0,  "skill": "digging",  "obj": "bike_gen", "desc": "Энергии мало." },
   "pump_water":        { "name": "Накачать воды",                 "icon": "⛲", "dur": 10, "skill": "digging",  "obj": "hand_pump", "desc": "Грязная вода для водоочистки." },
-  "feed_pet":          { "name": "Покормить питомца",             "icon": "🐾", "dur": 5,  "skill": "cooking",  "desc": "Питомец голоден." }
+  "feed_pet":          { "name": "Покормить питомца",             "icon": "🐾", "dur": 5,  "skill": "cooking",  "desc": "Питомец голоден." },
+  "research":          { "name": "Продолжить исследование",       "icon": "🔬", "dur": 0,  "skill": "radio",    "obj": "workbench", "desc": "Технология ждёт." }
 }

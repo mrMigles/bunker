@@ -47,7 +47,7 @@ export function stepHydro(w: World, hours: number) {
       if (!cd) continue;
       const room = o.room ? w.rooms[o.room] : undefined;
       // consumption
-      const dripSave = room && room.level >= 2 ? 0.7 : 1;
+      const dripSave = (room && room.level >= 2 ? 0.7 : 1) * (w.tech.includes("tech_hydro3") ? 0.5 : 1);
       s.water = clamp(s.water - 28 * cd.water * days * dripSave);
       const tank = tankFor(w, o);
       const needN = 22 * cd.nutr * days;
@@ -107,7 +107,7 @@ export function stepHydro(w: World, hours: number) {
       if (!s.planted) continue;
       if (s.compost > 0 && !s.ready) {
         s.compost = Math.max(0, s.compost - 0.4 * days);
-        s.growth = Math.min(1, (s.growth ?? 0) + days / 2.5);
+        s.growth = Math.min(1, (s.growth ?? 0) + (days / 2.5) * (w.tech.includes("tech_mushroom2") ? 2 : 1));
         if (s.growth >= 1) s.ready = 1;
       }
     } else if (o.kind === "rabbit_hutch") {
@@ -278,9 +278,10 @@ defAction({
     const cd = CROPS[o!.st.crop];
     if (!cd) return;
     const R = rng(w);
-    const q = (o!.st.health / 100) * (cd.prune && (o!.st.pruned ?? 1) < 0.3 ? 0.6 : 1) * (1 + (skillLevel(c, "cooking") - 1) * 0.04);
+    const techMul = (w.tech.includes("tech_hydro2") ? 1.2 : 1) * (w.tech.includes("tech_hydro3") ? 1.25 : 1);
+    const q = (o!.st.health / 100) * (cd.prune && (o!.st.pruned ?? 1) < 0.3 ? 0.6 : 1) * (1 + (skillLevel(c, "cooking") - 1) * 0.04) * techMul;
     const n = Math.max(1, Math.round(R.int(cd.yield[0], cd.yield[1]) * q));
-    const seeds = R.int(cd.seeds[0], cd.seeds[1]);
+    const seeds = Math.max(w.tech.includes("tech_seedbank") ? 1 : 0, R.int(cd.seeds[0], cd.seeds[1]));
     spawnItem(w, cd.item, n, o!.x + 0.3, o!.lv);
     if (seeds > 0) spawnItem(w, seedItem(o!.st.crop), seeds, o!.x + 0.7, o!.lv);
     w.stats.harvest[cd.item] = (w.stats.harvest[cd.item] ?? 0) + n;

@@ -54,6 +54,9 @@ export interface Expedition {
 
 // ---------------------------------------------------------------- helpers
 
+/** Arrival hooks (story locations). Return true to take over. */
+export const arriveHooks: ((w: World, e: Expedition, n: MapNode) => boolean)[] = [];
+
 export function wmap(w: World): WasteMap {
   return (w.mods.wmap ??= generateMap(w.seed));
 }
@@ -260,6 +263,7 @@ function arrive(w: World, e: Expedition) {
     return;
   }
   elog(e, `Прибыли: ${n.name}.`);
+  for (const h of arriveHooks) if (h(w, e, n)) return;
   if ((n.type === "trader" || n.type === "camp") && !w.mods.stock?.[n.id]) (w.mods.stock ??= {})[n.id] = traderStock(w, n.id);
   if (e.route.length) {
     startLeg(w, e);
@@ -437,11 +441,11 @@ function roadField(seed: number): Field {
   return { cols, floors: 1, walk: new Array(cols).fill(true), ladders: [], covers, doors: [], exits: [{ col: 0, floor: 0 }], loot: [], originX: 0, originLv: 0 };
 }
 
-function roadFight(w: World, e: Expedition, enemies: string[]) {
+export function roadFight(w: World, e: Expedition, enemies: string[], onEnd = "expedition", tag = "road") {
   const taken: Record<string, number> = {};
   const allies: UnitInit[] = squadChars(w, e).map((c, i) => squadUnit(w, e, c, 1 + i, 0, taken));
   const foes: UnitInit[] = enemies.map((t, i) => ({ id: "e" + i, side: "enemy", name: "", col: 12 - (i % 3), floor: 0, etype: t }));
-  startBattle(w, roadField((rng(w).next() * 1e9) | 0), allies, foes, "expedition", { coordination: e.coord, onEnd: "expedition", tag: "road" });
+  startBattle(w, roadField((rng(w).next() * 1e9) | 0), allies, foes, "expedition", { coordination: e.coord, onEnd, tag });
   e.coord = 0;
 }
 

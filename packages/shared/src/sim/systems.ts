@@ -112,7 +112,8 @@ export function generation(w: World): number {
 }
 
 export function batteryCap(w: World) {
-  return BAL.batteryCap + Math.max(0, objsOfKind(w, "battery").filter((b) => !b.broken).length - 1) * BAL.batteryCapPerBank;
+  const perBank = BAL.batteryCapPerBank * (w.tech.includes("tech_battery2") ? 1.5 : 1);
+  return BAL.batteryCap * (w.tech.includes("tech_battery2") ? 1.5 : 1) + Math.max(0, objsOfKind(w, "battery").filter((b) => !b.broken).length - 1) * perBank;
 }
 
 /** Advances the power grid by `hours`. Returns the set of groups that are powered. */
@@ -199,15 +200,15 @@ export function stepMachines(w: World, hours: number, realDt: number) {
     switch (o.kind) {
       case "air_filter":
         if (running) {
-          o.st.dirt = clamp((o.st.dirt ?? 0) + 3.5 * hours);
+          o.st.dirt = clamp((o.st.dirt ?? 0) + 3.5 * hours * (w.tech.includes("tech_filters2") ? 0.6 : 1));
           filterOk = true;
           filterEff = Math.max(filterEff, 1 - (o.st.dirt ?? 0) / 130);
         }
         break;
       case "water_filter":
         if (running) {
-          o.st.dirt = clamp((o.st.dirt ?? 0) + 4 * hours);
-          const eff = 1 - (o.st.dirt ?? 0) / 120;
+          o.st.dirt = clamp((o.st.dirt ?? 0) + 4 * hours * (w.tech.includes("tech_filters2") ? 0.6 : 1));
+          const eff = (1 - (o.st.dirt ?? 0) / 120) * (w.tech.includes("tech_water2") ? 1.5 : 1);
           const amount = Math.min(w.res.water_dirty ?? 0, BAL.waterFilterPerHour * eff * hours);
           w.res.water_dirty = (w.res.water_dirty ?? 0) - amount;
           w.res.water = (w.res.water ?? 0) + amount;

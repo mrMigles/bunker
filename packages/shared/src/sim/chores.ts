@@ -51,6 +51,7 @@ export const CHORE_ACTION: Record<string, string> = {
   fix_leak: "fix_leak",
   fix_wiring: "fix_wiring",
   replace_bulb: "replace_bulb",
+  research: "research",
 };
 
 type Want = Omit<Chore, "id" | "created" | "by">;
