@@ -35,7 +35,12 @@ export class MouseNavigation {
       this.cancel(); this.queued = { x, lv, arrival }; return;
     }
     const path = findPath(w, p.x, p.lv, x, lv);
-    if (!path) { this.cancel(); toast("Нет прохода. Выберите открытый пол или лестницу."); return; }
+    if (!path) {
+      this.cancel();
+      const locked = net.myChar()?.status === "away" && (net.pub!.mods.expedition?.site?.doors ?? []).some((d: any) => d.state === "locked");
+      toast(locked ? "🔒 Путь закрыт запертой дверью — вскройте её: отмычка, лом или выбить (E у двери)." : "Нет прохода. Выберите открытый пол или лестницу.");
+      return;
+    }
     this.target = { x, lv, phase: net.pub!.phase, site: String(net.pub!.mods.expedition?.site?.id ?? "") };
     this.route = path;
     this.arrival = arrival;
