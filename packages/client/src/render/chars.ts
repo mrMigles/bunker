@@ -5,6 +5,8 @@ import { buildLoot } from "./loot";
 import { SceneryBatch } from "./scenery";
 
 const SKIN = [0xe0b48f, 0xc99873, 0xa8764f, 0xf0c9a5, 0x8d5e3c];
+export const HAIR = [0x514535, 0x231c17, 0x8a5a2b, 0xc9a86a, 0x9a9a92, 0x7a2e1e];
+export const HATS = ["Кепка в цвет куртки", "Каска инженера", "Шапочка врача", "Армейская каска", "Поварской колпак", "Очки химика", "Кепка электрика", "Берет и очки", "Шахтёрская каска с фонарём", "Наушники радиста", "Соломенная шляпа", "Скуфья", "Фетровая шляпа", "Без головного убора"];
 
 export class CharView {
   root = new THREE.Group();
@@ -31,11 +33,19 @@ export class CharView {
   private carryKey = "";
   private selRing: THREE.Mesh;
 
+  /** A resident as their card describes them (skin and hair from the editor, or a stable pick by id). */
+  static of(id: string, card: { color: number; hat: number; skin?: number; hair?: number }) {
+    let hsh = 0;
+    for (let i = 0; i < id.length; i++) hsh = (hsh * 31 + id.charCodeAt(i)) >>> 0;
+    return new CharView(id, card.color, card.hat, card.skin ?? hsh % SKIN.length, card.hair ?? (hsh >> 3) % 3);
+  }
+
   constructor(
     public id: string,
     color: number,
     hat: number,
     skinIdx: number,
+    hairIdx = 0,
   ) {
     const skin = SKIN[skinIdx % SKIN.length];
     const pants = new THREE.Color(color).multiplyScalar(0.45).getHex();
@@ -84,7 +94,8 @@ export class CharView {
     face.box(0.08, 0.019, 0.022, 0x8e654e, 0.005, -0.092, 0.155);
     face.box(0.035, 0.09, 0.13, skin, -0.173, -0.055, -0.01);
     face.box(0.035, 0.09, 0.13, skin, 0.173, -0.055, -0.01);
-    face.box(0.33, 0.1, 0.09, 0x514535, 0, 0.06, -0.126);
+    face.box(0.33, 0.1, 0.09, HAIR[hairIdx % HAIR.length], 0, 0.06, -0.126);
+    if (hat === 13) face.box(0.33, 0.06, 0.3, HAIR[hairIdx % HAIR.length], 0, 0.14, -0.01); // bare head: hair on top
     face.finish(this.head);
     addHat(this.head, hat, color);
     this.body.add(this.legL, this.legR, this.torso, this.armL, this.armR, this.head);
@@ -565,6 +576,8 @@ function addHat(head: THREE.Group, hat: number, color: number) {
     case 12: // fedora
       head.add(cyl(0.28, 0.02, 0x3a2f28, 0, top, 0, 12));
       head.add(cyl(0.17, 0.14, 0x3a2f28, 0, top + 0.01, 0, 10, 0.18));
+      break;
+    case 13: // bareheaded
       break;
     default:
       head.add(box(0.33, 0.06, 0.31, color, 0, top, 0));

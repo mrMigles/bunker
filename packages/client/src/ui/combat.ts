@@ -302,7 +302,7 @@ export class CombatUI {
             // the world renderer already draws residents; use an invisible anchor
             obj = new THREE.Group();
           } else {
-            cv = new CharView(u.id, c?.card.color ?? 0x888888, c?.card.hat ?? 0, 1);
+            cv = CharView.of(u.char ?? u.id, c?.card ?? { color: 0x888888, hat: 0 });
             obj = cv.root;
           }
         } else obj = buildEnemy(u.etype ?? "marauder", ENEMIES[u.etype ?? ""]?.color ?? 0x666666);

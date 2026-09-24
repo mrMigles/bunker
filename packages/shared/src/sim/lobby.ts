@@ -1,4 +1,5 @@
-import { COLORS } from "../data/characters";
+import { BAGGAGE, COLORS, GOALS, PHOBIAS, PROFS, TRAITS_MINUS, TRAITS_PLUS } from "../data/characters";
+import type { Card } from "../types";
 import { Rng } from "../rng";
 import type { Player, World } from "../types";
 import { createChar, makeCard } from "../world/create";
@@ -168,4 +169,48 @@ export function beginDay(w: World) {
   w.hour = 6;
   log(w, `День ${w.day}. Утро под землёй.`, "system");
   fx(w, { k: "toast", text: `День ${w.day}` });
+}
+
+/** Stat points a custom character may spread (each stat 1..5). */
+export const CUSTOM_STAT_POINTS = 15;
+export const HAT_COUNT = 14;
+export const HAIR_COUNT = 6;
+
+/** Checks a card from the editor; returns the clean card or an error text. */
+export function validateCustomCard(raw: any, goal: string): Card | string {
+  if (!raw || typeof raw !== "object") return "Пустая карточка";
+  const name = sanitizeName(String(raw.name ?? "")).slice(0, 24);
+  if (name.length < 2) return "Нужно имя";
+  const prof = String(raw.prof);
+  if (!PROFS[prof] || PROFS[prof].npcOnly) return "Нет такой профессии";
+  const stats: any = {};
+  let sum = 0;
+  for (const k of ["sil", "lov", "int", "vyn", "har"]) {
+    const v = Math.round(Number(raw.stats?.[k]));
+    if (!(v >= 1 && v <= 5)) return "Характеристики — от 1 до 5";
+    stats[k] = v;
+    sum += v;
+  }
+  if (sum > CUSTOM_STAT_POINTS) return `Очков характеристик не больше ${CUSTOM_STAT_POINTS}`;
+  if (!TRAITS_PLUS[raw.plus] || !TRAITS_MINUS[raw.minus]) return "Выберите черты";
+  const pick = <T>(v: any, list: T[], d: T) => (list.includes(v) ? v : d);
+  const goals = Object.keys(GOALS).filter((g) => !GOALS[g].hostile && g !== "saboteur");
+  return {
+    name,
+    prof,
+    plus: raw.plus,
+    minus: raw.minus,
+    goal: GOALS[goal] ? goal : goals[0],
+    stats,
+    color: pick(Number(raw.color), COLORS, COLORS[0]),
+    hat: Math.max(0, Math.min(HAT_COUNT - 1, Math.round(Number(raw.hat) || 0))),
+    gender: raw.gender === 1 ? 1 : 0,
+    age: Math.max(18, Math.min(80, Math.round(Number(raw.age) || 30))),
+    phobia: pick(String(raw.phobia), PHOBIAS, PHOBIAS[0]),
+    baggage: pick(String(raw.baggage), BAGGAGE, BAGGAGE[0]),
+    birthday: Math.max(3, Math.min(38, Math.round(Number(raw.birthday) || 10))),
+    skin: Math.max(0, Math.min(4, Math.round(Number(raw.skin) || 0))),
+    hair: Math.max(0, Math.min(HAIR_COUNT - 1, Math.round(Number(raw.hair) || 0))),
+    custom: true,
+  };
 }

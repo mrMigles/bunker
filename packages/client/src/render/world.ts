@@ -241,7 +241,7 @@ export class WorldRenderer {
       cseen.add(id);
       let cv = this.chars.get(id);
       if (!cv) {
-        cv = new CharView(id, c.card.color, c.card.hat, Math.floor(vhash(id.length, id.charCodeAt(1)) * 5));
+        cv = CharView.of(id, c.card);
         cv.x = c.x;
         cv.y = c.y;
         if (c.card.age < 14) cv.root.scale.setScalar(0.7);

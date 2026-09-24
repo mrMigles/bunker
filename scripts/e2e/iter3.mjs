@@ -55,7 +55,7 @@ try {
   step("start: me + at most 3 residents", chars <= 4, { chars });
 
   // ------------------------------------------------ storage shows weapons
-  await page.getByRole("button", { name: /Инвентарь/ }).click();
+  await page.getByRole("button", { name: /Убежище/ }).click();
   await wait(400);
   const store = await page.locator(".store-grid").innerText();
   step("storage tab lists weapons and board games", /Оружие/.test(store) && /Нож|Труба/.test(store) && /Настольные/.test(store));

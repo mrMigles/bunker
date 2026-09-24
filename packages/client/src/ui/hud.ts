@@ -52,9 +52,30 @@ export class Hud {
     else if (f.k === "flash") this.r.flash = 1;
   }
 
+  private helpKey = "";
+
+  /** The key hints under the screen follow what you are doing. */
+  private updateHelp(v: any) {
+    const b = document.body.classList;
+    const mode = v.phase === "prologue" ? "prologue" : b.contains("mode-site") ? "site" : b.contains("mode-combat") ? "combat" : b.contains("mode-build") ? "build" : "bunker";
+    if (mode === this.helpKey) return;
+    this.helpKey = mode;
+    const k = (key: string, what: string) => `<b>${key}</b> ${what}`;
+    const sep = " <span>·</span> ";
+    const HELP: Record<string, string[]> = {
+      prologue: [k("Мышь / A D", "идти"), k("E", "взять"), k("↑↓", "выбор"), k("Пробел", "к люку"), k("Q", "бросить соседу")],
+      bunker: [k("Мышь / WASD", "идти"), k("E", "действие"), k("↑↓", "выбор"), k("Shift", "бег"), k("I", "персонаж"), k("Tab", "убежище"), k("B", "стройка")],
+      site: [k("A D / W S", "идти"), k("E", "действие · держать — быстро"), k("↑↓", "выбор"), k("L", "фонарь"), k("G", "камень"), k("I", "рюкзак")],
+      build: [k("Клик", "разметить"), k("[ ]", "ширина"), k("Esc / B", "выйти")],
+      combat: [k("Клик", "идти / атаковать"), k("Enter", "конец хода"), k("Esc", "отмена")],
+    };
+    this.help.innerHTML = HELP[mode].join(sep);
+  }
+
   update() {
     const v = net.pub;
     if (!v) return;
+    this.updateHelp(v);
     document.body.dataset.phase = v.phase;
     document.body.dataset.activity = v.mods.combat?.active ? "combat" : net.myChar()?.status === "away" ? "expedition" : "bunker";
     this.renderTop(v);

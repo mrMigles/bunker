@@ -281,7 +281,7 @@ export function openBoard(tab: "store" | "chores" | "gazette" | "recipes" = "sto
     }
     body.appendChild(h("div.dim", { style: { marginTop: "6px" } }, `Неизвестно: ${Object.keys(RECIPES).length - (v.recipes as string[]).length} рецептов.`));
   }
-  modal(tab === "store" ? "Склад бункера" : "Доска в Столовой", body, { wide: true });
+  modal("Убежище", body, { wide: true });
 }
 
 function targetName(v: any, ch: any): string | null {
@@ -635,6 +635,7 @@ export function openSettings(r: { shadows: boolean }) {
       h("label.row", null, speech, "Озвучивать радио голосом (Web Speech)"),
       h("label.row", null, shadows, "Тени от ламп"),
       h("label.row", null, fx, "Постэффекты (виньетка, аберрация)"),
+      h("button.small", { onclick: () => ((window as any).__tips?.reset(), closeModal()) }, "↺ Показать подсказки заново"),
     ),
   );
 }

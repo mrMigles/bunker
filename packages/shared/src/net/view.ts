@@ -43,6 +43,7 @@ function pubChar(c: Char) {
     level: c.level ?? 1,
     perks: c.perks ?? [],
     perkOffer: c.perkOffer,
+    equip: c.equip ?? {},
   };
 }
 

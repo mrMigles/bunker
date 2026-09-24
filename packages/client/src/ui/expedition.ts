@@ -1105,11 +1105,12 @@ export class ExpeditionUI {
     for (const id of e.squad) {
       const c = v.chars[id];
       if (!c || c.status === "dead") continue;
-      const weapon = ["rifle", "shotgun", "pistol", "pipe", "knife"].find((k) => pool[k] >= 1);
-      if (weapon) pool[weapon]--;
+      // their own weapon first, then the best one left in the packs
+      const weapon = c.equip?.weapon ?? ["rifle", "shotgun", "pistol", "pipe", "knife"].find((k) => pool[k] >= 1);
+      if (weapon && !c.equip?.weapon) pool[weapon]--;
       let cv = this.chars.get(id);
       if (!cv) {
-        cv = new CharView(id, c.card.color, c.card.hat, 1);
+        cv = CharView.of(id, c.card);
         this.chars.set(id, cv);
       }
       const mine = id === net.priv?.char && net.pred;

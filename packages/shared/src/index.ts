@@ -62,5 +62,6 @@ export * from "./sim/intercom";
 export * from "./sim/talk";
 export * from "./sim/minigames";
 export * from "./sim/ambience";
+export * from "./sim/gear";
 export * from "./sim/objectives";
 export * from "./sim/debug";

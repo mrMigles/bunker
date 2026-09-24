@@ -1,0 +1,82 @@
+{
+  "steps": [
+    {
+      "name": "Вера Броня",
+      "ok": true,
+      "pick": 3,
+      "skin": 4
+    },
+    {
+      "name": "a tutorial card explains the prologue",
+      "ok": true,
+      "tip": "☢\nПоследняя минута\nподсказка 1 из 20\n\nСейчас по городу ударя"
+    },
+    {
+      "name": "I play the custom character",
+      "ok": true,
+      "me": "Вера Броня"
+    },
+    {
+      "name": "prologue menu has the E / ↑↓ key chips like in the bunker",
+      "ok": true,
+      "keys": [
+        "E"
+      ],
+      "heading": "E действие",
+      "help": "Мышь / A D идти · E взять · ↑↓ выбор · Пробел к люку · Q бросить соседу"
+    },
+    {
+      "name": "E picks up the highlighted thing",
+      "ok": true,
+      "hands0": 0,
+      "hands1": 1
+    },
+    {
+      "name": "the first day starts with a welcome card",
+      "ok": true,
+      "tip": "🏠\nДобро пожаловать в убежище\nподсказка 2 из 20\n\nХ"
+    },
+    {
+      "name": "dock: «Персонаж» and «Убежище» instead of «Инвентарь»",
+      "ok": true,
+      "dock": [
+        "Персонаж",
+        "Убежище",
+        "Строить",
+        "Вылазка",
+        "Наблюдать",
+        "Чат"
+      ]
+    },
+    {
+      "name": "«Персонаж»: me and companions with gear slots",
+      "ok": true,
+      "cards": 4,
+      "slots": 12
+    },
+    {
+      "name": "equip a weapon from the storage",
+      "ok": true,
+      "eq": {
+        "weapon": "knife"
+      }
+    },
+    {
+      "name": "«Прокачка» tab lists skills with progress",
+      "ok": true,
+      "skills": 8
+    },
+    {
+      "name": "Tab opens «Убежище»",
+      "ok": true,
+      "title": "Убежище"
+    },
+    {
+      "name": "no page errors",
+      "ok": true,
+      "errors": []
+    }
+  ],
+  "errors": [],
+  "ok": true
+}

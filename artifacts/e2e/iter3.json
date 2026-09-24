@@ -25,14 +25,14 @@
     },
     {
       "name": "hand strokes fill the bucket (task done by the minigame)",
-      "ok": false,
+      "ok": true,
       "dirty0": 0,
-      "dirty1": 0
+      "dirty1": 1.7
     },
     {
       "name": "talking to a resident shows today's story",
       "ok": true,
-      "story": "«Если будете наверху — поищите самокрутки. Мне очень нужно.»"
+      "story": "«Знаешь, сегодня хороший день. Не знаю почему. Просто хороший.»"
     },
     {
       "name": "the intercom rings and opens a dialog with the visitor",
@@ -60,10 +60,10 @@
       "name": "companions stand apart",
       "ok": true,
       "xs": [
-        6.34,
-        6.92
+        6.26,
+        6.74
       ],
-      "minGap": 0.5800000000000001,
+      "minGap": 0.4800000000000004,
       "bubbles": 0
     },
     {
@@ -77,5 +77,5 @@
     }
   ],
   "errors": [],
-  "ok": false
+  "ok": true
 }

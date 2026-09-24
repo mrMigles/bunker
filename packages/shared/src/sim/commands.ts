@@ -1,6 +1,8 @@
+import { Rng } from "../rng";
+import { GOALS } from "../data/characters";
 import type { Cmd, InputMsg } from "../net/protocol";
 import type { Player, World } from "../types";
-import { addPlayer, offerCards, sanitizeName, startGame, takeChar } from "./lobby";
+import { addPlayer, offerCards, sanitizeName, startGame, takeChar, validateCustomCard } from "./lobby";
 import { stepMove } from "./move";
 import { fx } from "./util";
 
@@ -67,6 +69,17 @@ registerCmd("pick", (w, p, c) => {
   if (w.phase !== "lobby" || !p.cards) return;
   const i = Number(c.i);
   if (i >= 0 && i < p.cards.length) p.pick = i;
+});
+
+/** A card made or edited in the character editor: validated, then offered as the 4th card and picked. */
+registerCmd("customCard", (w, p, c) => {
+  if (w.phase !== "lobby" || !p.cards) return "Только в лобби";
+  // the secret goal stays secret: an edited card keeps its own, a new one draws a random one
+  const goals = Object.keys(GOALS).filter((g) => !GOALS[g].hostile && g !== "saboteur");
+  const card = validateCustomCard(c.card, c.card?.goal && p.cards.some((x) => x.goal === c.card.goal) ? c.card.goal : new Rng(w.rng).pick(goals));
+  if (typeof card === "string") return card;
+  p.cards = [...p.cards.slice(0, 3), card];
+  p.pick = 3;
 });
 
 registerCmd("reroll", (w, p) => {

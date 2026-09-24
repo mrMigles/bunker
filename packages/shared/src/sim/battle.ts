@@ -39,15 +39,16 @@ const WEAPON_PREF = ["rifle", "shotgun", "pistol", "knife", "pipe"];
 
 /** Builds a combat unit from a resident; takes the best weapon from storage (shared arsenal). */
 export function charUnit(w: World, c: Char, col: number, floor: number, taken: Record<string, number>): UnitInit {
-  let weapon = "fists";
-  for (const wp of WEAPON_PREF) {
+  let weapon = c.equip?.weapon ?? "fists";
+  // their own weapon first; otherwise the best one still left in the storage
+  for (const wp of c.equip?.weapon ? [] : WEAPON_PREF) {
     if ((w.res[wp] ?? 0) - (taken[wp] ?? 0) >= 1) {
       weapon = wp;
       taken[wp] = (taken[wp] ?? 0) + 1;
       break;
     }
   }
-  const armor = (w.res.armor ?? 0) - (taken.armor ?? 0) >= 1 ? ((taken.armor = (taken.armor ?? 0) + 1), 2) : 0;
+  const armor = c.equip?.armor ? 2 : (w.res.armor ?? 0) - (taken.armor ?? 0) >= 1 ? ((taken.armor = (taken.armor ?? 0) + 1), 2) : 0;
   const items: Record<string, number> = {};
   if ((w.res.medkit ?? 0) - (taken.medkit ?? 0) >= 1) ((items.medkit = 1), (taken.medkit = (taken.medkit ?? 0) + 1));
   else if ((w.res.meds ?? 0) - (taken.meds ?? 0) >= 1) ((items.meds = 1), (taken.meds = (taken.meds ?? 0) + 1));
@@ -70,7 +71,7 @@ export function charUnit(w: World, c: Char, col: number, floor: number, taken: R
     traits: [c.card.plus, c.card.minus, ...(c.perks ?? [])],
     ...combatBonuses(c),
     items,
-    nvg: (w.res.nvg ?? 0) >= 1,
+    nvg: (w.res.nvg ?? 0) >= 1 || c.equip?.tool === "nvg",
   };
 }
 

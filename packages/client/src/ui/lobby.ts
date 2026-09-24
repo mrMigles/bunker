@@ -1,6 +1,7 @@
 import { GOALS, PROFS, STAT_NAMES, TRAITS_MINUS, TRAITS_PLUS, type Card } from "@bunker/shared";
 import { net } from "../net";
 import { clear, h, toast, ui } from "./dom";
+import { openCharEditor } from "./charedit";
 
 export class LobbyUI {
   root = h("div.lobby");
@@ -73,6 +74,8 @@ export class LobbyUI {
         "div.row",
         null,
         h("button", { onclick: () => net.send({ k: "reroll" }) }, "🎲 Другие карточки"),
+        h("button", { onclick: () => openCharEditor() }, "✏ Создать своего"),
+        me.pick !== undefined && cards?.[me.pick] ? h("button", { onclick: () => openCharEditor(cards[me.pick as number]) }, "🎨 Изменить выбранного") : null,
         h("div.grow"),
         h(
           "button" + (mine?.ready ? ".good" : ""),
@@ -120,6 +123,7 @@ export function cardEl(c: Card, selected: boolean, onclick?: () => void) {
     "div.card" + (selected ? ".sel" : ""),
     { onclick },
     h("div.stamp", null, pd?.icon ?? ""),
+    c.custom ? h("div.card-custom", null, "свой") : null,
     h("h3", null, c.name),
     h("div.prof", null, pd?.name ?? c.prof, h("span", { style: { fontWeight: "normal", color: "#555" } }, `, ${c.age} лет`)),
     h("div.line", { style: { fontSize: "12px", color: "#555" } }, pd?.desc),

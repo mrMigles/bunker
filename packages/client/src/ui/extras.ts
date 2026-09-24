@@ -5,7 +5,9 @@ import { GameUI } from "./game";
 import { CLIENT_SCREENS } from "./prompt";
 import { openIntercom } from "./intercom";
 import { openTalk } from "./talk";
+import { openCharacterScreen } from "./character";
 import { MinigameUI } from "./minigame";
+import { TipsUI } from "./tips";
 import { DayVoteUI, InstrumentUI, RadioUI } from "./radio";
 import { TableUI } from "./tableui";
 import { ObjectivesUI } from "./objectives";
@@ -45,7 +47,8 @@ export function installExtras(game: GameUI) {
     h("button", { onclick: crew, title: "Жильцы убежища" }, "♟", h("small", null, "Отряд")),
     h("button", { onclick: () => openSettings(game.r), title: "Настройки" }, "⚙", h("small", null, "Меню")));
   const dock = h("nav.game-dock", { "aria-label": "Действия в бункере" },
-    h("button", { onclick: () => openBoard() }, "▣", h("span", null, "Инвентарь")),
+    h("button", { onclick: () => openCharacterScreen(), title: "Персонаж: снаряжение, вещи спутников, прокачка (I)" }, "☻", h("span", null, "Персонаж")),
+    h("button", { onclick: () => openBoard(), title: "Убежище: склад, дела, газета, рецепты (Tab)" }, "▣", h("span", null, "Убежище")),
     h("button", { onclick: () => { game.navigation.cancel(); game.build.toggle(); } }, "⚒", h("span", null, "Строить")),
     h("button", { onclick: travel }, "↗", h("span", null, "Вылазка")),
     h("button", { onclick: () => game.setAquarium(!game.aquarium) }, "◉", h("span", null, "Наблюдать")),
@@ -60,6 +63,8 @@ export function installExtras(game: GameUI) {
   const ending = new EndingUI();
   const objectives = new ObjectivesUI(game);
   const minigame = new MinigameUI();
+  const tips = new TipsUI();
+  (window as any).__tips = tips;
   (window as any).__mini = minigame;
   CLIENT_SCREENS.research = (a) => (openResearch(a), true);
   CLIENT_SCREENS.craft_item = (a) => (openCraftItem(a), true);
@@ -149,6 +154,10 @@ export function installExtras(game: GameUI) {
       openBoard();
       return true;
     }
+    if (e.code === "KeyI") {
+      openCharacterScreen();
+      return true;
+    }
     return false;
   });
 
@@ -180,6 +189,7 @@ export function installExtras(game: GameUI) {
     ending.update();
     objectives.update();
     minigame.update();
+    tips.update();
     maybeOpenPerkChoice();
   });
 

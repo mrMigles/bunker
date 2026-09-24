@@ -721,7 +721,7 @@ onTick("expedition", "*", (w, dt) => {
     for (const c of squad) {
       decayNeeds(w, c, hours);
       eatFromSupplies(w, e, c);
-      if (w.weather.today === "radrain" || e.site?.rad) c.needs.rad = clamp(c.needs.rad + (w.weather.today === "radrain" ? 6 : 12) * hours * ((e.supplies.gasmask ?? 0) > 0 ? 0.5 : 1));
+      if (w.weather.today === "radrain" || e.site?.rad) c.needs.rad = clamp(c.needs.rad + (w.weather.today === "radrain" ? 6 : 12) * hours * ((e.supplies.gasmask ?? 0) > 0 || c.equip?.tool === "gasmask" ? 0.5 : 1));
       if (hasTrait(c, "claustro")) c.needs.sanity = clamp(c.needs.sanity + 1.5 * hours);
       if (c.needs.health <= 0) killChar(w, c, "не вернулся(ась) из вылазки");
     }
@@ -1001,7 +1001,7 @@ function siteTick(w: World, e: Expedition, s: Site, dt: number) {
         fx(w, { k: "toast", text: `⚠ Впереди ${what}` });
       }
     }
-    if (r?.rad) c.needs.rad = clamp(c.needs.rad + dt * 0.25 * ((e.supplies.gasmask ?? 0) > 0 ? 0.5 : 1));
+    if (r?.rad) c.needs.rad = clamp(c.needs.rad + dt * 0.25 * ((e.supplies.gasmask ?? 0) > 0 || c.equip?.tool === "gasmask" ? 0.5 : 1));
     for (const hz of s.hazards) if (hz.kind === "rad" && hz.lv === c.lv && Math.abs(hz.x + 0.5 - c.x) < 1.5) c.needs.rad = clamp(c.needs.rad + dt * 0.6);
   }
   // tasks
@@ -1292,7 +1292,7 @@ registerCmd("sstop", (w, p) => {
 registerCmd("expLight", (w, p) => {
   const e = exped(w);
   if (!e || !p.char) return;
-  if (!e.light[p.char] && (e.supplies.flashlight ?? 0) < 1) return "Нет фонарика";
+  if (!e.light[p.char] && (e.supplies.flashlight ?? 0) < 1 && w.chars[p.char]?.equip?.tool !== "flashlight") return "Нет фонарика";
   if (!e.light[p.char] && (e.supplies.batteries ?? 0) <= 0) return "Нет батареек";
   e.light[p.char] = !e.light[p.char];
 });

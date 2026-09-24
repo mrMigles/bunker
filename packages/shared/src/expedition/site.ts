@@ -193,7 +193,9 @@ export function generateSite(nodeId: string, type: string, seed: number, danger:
         open(x, lv);
         const nextD = LOC.rooms[plans[lv][i + 1].kind];
         const roll = R.next();
-        const state: SiteDoor["state"] = R.chance(nextD.locked ?? 0.12) ? "locked" : roll < 0.45 ? "closed" : "open";
+        // the first door past the entrance hall is never locked: a newcomer should get inside
+        const firstIn = lv === groundLv && i === 0;
+        const state: SiteDoor["state"] = !firstIn && R.chance(nextD.locked ?? 0.12) ? "locked" : roll < 0.45 ? "closed" : "open";
         site.doors.push({ id: id("d"), x, lv, state });
         x += 1;
       }

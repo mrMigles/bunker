@@ -39,6 +39,11 @@ export interface Card {
   phobia: string;
   baggage: string;
   birthday: number; // day number of birthday within the game
+  /** looks: skin tone 0..4, hair colour 0..5 (clothes = color, headwear = hat) */
+  skin?: number;
+  hair?: number;
+  /** made in the character editor */
+  custom?: boolean;
 }
 
 export interface HandItem {
@@ -132,6 +137,8 @@ export interface Char {
   perks?: string[];
   perkOffer?: string[];
   perkPending?: number;
+  /** own gear, taken out of the common storage */
+  equip?: { weapon?: string; armor?: string; tool?: string };
 }
 
 export type TerrainId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;

@@ -8,6 +8,7 @@ import { buildLoot } from "../render/loot";
 import { SiteRenderer, buildEnemy } from "../render/site";
 import type { WorldRenderer } from "../render/world";
 import { add, clear, h, isModalOpen, ui, toast } from "./dom";
+import { menuArrows } from "../input";
 
 /** Click a supply to walk and take it; return to the hatch to deliver. */
 export class PrologueUI {
@@ -30,6 +31,7 @@ export class PrologueUI {
   private hudKey = "";
   private promptKey = "";
   private lastSiren = -1;
+  private listKey = "";
   private lastDelivered = 0;
   // the end of the world, seen from the street: distant strikes, mushroom clouds, ash, the radio
   private strikes = [
@@ -258,7 +260,7 @@ export class PrologueUI {
     }
     for(const c of Object.values(v.chars) as any[]) {
       let cv=this.chars.get(c.id);
-      if(!cv) {cv=new CharView(c.id,c.card.color,c.card.hat,1);cv.x=c.x;cv.y=c.y;this.chars.set(c.id,cv);this.dyn.add(cv.root);}
+      if(!cv) {cv=CharView.of(c.id,c.card);cv.x=c.x;cv.y=c.y;this.chars.set(c.id,cv);this.dyn.add(cv.root);}
       const mine=c.id===net.priv?.char&&net.pred;
       const tx=mine?net.pred!.x:c.x, ty=mine?net.pred!.y:c.y;
       cv.glide(tx,ty,performance.now()/1000,!!mine);
@@ -300,17 +302,22 @@ export class PrologueUI {
     if(!p||!c||p.done||isModalOpen()) {this.prompt.classList.add("hidden");return;}
     const me={...c,x:net.pred?.x??c.x,lv:net.pred?.lv??c.lv,climbing:net.pred?.climbing??c.climbing};
     this.actions=listPrologueActions(p,me).slice(0,6);
+    const lk=this.actions.map(a=>a.a+a.id).join("|");
+    if(lk!==this.listKey){this.listKey=lk;this.sel=0;}
     if(this.sel>=this.actions.length)this.sel=0;
-    const task=p.tasks?.[c.id], key=JSON.stringify([this.actions,c.hands,Math.round((task?.t??0)*3)]);
+    menuArrows.on=this.actions.length>=2;
+    const task=p.tasks?.[c.id], key=JSON.stringify([this.actions,c.hands,Math.round((task?.t??0)*3),this.sel]);
     this.prompt.classList.remove("hidden");
     if(key===this.promptKey)return;
     this.promptKey=key;clear(this.prompt);
     this.prompt.append(h("div.dock-heading",null,"ВАШИ ПРИПАСЫ",h("span.dim",null,`${c.hands.length} / 3`)));
     this.prompt.append(h("div.carry-slots",null,c.hands.length?c.hands.map((it:any)=>h("span.carry-slot",null,ITEMS[it.item]?.icon??"□"," ",itemName(it.item))):h("span.dim",null,"Руки свободны. Нажмите на припас.")));
-    this.prompt.append(h("button.primary.return-hatch",{onclick:()=>this.returnHome()},"↓ ",c.hands.length?"Отнести в убежище":"Вернуться к люку"));
+    this.prompt.append(h("button.primary.return-hatch",{onclick:()=>this.returnHome()},"↓ ",c.hands.length?"Отнести в убежище":"Вернуться к люку",h("small",null," · Пробел")));
     if(task)this.prompt.append(h("div.warn",null,`Уговариваю соседа… ${Math.min(100,Math.round(task.t/3*100))}%`));
-    this.actions.forEach((a,i)=>this.prompt.append(h("button.opt"+(a.reason?".dis":""),{disabled:!!a.reason,onclick:()=>this.trigger(i)},a.label.replace(" (держите E)",""),a.reason?h("small.dim",null,a.reason):null)));
-    if(c.hands.length)this.prompt.append(h("button.small",{onclick:()=>net.send({k:"pthrow"})},"Передать броском →"));
+    // the same «Рядом с вами» list as in the bunker: E does the highlighted one, ↑/↓ or 1–6 pick another
+    if(this.actions.length)this.prompt.append(h("div.dock-heading",null,"Рядом с вами",h("span.dock-keys",null,this.actions.length>1?"↑↓ выбор · E действие":"E действие")));
+    this.actions.forEach((a,i)=>this.prompt.append(h("button.opt"+(i===this.sel?".sel":"")+(a.reason?".dis":""),{disabled:!!a.reason,onclick:()=>{this.sel=i;this.trigger(i);}},h("span.key",null,i===this.sel?"E":String(i+1)),a.label.replace(" (держите E)",""),a.reason?h("small.dim",null," — "+a.reason):null)));
+    if(c.hands.length)this.prompt.append(h("button.opt",{onclick:()=>net.send({k:"pthrow"})},h("span.key",null,"Q"),"Передать броском →"));
   }
   trigger(i=this.sel) {
     const a=this.actions[i];if(!a||a.reason)return;
@@ -319,6 +326,8 @@ export class PrologueUI {
   handleKey(e:KeyboardEvent,down:boolean):boolean {
     if(!this.active||!down)return false;
     if(e.code==="KeyE") {this.trigger();return true;}
+    if((e.code==="ArrowUp"||e.code==="ArrowDown")&&this.actions.length>1){this.sel=(this.sel+(e.code==="ArrowUp"?-1:1)+this.actions.length)%this.actions.length;this.promptKey="";return true;}
+    if(e.code==="Space"){this.returnHome();return true;}
     if(e.code==="KeyQ") {net.send({k:"pthrow"});return true;}
     if(/^Digit[1-6]$/.test(e.code)){this.trigger(Number(e.code.slice(5))-1);return true;}
     return !["KeyC","Enter","Escape","KeyO"].includes(e.code);
