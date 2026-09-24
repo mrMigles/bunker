@@ -1,0 +1,239 @@
+{
+  "steps": [
+    {
+      "name": "Анна П.",
+      "ok": true,
+      "code": "TU28B",
+      "head": "ГЛУБЖЕБункер чата «Соседи по подъезду»",
+      "menu": false,
+      "mobile": true,
+      "pid": "tg_7001"
+    },
+    {
+      "name": "Анна П.",
+      "ok": true,
+      "code": "TU28B",
+      "head": "ГЛУБЖЕБункер чата «Соседи по подъезду»",
+      "menu": false,
+      "mobile": true,
+      "pid": "tg_7001"
+    },
+    {
+      "name": "the lobby names the chat instead of showing a code",
+      "ok": true,
+      "head": "ГЛУБЖЕБункер чата «Соседи по подъезду»"
+    },
+    {
+      "name": "Анна П.",
+      "ok": true,
+      "code": "TU28B",
+      "head": "ГЛУБЖЕБункер чата «Соседи по подъезду»",
+      "menu": false,
+      "mobile": true,
+      "pid": "tg_7001"
+    },
+    {
+      "name": "a second chat member joins the same bunker",
+      "ok": true,
+      "code2": "TU28B",
+      "players": [
+        "Анна П.",
+        "Борис"
+      ]
+    },
+    {
+      "name": "the chat's bunker refuses players from outside Telegram",
+      "ok": true,
+      "joinErr": "Этот бункер принадлежит чату в Telegram — откройте игру из чата"
+    },
+    {
+      "name": "prologue: stick and ✋ on screen, no key hints",
+      "ok": true,
+      "stick": true,
+      "pad": [
+        "Взять"
+      ],
+      "help": "none",
+      "keys": 0,
+      "tip": "☢Последняя минутаподсказка 1 из 20Сейчас по городу ударят. Соберите всё, что успеете: коснитесь вещи или подойдите и нажмите ✋.В руках — до трёх вещей. Несите их к люку: кнопка «Отнести в убежище».Лучшее — в дальних домах и на вторых этажах. Не опоздайте к вспышке!Выключить подсказкиПонятно"
+    },
+    {
+      "name": "the tutorial speaks of touches, not keys",
+      "ok": true,
+      "tip": "☢Последняя минутаподсказка 1 из 20Сейчас по городу ударят. Соберите всё, что успеете: косн"
+    },
+    {
+      "name": "the stick walks the character",
+      "ok": true,
+      "x0": 25.5,
+      "x1": 30.53,
+      "anim": "run"
+    },
+    {
+      "name": "✋ does the highlighted thing (takes it)",
+      "ok": true,
+      "h0": 0,
+      "h1": 1,
+      "sent": [
+        "pdo:pick"
+      ]
+    },
+    {
+      "name": "with things in hand a «Бросить» button appears",
+      "ok": true,
+      "h1": 1,
+      "pad2": [
+        "Бросить",
+        "Взять"
+      ]
+    },
+    {
+      "name": "bunker HUD fits the phone without overlapping the stick",
+      "ok": true,
+      "stick": {
+        "x": 18,
+        "y": 260,
+        "w": 112,
+        "h": 112
+      },
+      "me": {
+        "x": 160,
+        "y": 244,
+        "w": 176,
+        "h": 138
+      },
+      "dock": {
+        "x": 657,
+        "y": 66,
+        "w": 179,
+        "h": 40
+      },
+      "actions": {
+        "x": 500,
+        "y": 182,
+        "w": 240,
+        "h": 200
+      },
+      "pad": {
+        "x": 754,
+        "y": 300,
+        "w": 78,
+        "h": 78
+      },
+      "top": {
+        "x": 8,
+        "y": 0,
+        "w": 666,
+        "h": 64
+      },
+      "W": 844,
+      "H": 390,
+      "scrollW": 844
+    },
+    {
+      "name": "near things the ✋ «Действие» button appears",
+      "ok": true
+    },
+    {
+      "name": "windows fit the phone and hide the stick",
+      "ok": true,
+      "w": 820,
+      "h": 378,
+      "W": 844,
+      "H": 390,
+      "stickHidden": true
+    },
+    {
+      "name": "build mode: «Уже / Шире / Готово» buttons",
+      "ok": true,
+      "buildPad": [
+        "Уже",
+        "Шире",
+        "Снести",
+        "Готово"
+      ]
+    },
+    {
+      "name": "«Готово» leaves build mode",
+      "ok": true
+    },
+    {
+      "name": "pinch zooms the bunker in",
+      "ok": true,
+      "vh0": 9,
+      "vh1": 6,
+      "under": "CANVAS."
+    },
+    {
+      "name": "site: Камень / Обыск buttons, stick stays",
+      "ok": true,
+      "sitePad": [
+        "Камень",
+        "Обыск"
+      ]
+    },
+    {
+      "name": "the site bar's flashlight button works by touch",
+      "ok": true,
+      "lightOff": true
+    },
+    {
+      "name": "the backpack opens by touch",
+      "ok": true
+    },
+    {
+      "name": "the pump minigame fits the phone screen",
+      "ok": true,
+      "mbox": {
+        "x": 202.046875,
+        "y": 52,
+        "width": 439.90625,
+        "height": 240
+      }
+    },
+    {
+      "name": "finger strokes work the pump",
+      "ok": true,
+      "dirty0": 0,
+      "dirty1": 1.2
+    },
+    {
+      "name": "the council fits (or scrolls) on the phone",
+      "ok": true,
+      "top": 52,
+      "bottom": 378,
+      "H": 390,
+      "scrolls": true,
+      "ready": 641
+    },
+    {
+      "name": "fight: no stick or pad, «Конец хода» on screen, nothing off-screen",
+      "ok": true,
+      "pad": 0,
+      "stick": false,
+      "end": true,
+      "scrollW": 844,
+      "W": 844
+    },
+    {
+      "name": "fight: a tap on a cell moves the unit",
+      "ok": true,
+      "u0": {
+        "col": 1,
+        "ap": 3
+      },
+      "u1": {
+        "col": 5,
+        "ap": 2
+      },
+      "viaTap": true
+    },
+    {
+      "name": "no page errors",
+      "ok": true,
+      "errors": []
+    }
+  ],
+  "errors": [],
+  "ok": true
+}

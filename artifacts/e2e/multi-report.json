@@ -1,0 +1,84 @@
+{
+  "steps": [
+    {
+      "name": "the friend joins by code and shows up in the host's lobby",
+      "ok": true,
+      "code": "3B7MA",
+      "names": [
+        "Хозяин",
+        "Гость"
+      ]
+    },
+    {
+      "name": "only the creator is the host",
+      "ok": true
+    },
+    {
+      "name": "the host sees the guest ready",
+      "ok": true
+    },
+    {
+      "name": "both players have characters in the prologue",
+      "ok": true,
+      "chars": [
+        "Тамара Пескарёва",
+        "Остап Гвоздев"
+      ]
+    },
+    {
+      "name": "the host sees the guest walk",
+      "ok": true,
+      "x0": 26.7,
+      "x1": 29.58
+    },
+    {
+      "name": "chat reaches the other player",
+      "ok": true
+    },
+    {
+      "name": "the guest sees the host move in the bunker",
+      "ok": true,
+      "before": 21.5,
+      "seen": 20.62
+    },
+    {
+      "name": "a dropped connection rejoins the same character",
+      "ok": true,
+      "back": {
+        "open": true,
+        "char": "c11",
+        "phase": "day"
+      },
+      "bChar": "c11"
+    },
+    {
+      "name": "no duplicate player after the rejoin",
+      "ok": true,
+      "aCount": 2
+    },
+    {
+      "name": "a reload brings the player back into the same bunker and body",
+      "ok": true,
+      "code": "3B7MA",
+      "char": "c11"
+    },
+    {
+      "name": "one «Готов» out of two does not move the council",
+      "ok": true,
+      "step0": "rations",
+      "stepAfterOne": "rations"
+    },
+    {
+      "name": "both «Готов» move the council on",
+      "ok": true,
+      "stepAfterTwo": "plan"
+    },
+    {
+      "name": "no page errors",
+      "ok": true,
+      "errors": []
+    }
+  ],
+  "errors": [],
+  "ok": true
+}

@@ -14,6 +14,8 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 const ev = (fn, arg) => page.evaluate(fn, arg);
 await page.goto("http://localhost:5173");
+// tutorial cards would cover the spot under test
+await page.evaluate(() => localStorage.setItem("bunker.tipsOff", "1"));
 await page.getByPlaceholder("Ваше имя").fill("Строитель");
 await page.getByRole("button", { name: "Создать бункер", exact: true }).click();
 await page.locator(".card").first().click();

@@ -9,7 +9,14 @@ function randId() {
   return Array.from(a, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+let pidOverride = "";
+/** Telegram: the player is their Telegram account, not this browser. */
+export function setPlayerId(id: string) {
+  pidOverride = id;
+}
+
 export function playerId(): string {
+  if (pidOverride) return pidOverride;
   let id = localStorage.getItem("bunker.pid");
   if (!id) {
     id = randId();
@@ -52,24 +59,33 @@ export class Net {
   }
 
   async create(name: string, opts: { private?: boolean; settings?: any } = {}) {
-    const room = await this.client.create("game", { pid: playerId(), name, ...opts });
+    const room = await this.client.create("game", { pid: playerId(), name, ...this.joinExtra, ...opts });
     this.attach(room);
   }
 
+  /** extra join options (Telegram: the signed identity) */
+  joinExtra: Record<string, unknown> = {};
+  private pingTimer = 0;
+  lastName = "";
+
   async join(code: string, name: string) {
     code = code.toUpperCase().trim();
+    this.lastName = name;
     const r = await fetch(`${SERVER}/api/room/${code}`);
     if (!r.ok) {
       const j = await r.json().catch(() => ({}));
       throw new Error(j.error || "Комната не найдена");
     }
-    const room = await this.client.joinById(code, { pid: playerId(), name });
+    const room = await this.client.joinById(code, { pid: playerId(), name, ...this.joinExtra });
     this.attach(room);
   }
 
   attach(room: Room) {
     this.room = room;
     localStorage.setItem("bunker.lastCode", room.roomId);
+    try {
+      sessionStorage.setItem("bunker.session", room.roomId);
+    } catch {}
     room.onMessage(MSG.snap, (m: { p: View; m: Priv }) => {
       this.pub = m.p;
       this.priv = m.m;
@@ -98,7 +114,8 @@ export class Net {
     room.onReconnect?.(() => {
       /* server sends a fresh snapshot on reconnect */
     });
-    setInterval(() => {
+    clearInterval(this.pingTimer);
+    this.pingTimer = window.setInterval(() => {
       room.ping?.((ms: number) => (this.latency = ms));
     }, 3000);
   }

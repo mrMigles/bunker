@@ -3,6 +3,7 @@ import { ROOMS, canPlaceRoom, costText, neededRoom, roomAt, roomCost, roomLocked
 import { net } from "../net";
 import type { WorldRenderer } from "../render/world";
 import { add, clear, h, ui, toast } from "./dom";
+import { mobile } from "../touch";
 
 const ORDER = ["corridor", "shaft", "support", "living", "storage", "hydro", "mushroom", "kitchen", "mess", "rabbits", "waterworks", "genroom", "batteries", "workshop", "chemlab", "med", "radioroom", "rec", "chapel", "armory", "range", "defense", "turretroom", "lift", "airlock2", "brig", "tech", "airlock"];
 
@@ -18,6 +19,8 @@ export class BuildMode {
   /** green frames on every spot where the selected room fits right now */
   private spots = new THREE.Group();
   private spotsKey = "";
+  /** the next click cancels / demolishes instead of marking (the touch stand-in for Shift+right click) */
+  erase = false;
   private savedCam: { x: number; y: number; h: number } | null = null;
 
   constructor(private r: WorldRenderer) {
@@ -30,7 +33,11 @@ export class BuildMode {
     const canvas = r.renderer.domElement;
     canvas.addEventListener("mousedown", (e) => {
       if (!this.active) return;
-      if (e.button === 0) this.place();
+      if (e.button === 0 && this.erase) {
+        // phones: «Снести», then a touch on the marked room
+        this.erase = false;
+        this.cancelAt();
+      } else if (e.button === 0) this.place();
       else if (e.button === 2 && e.shiftKey) this.cancelAt();
     });
     canvas.addEventListener(
@@ -47,6 +54,7 @@ export class BuildMode {
 
   toggle(v = !this.active) {
     this.active = v;
+    this.erase = false;
     this.panel.classList.toggle("hidden", !v);
     this.ghost.visible = false;
     this.info.classList.add("hidden");
@@ -125,8 +133,8 @@ export class BuildMode {
     const v = net.pub;
     clear(this.panel);
     this.panel.append(
-      h("div", { style: { color: "var(--warm)", marginBottom: "6px" } }, "🏗 Стройка (B — выход)"),
-      h("div.dim", { style: { marginBottom: "6px" } }, "ЛКМ — разметить · Shift+колесо / [ ] — ширина · Shift+ПКМ — отменить/снести. Размеченное надо выкопать (E у породы), вынести грунт к люку и построить каркас."),
+      h("div", { style: { color: "var(--warm)", marginBottom: "6px" } }, "🏗 Стройка" + (mobile ? "" : " (B — выход)")),
+      h("div.dim", { style: { marginBottom: "6px" } }, mobile ? "Касание — разметить · «Уже» / «Шире» — ширина · «Снести», затем касание — отменить или снести. Размеченное надо выкопать (✋ у породы), вынести грунт к люку и построить каркас." : "ЛКМ — разметить · Shift+колесо / [ ] — ширина · Shift+ПКМ — отменить/снести. Размеченное надо выкопать (E у породы), вынести грунт к люку и построить каркас."),
     );
     // what the colony needs right now goes first, with the reason
     let need: { type: string; why: string } | null = null;

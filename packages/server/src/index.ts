@@ -6,6 +6,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { GameRoom } from "./GameRoom";
 import { addLegacy, getLegacy, hasSave, listSaves } from "./persistence";
+import { tgSession } from "./telegram";
+
+const BUILD_ID = process.env.BUILD_ID ?? "dev";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const clientDist = path.resolve(here, "../../client/dist");
@@ -18,6 +21,27 @@ const server = defineServer({
   rooms: { game: defineRoom(GameRoom) },
   express: (app) => {
     app.use(express.json({ limit: "32kb" }));
+
+    // health and version: the client compares BUILD_ID to know a new release is out
+    app.get("/healthz", (_req, res) => res.send("ok"));
+    app.get("/version", (_req, res) => {
+      res.set("Cache-Control", "no-store");
+      res.json({ build: BUILD_ID });
+    });
+
+    // Telegram Mini App: the bunker of this chat (created on first open, restored from its save later)
+    app.post("/api/tg/session", async (req, res) => {
+      const s = tgSession(String(req.body?.initData ?? ""));
+      if ("error" in s) return res.status(403).json(s);
+      try {
+        const found = await matchMaker.query({ roomId: s.code } as any);
+        if (!found.length) await matchMaker.createRoom("game", { code: s.code, restore: hasSave(s.code), private: true });
+      } catch (e) {
+        console.error(e);
+        return res.status(500).json({ error: "Не удалось поднять бункер чата" });
+      }
+      res.json(s);
+    });
 
     // Ensure a room with this code is running (restoring it from SQLite if needed).
     app.get("/api/room/:code", async (req, res) => {
@@ -52,7 +76,24 @@ const server = defineServer({
     });
 
     if (fs.existsSync(clientDist)) {
-      app.use(express.static(clientDist, { maxAge: "1h", index: "index.html" }));
+      // caching that lets updates through: hashed bundles are immutable, the page, the service worker
+      // and the manifest are always revalidated, plain assets for an hour
+      app.use(
+        express.static(clientDist, {
+          index: "index.html",
+          setHeaders: (res, file) => {
+            const f = file.replace(/\\/g, "/");
+            if (/\/assets\/[^/]+-[A-Za-z0-9_-]{8,}\.(js|css)$/.test(f)) res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+            else if (/(index\.html|sw\.js|manifest\.webmanifest)$/.test(f)) res.setHeader("Cache-Control", "no-cache");
+            else res.setHeader("Cache-Control", "public, max-age=3600");
+          },
+        }),
+      );
+      // client-side routes fall back to the page
+      app.get(/^\/(?!api|healthz|version|matchmake)[^.]*$/, (_req, res) => {
+        res.setHeader("Cache-Control", "no-cache");
+        res.sendFile(path.join(clientDist, "index.html"));
+      });
     } else {
       app.get("/", (_req, res) => res.send("Клиент не собран: запустите `pnpm build` или `pnpm dev`."));
     }

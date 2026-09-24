@@ -19,6 +19,7 @@ import { PrologueUI } from "./prologue";
 import { EndingUI, openCraftItem, openResearch } from "./tech";
 import { openBoard, openBooks, openCanvas, openCharacter, openClipping, openCook, openCraft, openPeriscope, openSettings } from "./screens";
 import { h, ui, modal, toast } from "./dom";
+import { installTouch } from "../touch";
 
 /** Hooks the 5b screens (radio, instruments, board, papers…) into the game UI. */
 export function installExtras(game: GameUI) {
@@ -54,6 +55,7 @@ export function installExtras(game: GameUI) {
     h("button", { onclick: () => game.setAquarium(!game.aquarium) }, "◉", h("span", null, "Наблюдать")),
     h("button", { onclick: () => { game.chatWrap.classList.remove("hidden"); game.chatBox.focus(); } }, "…", h("span", null, "Чат")));
   ui().append(toolbar, dock);
+  installTouch(game as any);
   GameUI.extraKeysUp.push((e) => pro.handleKey(e, false));
   GameUI.extraKeysUp.push((e) => exp.mode === "site" && exp.handleKeyUp(e));
   const radio = new RadioUI();

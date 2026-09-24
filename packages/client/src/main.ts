@@ -9,6 +9,8 @@ import { showMenu } from "./ui/menu";
 import { GameUI } from "./ui/game";
 import { installExtras } from "./ui/extras";
 import "./polish.css";
+import { installPwa } from "./pwa";
+import { isTelegram, startTelegram } from "./telegram";
 
 const canvas = document.getElementById("game") as HTMLCanvasElement;
 const renderer = new WorldRenderer(canvas);
@@ -49,9 +51,28 @@ net.onChange.add(() => {
   if (net.pub) renderer.sync(net.pub, net.priv?.char ?? null);
   game?.onPatch();
 });
-net.onLeave.add((code) => {
-  if (code === 4001) toast("Вы зашли в этот бункер из другой вкладки");
-  else toast("Соединение потеряно. Обновите страницу, чтобы вернуться.");
+// a phone locks, the train goes into a tunnel: come back to the same bunker on our own
+let rejoining = false;
+net.onLeave.add(async (code) => {
+  if (code === 4001) return toast("Вы зашли в этот бункер из другой вкладки");
+  if (code === 1000 || rejoining) return; // left on purpose
+  const room = net.code;
+  if (!room) return;
+  rejoining = true;
+  toast("Связь пропала — переподключаемся…");
+  for (let i = 0; i < 8; i++) {
+    await new Promise((r) => setTimeout(r, Math.min(15000, 1000 * 2 ** i)));
+    try {
+      await net.join(room, net.lastName || localStorage.getItem("bunker.name") || "");
+      toast("Снова на связи");
+      rejoining = false;
+      return;
+    } catch {
+      /* try again */
+    }
+  }
+  rejoining = false;
+  toast("Не удалось вернуться. Обновите страницу.");
 });
 
 // input + prediction run at 20 Hz independently of rendering
@@ -98,11 +119,29 @@ onKeyDown((e) => {
   }
 });
 
-// auto-rejoin after reload
-const auto = new URLSearchParams(location.search).get("code");
-if (auto) {
+// Telegram: straight into the chat's bunker; otherwise the menu (or a rejoin after a reload)
+// a reload (or a phone waking the tab up) goes back into the bunker this tab was playing in
+let auto = new URLSearchParams(location.search).get("code");
+try {
+  auto ||= sessionStorage.getItem("bunker.session");
+} catch {}
+if (new URLSearchParams(location.search).has("code")) {
+  const u = new URL(location.href);
+  u.searchParams.delete("code");
+  history.replaceState(null, "", u.toString());
+}
+if (isTelegram()) {
+  startTelegram(route)
+    .then((ok) => ok || showMenu(route))
+    .catch((e) => {
+      toast(String(e?.message ?? e));
+      showMenu(route);
+    });
+} else if (auto) {
   net
     .join(auto, localStorage.getItem("bunker.name") ?? "")
     .then(route)
     .catch(() => showMenu(route));
 } else showMenu(route);
+
+installPwa();

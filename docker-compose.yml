@@ -1,10 +1,17 @@
 # docker compose up -d  → http://localhost:8080
 # Uses the image published by CI; `docker compose up --build` builds it locally instead.
+# Secrets and options go into a .env file next to this one (see README → «Сервер»).
 services:
   glubzhe:
     image: ghcr.io/mrmigles/bunker:latest
-    build: .
+    build:
+      context: .
+      args:
+        # a new id per build makes players' browsers and the PWA pick up the new version
+        BUILD_ID: ${BUILD_ID:-local}
     restart: unless-stopped
+    # a tiny init as PID 1: stop signals reach the server, which saves running games before exiting
+    init: true
     ports:
       - "${GLUBZHE_PORT:-8080}:8080"
     environment:
@@ -13,8 +20,16 @@ services:
       DATA_DIR: /data
       # seconds an empty room stays in memory before it is saved and unloaded
       EMPTY_UNLOAD_SEC: 300
+      # Telegram game (optional): the bot token from @BotFather checks who opened the game and from which chat
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      # signs players' Telegram identities; keep it stable so players keep their characters across restarts
+      SESSION_SECRET: ${SESSION_SECRET:-}
     volumes:
       - glubzhe-data:/data
+    # Very old Docker (< 20.10.10) blocks the clone3 call of modern images; if the log shows
+    # "uv_thread_create" assertions, update Docker — or, as a stopgap, uncomment:
+    # security_opt:
+    #   - seccomp:unconfined
 
 volumes:
   glubzhe-data:

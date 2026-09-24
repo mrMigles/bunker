@@ -197,3 +197,60 @@ body.mode-combat .tip-card {top:auto;bottom:120px}
 .table-journal-head {color:#eac98a;font-size:11px;letter-spacing:.5px;margin-bottom:3px}
 .table-chat {font-size:12px;opacity:.85}
 .dock-all {font-size:10px;padding:1px 6px;min-height:0;margin-left:6px}
+
+.update-banner {position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:80;display:flex;gap:10px;align-items:center;padding:8px 12px;border-radius:8px;background:#1d2529f5;border:1px solid #eac98a88;box-shadow:0 8px 24px #000a}
+
+/* ---- phones and tablets: thumb stick, context buttons, no keyboard hints ---- */
+html.mobile, html.mobile body {overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+html.mobile input, html.mobile textarea {-webkit-user-select:text;user-select:text}
+html.mobile .help, html.mobile .dock-keys, html.mobile .opt .key, html.mobile .return-hatch small, html.mobile .instr-key-hint, html.mobile .kbd-only {display:none !important}
+html.mobile button {min-height:40px;touch-action:manipulation}
+html.mobile .prompt .opt {min-height:42px;font-size:13px}
+.touch-stick {position:fixed;left:calc(18px + env(safe-area-inset-left));bottom:calc(18px + env(safe-area-inset-bottom));width:132px;height:132px;border-radius:50%;background:radial-gradient(circle,#ffffff10 0,#ffffff08 60%,#ffffff14 61%,#0000 70%);border:2px solid #ffffff2a;z-index:20;touch-action:none;display:none}
+.touch-stick.on {border-color:#d9c49a88}
+.touch-stick.sneak {border-color:#7fb0d9aa}
+.touch-knob {position:absolute;left:41px;top:41px;width:50px;height:50px;border-radius:50%;background:#d9c49a55;border:2px solid #d9c49aaa;box-shadow:0 3px 10px #0008;pointer-events:none}
+.touch-pad {position:fixed;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));display:none;flex-direction:column-reverse;align-items:flex-end;gap:8px;z-index:21;pointer-events:none}
+.touch-btn {pointer-events:auto;width:58px;height:58px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;background:#0c141bd8;border:2px solid #56626a;color:#e8e0cc;touch-action:none;box-shadow:0 3px 10px #0007}
+.touch-btn span {font-size:22px;line-height:24px}
+.touch-btn small {font-size:9px;line-height:11px;color:#b8bdbd}
+.touch-btn.big {width:78px;height:78px;border-color:#c8553d;background:#3a1d14e0}
+.touch-btn.big span {font-size:30px;line-height:32px}
+.touch-btn.down {transform:scale(.92);background:#c8553d}
+html.mobile .touch-stick:not(.hidden) {display:block}
+html.mobile .touch-pad {display:flex}
+/* the character card steps up out of the thumb's way, the action menu out of the buttons' way */
+html.mobile .hud-me {left:calc(160px + env(safe-area-inset-left));bottom:8px;width:200px;min-height:0;padding:8px}
+html.mobile .hud-me .survivor-portrait, html.mobile .hud-me>div.dim {display:none}
+html.mobile .action-dock, html.mobile .prologue-actions {right:calc(104px + env(safe-area-inset-right));bottom:8px}
+html.mobile .game-dock {bottom:auto;top:calc(70px + env(safe-area-inset-top));right:8px;flex-direction:row}
+html.mobile .game-dock span {display:none}
+html.mobile .hud-top {padding-left:calc(8px + env(safe-area-inset-left))}
+@media (max-height:430px){html.mobile .hud-me .need{margin:1px 0;font-size:10px}html.mobile .objectives{max-height:120px;overflow:auto}html.mobile .game-dock{top:66px;gap:2px;padding:2px}html.mobile .game-dock button{min-height:34px;padding:3px 6px;font-size:16px}html.mobile .touch-stick{width:112px;height:112px}html.mobile .touch-knob{left:31px;top:31px}}
+html.mobile .tip-card {top:calc(66px + env(safe-area-inset-top));bottom:auto;width:min(400px,50vw);padding:8px 10px}html.mobile .tip-card p {font-size:11.5px;line-height:1.35;margin:3px 0}html.mobile .tip-card .tip-foot button {min-height:32px}
+html.mobile body[data-phase=prologue] .hud-me {display:none}
+html.mobile .prologue-hud {left:calc(160px + env(safe-area-inset-left));top:auto;bottom:8px;width:190px;padding:8px 10px}
+html.mobile .prologue-hud>div:nth-child(3), html.mobile .prologue-hud .mission-saved .dim {display:none}
+html.mobile .prologue-timer {font-size:28px;margin:2px 0}
+@media (max-height:430px){html.mobile .hud-me{width:176px;padding:6px 8px}html.mobile .hud-me .level-line,html.mobile .hud-me .row>.dim,html.mobile .hud-me .perk-btn+*{display:none}html.mobile .hud-me .name{font-size:12px}html.mobile .action-dock{max-height:200px;width:240px}}
+/* a sortie on a phone: the site bar goes up, the menu sits left of the buttons */
+html.mobile body.mode-site .hud-me {display:none}
+html.mobile .exp-hud {top:calc(64px + env(safe-area-inset-top));right:8px;width:220px;padding:8px 10px}
+html.mobile .exp-hud h3 {font-size:14px;margin:2px 0 6px}
+html.mobile .exp-journal {display:none}
+html.mobile .exp-dock {top:calc(64px + env(safe-area-inset-top));bottom:auto;left:calc(50% - 60px);padding:4px;gap:3px}
+html.mobile .exp-dock button {font-size:11px;min-height:34px;padding:4px 8px}
+html.mobile .exp-dock-hint {display:none}
+html.mobile .exp-context.prompt {right:calc(100px + env(safe-area-inset-right));bottom:8px;width:250px;max-height:calc(100vh - 190px);overflow:auto}
+/* the game owns every gesture on a phone (pinch = camera); scrolling panels still scroll */
+html.mobile body {touch-action:none}
+html.mobile .modal, html.mobile .action-dock, html.mobile .exp-context, html.mobile .objectives, html.mobile .lobby, html.mobile .menu {touch-action:pan-x pan-y}
+html.mobile .prompt .key, html.mobile .exp-action .key {display:none}
+@media (max-height:480px){.modal{padding:10px 12px;max-height:calc(100vh - 12px)}.modal h2{font-size:17px;padding-bottom:6px;margin-bottom:8px}.mini-canvas{max-height:calc(100vh - 150px);width:auto;max-width:100%;margin:0 auto}}
+/* the council's «Готов» stays in reach while the panel scrolls */
+.council-ready-row {position:sticky;bottom:-14px;margin:12px -14px -14px !important;padding:8px 14px;background:linear-gradient(0deg,#121a1ffa 70%,#121a1f00);z-index:1}
+@media (max-height:480px){.council-explain p{display:none}.council-explain{padding:6px 10px !important}}
+/* in a game a phone held upright gets asked to turn: the bunker is a wide side view */
+@media (orientation: portrait) and (max-width: 700px) {
+  html.mobile body[data-phase]:not([data-phase=lobby])::before {content:"⟳  Поверните телефон горизонтально";position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:30px;text-align:center;background:#121719f5;color:#eac98a;font:600 20px/1.4 sans-serif}
+}

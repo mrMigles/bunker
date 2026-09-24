@@ -3,7 +3,7 @@ import type { WorldRenderer } from "../render/world";
 import { onKeyDown, onKeyUp, typing } from "../input";
 import { BuildMode } from "./build";
 import { CouncilUI } from "./council";
-import { closeModal, h, isModalOpen, ui } from "./dom";
+import { closeModal, h, isModalOpen, toast, ui } from "./dom";
 import type { Hud } from "./hud";
 import { Prompt } from "./prompt";
 import { MouseNavigation } from "../navigation";
@@ -130,6 +130,11 @@ export class GameUI {
         return true;
       case "KeyB":
         this.build.toggle();
+        return true;
+      case "Delete":
+        if (!this.build.active) return;
+        this.build.erase = !this.build.erase;
+        toast(this.build.erase ? "Коснитесь размеченной комнаты — отменить или снести" : "Снос отменён");
         return true;
       case "BracketLeft":
         this.build.setWidth(this.build.width - 1);

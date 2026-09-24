@@ -1,6 +1,8 @@
 // Keyboard/mouse state. Game code subscribes to key presses and reads held keys.
+import { touchAxis } from "./touch";
 
 export const held = new Set<string>();
+(window as any).__held = held;
 /** keys released before the input loop saw them: a quick tap still counts for one sample */
 const tapped = new Set<string>();
 type KeyHandler = (e: KeyboardEvent) => boolean | void;
@@ -61,5 +63,7 @@ export function axis(): { mx: number; my: number; run: boolean } {
   const arrows = !menuArrows.on;
   const my = (on("KeyS") || (arrows && on("ArrowDown")) ? 1 : 0) - (on("KeyW") || (arrows && on("ArrowUp")) ? 1 : 0);
   tapped.clear();
+  // the on-screen stick on phones
+  if (touchAxis.active) return { mx: mx || touchAxis.mx, my: my || touchAxis.my, run: touchAxis.run };
   return { mx, my, run: held.has("ShiftLeft") || held.has("ShiftRight") };
 }

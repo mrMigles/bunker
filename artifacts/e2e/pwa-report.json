@@ -1,0 +1,47 @@
+{
+  "steps": [
+    {
+      "name": "release A: the worker installs, its cache carries the release id",
+      "ok": true,
+      "cachesA": [
+        "glubzhe-pwa-a-muf2e5jy"
+      ]
+    },
+    {
+      "name": "in a game the update is offered, not forced",
+      "ok": true,
+      "banner": true,
+      "stillA": "pwa-a-muf2e5jy"
+    },
+    {
+      "name": "«Обновить» reloads into release B and back into the same bunker",
+      "ok": true,
+      "toasts": [],
+      "url": "http://localhost:8097/",
+      "build": "pwa-b-muf2e5jy",
+      "code": "V4HUE",
+      "phase": "prologue",
+      "caches": [
+        "glubzhe-pwa-b-muf2e5jy"
+      ]
+    },
+    {
+      "name": "the old release's cache is deleted",
+      "ok": true,
+      "cachesB": [
+        "glubzhe-pwa-b-muf2e5jy"
+      ]
+    },
+    {
+      "name": "a new visitor gets the new release straight away",
+      "ok": true
+    },
+    {
+      "name": "no page errors",
+      "ok": true,
+      "errors": []
+    }
+  ],
+  "errors": [],
+  "ok": true
+}

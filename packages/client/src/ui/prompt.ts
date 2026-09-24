@@ -83,11 +83,22 @@ export class Prompt {
           "button.opt" + (i === this.sel ? ".sel" : "") + (a.reason ? ".dis" : ""),
           {
             disabled: !!a.reason,
-            onclick: () => {
-              this.sel = i;
-              this.key = "";
-              this.trigger(i);
-            },
+            // «hold» actions (pedalling, digging…) last while the finger or the mouse button is down
+            onpointerdown: ACTIONS[a.a]?.hold
+              ? () => {
+                  this.sel = i;
+                  this.key = "";
+                  this.trigger(i);
+                  window.addEventListener("pointerup", () => this.release(), { once: true });
+                }
+              : undefined,
+            onclick: ACTIONS[a.a]?.hold
+              ? undefined
+              : () => {
+                  this.sel = i;
+                  this.key = "";
+                  this.trigger(i);
+                },
           },
           h("span.key", null, i === this.sel ? "E" : String(i + 1)),
           ACTIONS[a.a]?.hold ? h("span.hold-hint", null, "держать") : null,

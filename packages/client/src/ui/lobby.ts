@@ -2,6 +2,7 @@ import { GOALS, PROFS, STAT_NAMES, TRAITS_MINUS, TRAITS_PLUS, type Card } from "
 import { net } from "../net";
 import { clear, h, toast, ui } from "./dom";
 import { openCharEditor } from "./charedit";
+import { tgInfo } from "../telegram";
 
 export class LobbyUI {
   root = h("div.lobby");
@@ -17,6 +18,9 @@ export class LobbyUI {
     const v = net.pub!;
     const me = net.priv!;
     const r = this.root;
+    // keep the scroll position (on a phone the lobby is taller than the screen)
+    const scroll = r.scrollTop;
+    requestAnimationFrame(() => (r.scrollTop = scroll));
     clear(r);
     const players = Object.values(v.players) as any[];
     const mine = v.players[me.pid];
@@ -28,8 +32,10 @@ export class LobbyUI {
         null,
         h("div.title", { style: { fontSize: "26px", color: "var(--rust)" } }, "ГЛУБЖЕ"),
         h("div.grow"),
-        h("div.dim", null, "Код бункера:"),
-        h(
+        tgInfo
+          ? h("div.dim", { title: "В Telegram у каждого чата свой бункер" }, tgInfo.chatTitle ? `Бункер чата «${tgInfo.chatTitle}»` : "Ваш бункер в Telegram")
+          : h("div.dim", null, "Код бункера:"),
+        tgInfo ? null : h(
           "div.code",
           {
             title: "Скопировать",

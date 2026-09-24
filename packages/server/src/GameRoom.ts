@@ -1,4 +1,5 @@
 import { Room, type Client } from "@colyseus/core";
+import { verifyPid } from "./telegram";
 import {
   MSG,
   addPlayer,
@@ -29,7 +30,8 @@ export function genCode(): string {
   for (;;) {
     let s = "";
     for (let i = 0; i < 5; i++) s += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
-    if (!activeCodes.has(s)) return s;
+    // codes starting with T belong to Telegram chats
+    if (!activeCodes.has(s) && s[0] !== "T") return s;
   }
 }
 
@@ -138,7 +140,11 @@ export class GameRoom extends Room {
   }
 
   onJoin(client: Client, options: any) {
-    const pid = typeof options?.pid === "string" ? options.pid.slice(0, 40) : client.sessionId;
+    let pid = typeof options?.pid === "string" ? options.pid.slice(0, 40) : client.sessionId;
+    // Telegram identities are signed by the server: without a valid signature it is just a guest
+    if (pid.startsWith("tg_") && !verifyPid(pid, this.roomId, options?.sig)) pid = "guest_" + client.sessionId;
+    // a chat's bunker is only for that chat's members, opened from Telegram
+    if (this.roomId.startsWith("T") && !pid.startsWith("tg_")) throw new Error("Этот бункер принадлежит чату в Telegram — откройте игру из чата");
     // kick an older connection of the same player (duplicate tab)
     for (const [sid, p] of this.pidOf) {
       if (p === pid && sid !== client.sessionId) {

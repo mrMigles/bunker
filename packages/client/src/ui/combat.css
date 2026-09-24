@@ -608,3 +608,26 @@
     width: 160px;
   }
 }
+
+/* short landscape screens (phones): the fight keeps the middle of the screen free */
+@media (max-height: 480px) {
+  .combat-panel {
+    inset: auto 6px max(6px, env(safe-area-inset-bottom));
+    grid-template-columns: 140px minmax(0, 1fr) 120px;
+    gap: 8px;
+    padding: 7px 9px;
+  }
+  .combat-panel .combat-eyebrow, .combat-guidance, .combat-plan-line, .combat-action small, .combat-finish > .dim { display: none; }
+  .combat-operative { padding-right: 8px; }
+  .combat-operative h3 { font-size: 14px; margin: 0 0 4px; }
+  .combat-health, .combat-weapon, .combat-ap { font-size: 11px; margin: 2px 0; }
+  .combat-action { min-height: 44px; padding: 3px 4px; }
+  .combat-action-icon { font-size: 16px; height: 18px; }
+  .combat-action b { font-size: 11px; }
+  .combat-ready { font-size: 12px; min-height: 44px; padding: 4px; }
+  .combat-top { top: 64px; gap: 10px; padding: 4px 10px; }
+  .combat-clock strong { font-size: 20px; }
+  .combat-intel { top: 64px; right: 6px; width: 190px; padding: 8px; font-size: 11px; max-height: calc(100vh - 200px); overflow: auto; }
+  .combat-intel h3 { font-size: 13px; margin: 0 0 4px; }
+  .combat-journal { display: none; }
+}

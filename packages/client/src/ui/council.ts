@@ -37,10 +37,14 @@ export class CouncilUI {
     }
     this.el.classList.remove("hidden");
     const left = Math.max(0, Math.ceil(cn.stepEnds - v.phaseT));
-    const key = JSON.stringify([cn, left, this.minimized, v.res.water, foodTotal(v.res)]);
+    // the countdown ticks in place: rebuilding the panel every second made buttons slip from under the cursor
+    for (const t of this.el.querySelectorAll(".council-left")) t.textContent = String(left);
+    const key = JSON.stringify([cn, this.minimized, v.res.water, foodTotal(v.res)]);
     if (key === this.key) return;
     this.key = key;
     const focused = document.activeElement === this.noteInput;
+    const scroll = this.el.scrollTop;
+    requestAnimationFrame(() => (this.el.scrollTop = scroll));
     clear(this.el);
     const me = net.priv!.pid;
     const players = Object.values(v.players).filter((p: any) => p.online) as any[];
@@ -57,7 +61,7 @@ export class CouncilUI {
         null,
         h("h2", { style: { margin: 0, fontFamily: "var(--title)", fontSize: "18px", color: "var(--warm)" } }, `Ночь ${v.day} · Совет`),
         h("div.grow"),
-        solo ? h("span.dim", null, "ждём вас") : h("span", { style: { minWidth: "44px", textAlign: "right" } }, `⏱ ${left}с`),
+        solo ? h("span.dim", null, "ждём вас") : h("span", { style: { minWidth: "44px", textAlign: "right" } }, "⏱ ", h("span.council-left", null, String(left)), "с"),
         h("button.small", { onclick: () => ((this.minimized = !this.minimized), (this.key = "")) }, this.minimized ? "▼" : "▲"),
       ),
     );
@@ -86,7 +90,7 @@ export class CouncilUI {
         h("div.council-steps", null, ...steps.map(([id, label], i) => h("span" + (i < idx ? ".done" : i === idx ? ".now" : ""), null, (i < idx ? "✓ " : "") + label))),
         h("b", null, what),
         h("p", null, how),
-        h("small.dim", null, solo ? "Совет ждёт вас: читайте спокойно и нажмите «Готов». Утром — новый день, решения уже в силе." : `Совет идёт дальше, когда все нажмут «Готов» или через ${left} с. Утром — новый день, решения уже в силе.`),
+        h("small.dim", null, solo ? "Совет ждёт вас: читайте спокойно и нажмите «Готов». Утром — новый день, решения уже в силе." : h("span", null, "Совет идёт дальше, когда все нажмут «Готов» или через ", h("span.council-left", null, String(left)), " с. Утром — новый день, решения уже в силе.")),
       ),
     );
     if (cn.step === "rations") this.renderRations(v, cn, me);
@@ -94,7 +98,7 @@ export class CouncilUI {
     else this.renderPlan(v, cn);
     this.el.append(
       h(
-        "div.row",
+        "div.row.council-ready-row",
         { style: { marginTop: "12px" } },
         h("div.dim", null, `Готовы: ${readyN}/${players.length}. Когда все готовы — совет идёт дальше.`),
         h("div.grow"),
