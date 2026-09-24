@@ -144,6 +144,21 @@ try {
   await ev(() => window.__net.send({ k: "debug", op: "quiet" }));
   await page.waitForFunction(() => !window.__net.pub.mods.combat?.active, null, { timeout: 30000 }).catch(() => {});
   await wait(800);
+  // a plain click on «Обыскать» is a careful search, not a rush
+  const ct2 = await ev(() => { const s = window.__net.pub.mods.expedition.site, c = window.__net.myChar(); return s.conts.filter((o) => o.searched < 1 && !o.locked && !o.coop && o.lv === c.lv).sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))[0] ?? null; });
+  if (ct2) {
+    await ev((ct) => new Promise((res) => window.__game.navigation.go(ct.x + 0.5, ct.lv, res)), ct2);
+    await wait(500);
+    const btn = page.locator(".exp-action", { hasText: "Обыскать" }).first();
+    if (await btn.count()) {
+      await btn.click();
+      await wait(1200);
+      const r = await ev(() => window.__net.pub.mods.expedition.tasks[window.__net.priv.char] ?? null);
+      step("a click on «Обыскать» searches carefully (no rush)", !!r && !r.rush, { task: r });
+      await ev(() => window.__net.send({ k: "sstop" }));
+    }
+  }
+  await ev(() => window.__net.send({ k: "debug", op: "quiet" }));
   // room search
   const room = await ev(() => window.__game.exp.actions.find((a) => a.a === "searchRoom") ?? null);
   if (room) {

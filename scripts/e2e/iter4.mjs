@@ -53,7 +53,7 @@ try {
     const it = p.items.filter((i) => i.lv === 1).sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))[0];
     window.__game.navigation.go(it.x, it.lv);
   });
-  await wait(3500);
+  await page.waitForSelector(".prologue-actions .key", { timeout: 10000 }).catch(() => {});
   const menu = await ev(() => ({ keys: [...document.querySelectorAll(".prologue-actions .key")].map((k) => k.textContent), heading: document.querySelector(".prologue-actions .dock-keys")?.textContent ?? "", help: document.querySelector(".help, .controls-help")?.textContent ?? "" }));
   step("prologue menu has the E / ↑↓ key chips like in the bunker", menu.keys.includes("E") || menu.keys.includes("␣"), menu);
   await shot("i4-03-prologue");
