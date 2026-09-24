@@ -159,6 +159,10 @@ export class Hud {
   updateLabels(myChar: string | null, hoverChar: string | null) {
     const v = net.pub;
     if (!v) return;
+    const b = document.body.classList;
+    const inBunker = !b.contains("mode-site") && !b.contains("mode-map") && !b.contains("mode-prologue") && !b.contains("mode-table");
+    this.labels.style.display = inBunker ? "" : "none";
+    if (!inBunker) return;
     const seen = new Set<string>();
     for (const [id, cv] of this.r.chars) {
       const c = v.chars[id];

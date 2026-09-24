@@ -21,6 +21,7 @@ import {
   skillLevel,
   PERKS,
   BOX_NAMES,
+  OBJECTS,
   type Clipping,
 } from "@bunker/shared";
 import { audio } from "../audio/audio";
@@ -288,6 +289,15 @@ function targetName(v: any, ch: any): string | null {
   if (ch.room) return v.rooms[ch.room] ? `(${roomName(v.rooms[ch.room].type)})` : null;
   if (ch.char) return v.chars[ch.char] ? `(${v.chars[ch.char].card.name.split(" ")[0]})` : null;
   if (ch.item) return v.items[ch.item] ? `(${itemName(v.items[ch.item].item)})` : null;
+  // digging: which room and which floor, and how much is left of it
+  if (ch.cell !== undefined) {
+    const rid = v.marks?.[ch.cell];
+    const r = rid ? v.rooms[rid] : undefined;
+    if (!r) return null;
+    const left = Object.values(v.marks ?? {}).filter((m) => m === rid).length;
+    return `(${roomName(r.type)}, этаж −${r.lv + 1}, осталось ${left} из ${r.w})`;
+  }
+  if (ch.obj) return v.objs[ch.obj] ? `(${OBJECTS[v.objs[ch.obj].kind]?.name ?? ""})` : null;
   return null;
 }
 

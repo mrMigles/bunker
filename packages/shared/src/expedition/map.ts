@@ -61,7 +61,8 @@ export function generateMap(seed: number): WasteMap {
     const type = s.fixed ?? R.pick(s.kinds ?? ["shop"]);
     const lt = LOC.types[type];
     let name = s.name ?? "";
-    if (type === "camp" && s.faction) name = `Лагерь: ${FACTIONS[s.faction].name}`;
+    if (type === "home") name = "Наш бункер";
+    else if (type === "camp" && s.faction) name = `Лагерь: ${FACTIONS[s.faction].name}`;
     else if (type === "signal") name = "Источник сигнала";
     else if (!name) name = `${lt?.name ?? type} ${s.street ?? ""}`.trim();
     if (usedNames.has(name)) name += " (II)";

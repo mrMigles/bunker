@@ -20,7 +20,7 @@ export function openIntercom() {
       closeModal();
       return;
     }
-    const k = JSON.stringify([c, give, take, net.pub?.res]);
+    const k = JSON.stringify([{ ...c, leftHours: Math.ceil(c.leftHours ?? 0) }, give, take, c.kind === "trader" ? net.pub?.res : 0]);
     if (k === key) return;
     key = k;
     clear(body);

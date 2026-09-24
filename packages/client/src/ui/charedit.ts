@@ -70,7 +70,11 @@ export function openCharEditor(base?: Card) {
     nameIn.addEventListener("input", () => (card.name = nameIn.value));
     const ageIn = h("input", { type: "number", min: 18, max: 80, value: card.age, style: { width: "64px" } }) as HTMLInputElement;
     ageIn.addEventListener("input", () => (card.age = Number(ageIn.value)));
-    form.append(
+    // two columns so the whole editor fits one screen: who you are and stats | character and looks
+    const colA = h("div.charedit-col");
+    const colB = h("div.charedit-col");
+    form.append(colA, colB);
+    colA.append(
       h("h4", null, "Кто вы"),
       row("Имя", nameIn),
       row("Пол", select(String(card.gender), [["0", "Мужской"], ["1", "Женский"]], (v) => ((card.gender = Number(v)), render())), h("span", null, " возраст "), ageIn),
@@ -95,6 +99,8 @@ export function openCharEditor(base?: Card) {
           h("button.small", { disabled: card.stats[k] >= 5 || left <= 0, onclick: () => (card.stats[k]++, render()) }, "+"),
         ),
       ),
+    );
+    colB.append(
       h("h4", null, "Характер"),
       row("Сильная черта", select(card.plus, Object.keys(TRAITS_PLUS).map((k) => [k, TRAITS_PLUS[k].name]), (v) => ((card.plus = v), render()))),
       h("div.dim.charedit-hint", null, TRAITS_PLUS[card.plus]?.desc),

@@ -69,7 +69,7 @@ export function modal(title: string, body: Node | Node[], opts: { onClose?: () =
   closeModal();
   const box = h(
     "div.panel.modal" + (opts.cls ? "." + opts.cls : ""),
-    { style: opts.wide ? { width: "860px" } : {} },
+    { style: opts.wide ? { width: "min(1180px, calc(100vw - 24px))" } : {} },
     h("button.small.close", { onclick: () => closeModal() }, "✕"),
     h("h2", null, title),
     body,

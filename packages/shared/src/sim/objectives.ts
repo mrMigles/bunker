@@ -63,6 +63,9 @@ export function computeObjectives(w: World): Objective[] {
       const o = Object.values(w.objs).find((x) => x.room === r.id);
       out.push({ id: "fire_" + r.id, kind: "urgent", text: "Пожар!", hint: "Тушите огнетушителем или водой — огонь портит всё вокруг.", obj: o?.id });
     }
+  const call = w.mods.intercom as { kind: string; done?: string; until: number } | undefined;
+  if (call && !call.done)
+    out.push({ id: "intercom", kind: "urgent", text: call.kind === "trader" ? "📞 У двери торговец" : call.kind === "refugee" ? "📞 Просят впустить" : "📞 Звонят в интерком", hint: `Подойдите к интеркому у гермодвери. Уйдут через ~${Math.max(0, call.until - w.hour).toFixed(1)} ч.`, obj: objsOfKind(w, "intercom")[0]?.id });
   if (w.director?.raidWarn) out.push({ id: "raid", kind: "urgent", text: "К бункеру идут налётчики", hint: "Займите позиции у шлюза, заприте люк, раздайте оружие." });
   // --- needs
   const food = foodUnits(w) / n;

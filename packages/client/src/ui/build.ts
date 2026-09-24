@@ -212,6 +212,11 @@ export class BuildMode {
   updateLabels() {
     const v = net.pub;
     if (!v) return;
+    // bunker plan labels belong to the bunker view only (not to a building on a sortie, a fight or the map)
+    const b = document.body.classList;
+    const inBunker = !b.contains("mode-site") && !b.contains("mode-map") && !b.contains("mode-combat") && !b.contains("mode-prologue") && !b.contains("mode-table");
+    this.labels.style.display = inBunker ? "" : "none";
+    if (!inBunker) return;
     const rooms = Object.values(v.rooms) as any[];
     const key = JSON.stringify(rooms.filter((r) => r.state !== "done").map((r) => [r.id, r.state, r.work])) + this.r.camX.toFixed(1) + this.r.camY.toFixed(1) + this.r.viewH;
     if (key === this.labelKey) return;

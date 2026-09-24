@@ -13,7 +13,7 @@ export function openTalk(charId: string) {
     const c = v?.chars[charId];
     const t = v?.mods.talks?.[charId];
     if (!c || !t) return;
-    const k = JSON.stringify([t, c.needs.sanity]);
+    const k = JSON.stringify(t);
     if (k === key) return;
     key = k;
     clear(body);

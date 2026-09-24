@@ -367,7 +367,8 @@ function startLeg(w: World, e: Expedition) {
   e.travelTotal = travelHours(m.nodes[e.node], m.nodes[next], w.weather.today) * (weightOf({ ...e.supplies, ...e.loot }) > capacity(w, e.squad) ? 1.4 : 1);
   e.travelLeft = e.travelTotal;
   e.stage = "travel";
-  elog(e, `Путь: ${m.nodes[next].known ? m.nodes[next].name : "неизвестное место"} (~${e.travelTotal.toFixed(1)} ч).`);
+  const h = e.travelTotal / 2;
+  elog(e, `Путь: ${m.nodes[next].known ? m.nodes[next].name : "неизвестное место"} (~${h < 1 ? Math.max(1, Math.round(h * 60)) + " мин" : h.toFixed(1) + " ч"} игрового времени).`);
 }
 
 function arrive(w: World, e: Expedition) {

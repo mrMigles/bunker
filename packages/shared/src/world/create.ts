@@ -178,6 +178,15 @@ export function buildStartBunker(w: World) {
   w.res = { ...BAL.startRes, seed_lettuce: 2, seed_potato: 2, seed_tomato: 1, seed_herbs: 1, spores: 1, shovel: 2, extinguisher: 1, flashlight: 1 };
 }
 
+/** Opposite traits never meet on one card. */
+const TRAIT_CLASH: Record<string, string[]> = { frugal: ["glutton"], nightowl: ["sleepy"], optimist: ["grump"], lightsleeper: ["snorer"], tough: ["sleepy"] };
+
+function traitPair(rng: Rng) {
+  const plus = rng.pick(Object.keys(TRAITS_PLUS));
+  const minus = rng.pick(Object.keys(TRAITS_MINUS).filter((m) => !(TRAIT_CLASH[plus] ?? []).includes(m)));
+  return { plus, minus };
+}
+
 export function makeCard(rng: Rng, taken: Set<string> = new Set(), allowHostile = false): Card {
   const gender = rng.chance(0.5) ? 0 : 1;
   const first = rng.pick(gender === 0 ? NAMES_M : NAMES_F);
@@ -193,8 +202,7 @@ export function makeCard(rng: Rng, taken: Set<string> = new Set(), allowHostile 
   return {
     name: `${first} ${sur}`,
     prof,
-    plus: rng.pick(Object.keys(TRAITS_PLUS)),
-    minus: rng.pick(Object.keys(TRAITS_MINUS)),
+    ...traitPair(rng),
     goal: rng.pick(goals.filter((g) => g !== "saboteur")),
     stats,
     color: rng.pick(COLORS),
@@ -214,6 +222,12 @@ function feminize(s: string) {
 }
 
 export function createChar(w: World, card: Card, x: number, lv: number): Char {
+  // two residents with the same first name make the journal ambiguous: give the newcomer another one
+  const first = card.name.split(" ")[0];
+  if (Object.values(w.chars).some((o) => o.card.name.split(" ")[0] === first) && !card.custom) {
+    const pool = (card.gender === 1 ? NAMES_F : NAMES_M).filter((n) => !Object.values(w.chars).some((o) => o.card.name.startsWith(n + " ")));
+    if (pool.length) card = { ...card, name: pool[(w.nextId * 7) % pool.length] + card.name.slice(first.length) };
+  }
   const id = "c" + (w.nextId++).toString(36);
   const skills: Record<SkillId, number> = { repair: 0, medicine: 0, cooking: 0, shooting: 0, melee: 0, digging: 0, radio: 0, stealth: 0 };
   skills[PROFS[card.prof]?.skill ?? "repair"] = 40;

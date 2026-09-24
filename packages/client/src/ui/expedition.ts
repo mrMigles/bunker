@@ -157,7 +157,7 @@ export class ExpeditionUI {
           { onchange: (ev: Event) => ((this.sendNode = (ev.target as HTMLSelectElement).value), this.openPrep()) },
           nodes.map((n) => {
             const k = odds(n);
-            return h("option", { value: n.id, selected: n.id === this.sendNode }, `${n.name} · ${"◆".repeat(n.danger)} · успех ${k.clean + k.rough}%`);
+            return h("option", { value: n.id, selected: n.id === this.sendNode }, `${n.name} · ${"◆".repeat(n.danger)} · с добычей ${k.clean + k.rough}%`);
           }),
         ),
         h(
@@ -806,11 +806,15 @@ export class ExpeditionUI {
         },
         "✋ Действия",
       ),
-      h(
-        "button" + (me && e.light[me] ? ".active" : ""),
-        { onclick: () => net.send({ k: "expLight" }), title: "Фонарик · L" },
-        me && e.light[me] ? "🔦 Свет включён" : "🔦 Фонарик",
-      ),
+      (() => {
+        // no torch in the packs or in hand: say so instead of a button that only answers «Нет фонарика»
+        const hasLight = (e.supplies.flashlight ?? 0) >= 1 || net.myChar()?.equip?.tool === "flashlight";
+        return h(
+          "button" + (me && e.light[me] ? ".active" : ""),
+          { onclick: () => net.send({ k: "expLight" }), title: hasLight ? "Фонарик · L" : "Возьмите фонарик в сборах или в «Персонаж» → инструмент", disabled: !hasLight },
+          !hasLight ? "🔦 Фонаря нет" : me && e.light[me] ? "🔦 Свет включён" : "🔦 Фонарик",
+        );
+      })(),
       h("button", { onclick: () => this.openInventory() }, `🎒 ${Number(e.weight).toFixed(1)} / ${e.cap} кг`),
       h(
         "button",
