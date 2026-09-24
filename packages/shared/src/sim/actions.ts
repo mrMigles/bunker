@@ -238,7 +238,8 @@ export function startAction(w: World, c: Char, actionId: string, t: Target, para
   else if (t.type === "char") (task as any).char = t.id;
   if (param !== undefined) (task as any).param = param;
   c.task = task;
-  c.anim = a.anim ?? "work";
+  if (o) claimSeat(w, c, o, task);
+  c.anim = task.standing ? "sip" : (a.anim ?? "work");
   if (o) c.dir = objCenter(o) >= c.x ? 1 : -1;
   if (a.dur(ctx) === 0 && a.tick === undefined && a.done) {
     // instant
@@ -246,6 +247,32 @@ export function startAction(w: World, c: Char, actionId: string, t: Target, para
     finishTask(w, c, a, ctx);
   }
   return undefined;
+}
+
+/** Where people sit at shared furniture: one person per seat, the rest stand beside it. */
+const SEATS: Record<string, number[]> = { dining_table: [0.3, 1.0, 1.7] };
+
+export function claimSeat(w: World, c: Char, o: Obj, task: Task) {
+  const seats = SEATS[o.kind];
+  if (!seats) return;
+  const others = Object.values(w.chars).filter((x) => x.id !== c.id && x.task?.obj === o.id);
+  const taken = new Set(others.map((x) => x.task!.seat).filter((s) => s !== undefined));
+  const i = seats.findIndex((_, k) => !taken.has(k));
+  if (i >= 0) {
+    task.seat = i;
+    c.x = o.x + seats[i];
+    c.dir = i < seats.length / 2 ? 1 : -1;
+    return;
+  }
+  // no free chair: stand at the end of the table, a step apart from the others standing
+  const standing = others.filter((x) => x.task!.standing).length;
+  task.standing = true;
+  const left = standing % 2 === 0;
+  let x = left ? o.x - 0.3 - Math.floor(standing / 2) * 0.6 : o.x + 2.3 + Math.floor(standing / 2) * 0.6;
+  const r = o.room ? w.rooms[o.room] : undefined;
+  if (r) x = Math.max(r.x + 0.3, Math.min(r.x + r.w - 0.3, x));
+  c.x = x;
+  c.dir = x < o.x + 1 ? 1 : -1;
 }
 
 export function stopTask(w: World, c: Char) {
@@ -329,7 +356,7 @@ export function tickTasks(w: World, dt: number) {
     // a player with the minigame open works by hand: the task barely moves on its own
     const sp = taskSpeed(w, c, a, t) * ((task as any).mini ? 0.25 : 1);
     task.t += dt * sp;
-    c.anim = a.anim ?? "work";
+    c.anim = task.standing ? "sip" : (a.anim ?? "work");
     const fin = a.tick?.(ctx, dt * sp);
     if (!c.task) continue; // tick may stop it
     if (fin === true || (task.dur > 0 && task.t >= task.dur)) {

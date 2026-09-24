@@ -32,7 +32,7 @@
     {
       "name": "talking to a resident shows today's story",
       "ok": true,
-      "story": "«Знаешь, сегодня хороший день. Не знаю почему. Просто хороший.»"
+      "story": "«Давай вечером в карты? Только чур без мухлежа.»"
     },
     {
       "name": "the intercom rings and opens a dialog with the visitor",
@@ -49,7 +49,7 @@
       "name": "holding E turns the search into a loud rush",
       "ok": true,
       "rush": true,
-      "noise": 1
+      "noise": 5
     },
     {
       "name": "«обыскать комнату» sends the companions to containers",
@@ -60,10 +60,10 @@
       "name": "companions stand apart",
       "ok": true,
       "xs": [
-        6.26,
-        6.74
+        8.24,
+        9.72
       ],
-      "minGap": 0.4800000000000004,
+      "minGap": 1.4800000000000004,
       "bubbles": 0
     },
     {

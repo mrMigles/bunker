@@ -61,6 +61,9 @@ export interface Task {
   dur: number; // seconds needed (0 = continuous)
   hold: boolean; // cancelled when player releases E
   helper?: boolean;
+  /** seat index at a shared table; standing = no seat was free */
+  seat?: number;
+  standing?: boolean;
 }
 
 export interface Bark {
@@ -89,6 +92,8 @@ export interface BotMind {
   thinkT?: number;
   cdir?: number; // climbing direction while following a path
   lastBark?: string;
+  /** game hour (day*24+hour) until which this bot does not take the bike again */
+  pedalRest?: number;
   /** day of the last morning coffee */
   coffeeDay?: number;
 }

@@ -11,7 +11,7 @@ const MULTS: [number, string][] = [
 ];
 
 export class CouncilUI {
-  el = h("div.panel", { style: { position: "fixed", left: "50%", top: "52px", transform: "translateX(-50%)", width: "min(760px, calc(100vw - 24px))", maxHeight: "calc(100vh - 260px)", overflow: "auto", padding: "14px", zIndex: "20" } });
+  el = h("div.panel", { style: { position: "fixed", left: "50%", top: "52px", transform: "translateX(-50%)", width: "min(760px, calc(100vw - 24px))", maxHeight: "calc(100vh - 64px)", overflow: "auto", padding: "14px", zIndex: "20" } });
   noteInput = h("input", { placeholder: "Заметка на доску: кто идёт в вылазку, что строим…", maxLength: 120, style: { flex: "1" } }) as HTMLInputElement;
   private key = "";
   private minimized = false;
@@ -45,6 +45,7 @@ export class CouncilUI {
     const me = net.priv!.pid;
     const players = Object.values(v.players).filter((p: any) => p.online) as any[];
     const readyN = players.filter((p) => cn.ready[p.id]).length;
+    const solo = players.filter((p) => !p.aquarium).length === 1;
     const steps = [
       ["rations", "🍲 Пайки"],
       ["event", "📜 Событие"],
@@ -56,8 +57,7 @@ export class CouncilUI {
         null,
         h("h2", { style: { margin: 0, fontFamily: "var(--title)", fontSize: "18px", color: "var(--warm)" } }, `Ночь ${v.day} · Совет`),
         h("div.grow"),
-        ...steps.map(([id, label]) => h("span.tag", { style: { borderColor: cn.step === id ? "var(--rust)" : "", color: cn.step === id ? "var(--warm)" : "" } }, label)),
-        h("span", { style: { minWidth: "44px", textAlign: "right" } }, `⏱ ${left}с`),
+        solo ? h("span.dim", null, "ждём вас") : h("span", { style: { minWidth: "44px", textAlign: "right" } }, `⏱ ${left}с`),
         h("button.small", { onclick: () => ((this.minimized = !this.minimized), (this.key = "")) }, this.minimized ? "▼" : "▲"),
       ),
     );
@@ -86,7 +86,7 @@ export class CouncilUI {
         h("div.council-steps", null, ...steps.map(([id, label], i) => h("span" + (i < idx ? ".done" : i === idx ? ".now" : ""), null, (i < idx ? "✓ " : "") + label))),
         h("b", null, what),
         h("p", null, how),
-        h("small.dim", null, `Совет идёт дальше, когда все нажмут «Готов» или через ${left} с. Утром — новый день, решения уже в силе.`),
+        h("small.dim", null, solo ? "Совет ждёт вас: читайте спокойно и нажмите «Готов». Утром — новый день, решения уже в силе." : `Совет идёт дальше, когда все нажмут «Готов» или через ${left} с. Утром — новый день, решения уже в силе.`),
       ),
     );
     if (cn.step === "rations") this.renderRations(v, cn, me);

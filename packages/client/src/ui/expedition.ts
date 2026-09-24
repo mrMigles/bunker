@@ -219,7 +219,10 @@ export class ExpeditionUI {
       const joined = me && e.squad.includes(me);
       const body = h("div.exp-prep");
       const rerender = () => setTimeout(render, 250);
-      body.append(
+      // two columns and a fixed footer: everything, the «go» button included, fits one screen
+      const left = h("div.prep-col.prep-left");
+      const right = h("div.prep-col.prep-right");
+      left.append(
         h("div.exp-eyebrow", null, "ПОДГОТОВКА К ВЫХОДУ / УБЕЖИЩЕ 01"),
         h("p.dim", null, "Соберите отряд и возьмите припасы. Всё найденное вернётся на склад вместе с вами."),
       );
@@ -275,7 +278,7 @@ export class ExpeditionUI {
         (c) => c.status === "ok" && !e.squad.includes(c.id) && !c.ctrl && (c.needs?.health ?? 100) > 40,
       );
       add(
-        body,
+        left,
         squad,
         h("div.exp-squad-members", null, ...e.squad.map(member)),
         e.squad.length < 3 && candidates.length
@@ -325,7 +328,7 @@ export class ExpeditionUI {
         ),
         bar(e.gearWeight ?? 0, "#dda66c", Math.max(1, e.cap)),
       );
-      body.append(capacity);
+      right.append(capacity);
       const categories = [
         { title: "Припасы и медицина", ids: GEAR.filter((k) => ["food", "water", "med"].includes(ITEMS[k]?.cat)) },
         {
@@ -383,8 +386,9 @@ export class ExpeditionUI {
         if (group.children.length === 1) group.append(h("p.dim", null, "На складе пока пусто"));
         grid.append(group);
       }
+      right.append(grid);
       body.append(
-        grid,
+        h("div.prep-cols", null, left, right),
         h(
           "div.exp-prep-foot",
           null,
@@ -1268,8 +1272,6 @@ export class ExpeditionUI {
         this.sel = i;
         this.press();
       });
-      btn.addEventListener("pointerup", () => this.release());
-      btn.addEventListener("pointerleave", () => this.release());
       this.prompt.append(btn);
     });
     if (!this.actions.length) this.prompt.append(h("p.dim", null, "Здесь больше нечего искать."));
@@ -1279,6 +1281,9 @@ export class ExpeditionUI {
 
   /** E / mouse down on the selected option. */
   press(i = this.sel) {
+    // the button under the finger is re-rendered once the task starts, so its own pointerup never
+    // comes: listen on the window, otherwise a plain click turned into a rush
+    window.addEventListener("pointerup", () => this.release(), { once: true });
     this.holding = true;
     this.holdStart = performance.now();
     this.rushSent = false;

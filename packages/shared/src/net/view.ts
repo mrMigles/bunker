@@ -1,4 +1,5 @@
 import type { Char, World } from "../types";
+import { ROOMS } from "../world/rooms";
 
 // Builds what clients are allowed to see. Public view is shared by all clients;
 // private view carries per-player secrets (goal, stash, offered cards, private hands...).
@@ -6,7 +7,16 @@ import type { Char, World } from "../types";
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
-function pubChar(c: Char) {
+/** Progress of open-ended work (digging a cell, raising a frame) for the progress bars. */
+function taskProgress(w: World, c: Char): number {
+  const t = c.task!;
+  if (t.dur > 0) return r2(t.t / t.dur);
+  if (t.action === "dig" && t.cell !== undefined) return r2(Math.min(1, w.dig[t.cell] ?? 0));
+  if (t.action === "build_frame" && t.room && w.rooms[t.room]) return r2(Math.min(1, w.rooms[t.room].work / Math.max(1, ROOMS[w.rooms[t.room].type]?.work ?? 30)));
+  return -1;
+}
+
+function pubChar(c: Char, w: World) {
   const needs: Record<string, number> = {};
   for (const k in c.needs) needs[k] = Math.round((c.needs as any)[k]);
   const card = { ...c.card, goal: undefined };
@@ -20,7 +30,7 @@ function pubChar(c: Char) {
     lv: c.lv,
     dir: c.dir,
     climbing: c.climbing,
-    task: c.task ? { action: c.task.action, obj: c.task.obj, cell: c.task.cell, p: c.task.dur > 0 ? r2(c.task.t / c.task.dur) : -1 } : null,
+    task: c.task ? { action: c.task.action, obj: c.task.obj, cell: c.task.cell, p: taskProgress(w, c) } : null,
     hands: c.hands,
     ctrl: c.ctrl,
     thought: c.mind.thought,
@@ -51,7 +61,7 @@ export type PubChar = ReturnType<typeof pubChar>;
 
 export function publicView(w: World) {
   const chars: Record<string, PubChar> = {};
-  for (const id in w.chars) chars[id] = pubChar(w.chars[id]);
+  for (const id in w.chars) chars[id] = pubChar(w.chars[id], w);
   const players: Record<string, any> = {};
   for (const id in w.players) {
     const p = w.players[id];

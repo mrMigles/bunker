@@ -384,6 +384,12 @@ export class CharView {
         this.legR.rotation.x = -Math.sin(t * 5) * 0.4;
         blendRate = 24;
         break;
+      case "sip":
+        // standing with a mug (or a plate) by a full table
+        this.armR.rotation.x = -1.1 - Math.max(0, Math.sin(t * 1.3)) * 0.9;
+        this.armL.rotation.x = -0.9;
+        this.head.rotation.x = Math.sin(t * 1.3) > 0.6 ? -0.15 : 0;
+        break;
       case "talk":
         this.armR.rotation.x = -0.5 + Math.sin(t * 3) * 0.3;
         this.armR.rotation.z = 0.2;

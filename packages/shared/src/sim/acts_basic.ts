@@ -239,7 +239,8 @@ defAction({
         if (x.id !== c.id && x.task?.action === "eat" && x.lv === c.lv && Math.abs(x.x - c.x) < 3) company++;
       }
     }
-    c.needs.sanity = clamp(c.needs.sanity + san + company * 3);
+    // no free chair: eating on your feet by the table
+    c.needs.sanity = clamp(c.needs.sanity + san + company * 3 - (c.task?.standing ? 3 : 0));
     c.meal++;
     w.stats.ate[c.id] = (w.stats.ate[c.id] ?? 0) + nut;
     emitWork(w, c, `🍽 ${names.join(", ")}`, "#e8dcc0");

@@ -130,7 +130,10 @@ onTick("council", "night", (w) => {
       log(w, `Совет решил: ${c ? firstName(c) : "?"} получает ${multName(pr.mult)}.`, "event");
     }
   }
-  if (w.phaseT < cn.stepEnds && !allReady(w)) return;
+  // a lone player reads at their own pace: the council waits for «Готов» (up to four extra minutes)
+  const online = Object.values(w.players).filter((p) => p.online && !p.aquarium);
+  const solo = online.length === 1;
+  if ((w.phaseT < cn.stepEnds + (solo ? 240 : 0)) && !allReady(w)) return;
   cn.ready = {};
   if (cn.step === "rations") {
     const v = councilHooks.pickEvent?.(w) ?? null;

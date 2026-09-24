@@ -419,9 +419,6 @@ export function buildObject(o: any): THREE.Group {
       g.add(cyl(0.12, 0.2, 0x333333, -0.1, 1.2, Z, 8).rotateX(Math.PI / 2));
       g.add(box(0.05, 0.9, 0.05, 0x333333, 0, 0, Z));
       break;
-    case "keepsake":
-      g.add(box(0.8, 0.05, 0.3, PAL.wood, 0, 1.3, Z - 0.3));
-      break;
     case "guitar_stand": {
       // an acoustic guitar leaning on a little stand
       const gt = new THREE.Group();
@@ -484,8 +481,22 @@ export function buildObject(o: any): THREE.Group {
       g.add(box(0.8, 0.05, 0.3, PAL.wood, 0, 1.2, Z - 0.3));
       g.add(box(0.05, 0.25, 0.25, PAL.woodDark, -0.35, 0.95, Z - 0.3));
       g.add(box(0.05, 0.25, 0.25, PAL.woodDark, 0.35, 0.95, Z - 0.3));
-      const col = { album: 0x7a2e3a, iron: 0x888888, teddy: 0x9a6a3a, gnome: 0xc8553d, radio_portable: 0x3a3a3a, guitar: 0x8b5a2b } as Record<string, number>;
-      g.add(box(0.25, 0.28, 0.2, col[o.st?.item] ?? 0x999999, 0, 1.25, Z - 0.3));
+      // the keepsake itself stands on the shelf, recognisable at a glance
+      const it = o.st?.item;
+      const zz = Z - 0.25;
+      if (it === "gnome") {
+        g.add(box(0.2, 0.18, 0.16, 0x3d6b8c, 0, 1.25, zz), box(0.16, 0.12, 0.14, 0xf0c9a5, 0, 1.43, zz), box(0.16, 0.08, 0.05, 0xeeeeee, 0, 1.39, zz + 0.08));
+        g.add(cyl(0.1, 0.2, 0xc8553d, 0, 1.55, zz, 6, 0.01));
+      } else if (it === "teddy") {
+        g.add(box(0.22, 0.2, 0.16, 0x9a6a3a, 0, 1.25, zz), box(0.18, 0.16, 0.15, 0xa8784a, 0, 1.45, zz));
+        g.add(box(0.06, 0.06, 0.05, 0x9a6a3a, -0.08, 1.61, zz), box(0.06, 0.06, 0.05, 0x9a6a3a, 0.08, 1.61, zz), box(0.06, 0.04, 0.03, 0x3a2a1a, 0, 1.47, zz + 0.08));
+      } else if (it === "album") {
+        g.add(box(0.3, 0.26, 0.06, 0x7a2e3a, 0, 1.25, zz), box(0.26, 0.22, 0.01, 0xe8dcc0, 0, 1.27, zz + 0.035));
+      } else if (it === "iron") {
+        g.add(box(0.3, 0.06, 0.14, 0x888888, 0, 1.25, zz), box(0.2, 0.08, 0.12, 0x5a5a5a, -0.02, 1.31, zz), box(0.14, 0.04, 0.04, 0x2a2a2a, 0, 1.4, zz));
+      } else if (it === "radio_portable") {
+        g.add(box(0.3, 0.2, 0.12, 0x3a3a3a, 0, 1.25, zz), cyl(0.06, 0.02, 0x999999, -0.07, 1.33, zz + 0.07, 8).rotateX(Math.PI / 2), box(0.02, 0.2, 0.02, 0xaaaaaa, 0.1, 1.45, zz));
+      } else g.add(box(0.25, 0.28, 0.2, 0x999999, 0, 1.25, zz));
       break;
     }
     default:

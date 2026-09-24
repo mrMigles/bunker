@@ -83,15 +83,9 @@ leisure("morning_coffee", ["dining_table"], (x) => (x.w.hour >= 6 && x.w.hour < 
   extra: (x, h) => {
     x.c.needs.energy = clamp(x.c.needs.energy + 4 * h);
     x.c.needs.water = clamp(x.c.needs.water + 3 * h);
-    // company at the table: everyone gets a seat of their own and chats
+    // no chair left: drinking it standing up is not quite the same
+    if (x.c.task?.standing) x.c.needs.sanity = clamp(x.c.needs.sanity - 5 * h);
     const mates = Object.values(x.w.chars).filter((o) => o.id !== x.c.id && o.task?.action === "morning_coffee" && o.task.obj === x.o?.id);
-    if (!x.c.task || (x.c.task as any).seatX === undefined) {
-      const k = mates.length;
-      const off = [0, -0.8, 0.8, -1.6, 1.6, -2.4, 2.4][k % 7];
-      if (x.c.task) (x.c.task as any).seatX = off;
-      x.c.x = (x.o?.x ?? x.c.x) + 0.5 + off;
-      x.c.dir = off > 0 ? -1 : 1;
-    }
     if (mates.length && !x.c.bark && x.c.mind.barkCd <= 0 && rng(x.w).chance(h * 3)) coffeeTalk(x.w, x.c);
   },
 });

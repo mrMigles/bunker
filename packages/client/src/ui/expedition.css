@@ -605,3 +605,33 @@
 }
 .exp-bubble.mine { background: #fff7c8f2; }
 .exp-bodies { margin: 8px 0; padding: 8px 10px; border: 1px dashed #e0a06a88; border-radius: 6px; background: #3a221818; }
+/* iteration 5: the prep window fits one screen — squad on the left, the pack on the right, footer always visible */
+.exp-prep-modal { max-width: min(1280px, calc(100vw - 20px)) !important; width: min(1280px, calc(100vw - 20px)) !important; max-height: calc(100vh - 20px); overflow: hidden !important; }
+.prep-cols { display: grid; grid-template-columns: minmax(320px, 0.9fr) 1.6fr; gap: 18px; max-height: calc(100vh - 210px); }
+.exp-prep-modal .exp-sendbots .row { flex-wrap: wrap; }
+.exp-prep-modal .exp-sendbots select { min-width: 0; width: 100%; }
+.prep-col { min-height: 0; overflow: auto; }
+.prep-left p { margin: 4px 0 8px; }
+.exp-prep-modal .exp-squad { padding: 8px 0; }
+.exp-prep-modal .exp-capacity { padding: 0 0 8px; }
+.exp-prep-modal .exp-gear-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.exp-prep-modal .exp-gear-row { padding: 3px 0; gap: 5px; }
+.exp-prep-modal .exp-item-icon { font-size: 16px; width: 22px; }
+.exp-prep-modal .exp-item-name { gap: 0; }
+.exp-prep-modal .exp-gear-row button { min-width: 24px; height: 24px; }
+.exp-prep-modal .exp-prep-foot { margin-top: 8px; padding-top: 8px; position: sticky; bottom: 0; background: inherit; }
+.exp-prep-modal .exp-sendbots { margin: 6px 0; }
+@media (max-width: 900px) {
+  .prep-cols { grid-template-columns: 1fr; }
+  .exp-prep-modal .exp-gear-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* the map side panel fits without scrolling on a laptop screen */
+.exp-side { padding: 14px 16px; gap: 6px; overflow: auto; }
+.exp-side h2 { font-size: 19px !important; }
+.exp-side h3 { margin: 4px 0; font-size: 16px; }
+.exp-side p { margin: 2px 0; line-height: 1.35; }
+.exp-destination { padding: 8px 0; }
+.exp-side button { min-height: 32px; padding: 5px 8px; }
+.exp-intel { gap: 4px; margin: 4px 0; }
+.exp-side .exp-journal { max-height: 120px; overflow: auto; }
+@media (max-height: 800px) { .exp-side .exp-current .dim { display: none; } .exp-map { padding: 12px; } }

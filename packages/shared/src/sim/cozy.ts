@@ -5,6 +5,7 @@ import { defAction, emitWork } from "./actions";
 import { costText, give, hasRes, missingText, payRes } from "./items";
 import { onTick } from "./tick";
 import { clamp, log } from "./util";
+import { OBJECTS } from "../data/objects";
 
 // Furniture items produced at the workbench, carried and placed anywhere.
 export const FURNITURE: Record<string, { name: string; icon: string; obj: string; cost: Record<string, number>; comfort: number }> = {
@@ -178,12 +179,16 @@ defAction({
 defAction({
   id: "pickup_furniture",
   type: "obj",
-  kinds: ["armchair", "rug", "lamp", "poster", "plant", "keepsake", "pet_bed", "darts", "washtub", "bookshelf"],
+  kinds: ["armchair", "rug", "lamp", "poster", "plant", "keepsake", "guitar_stand", "pet_bed", "darts", "washtub", "bookshelf"],
   prio: 90,
-  avail: ({ c, o }) => (c.hands.length || !o!.room ? null : `🤲 Переставить: ${o!.kind === "keepsake" ? itemName(o!.st.item) : ""}`.replace(/: $/, "")),
+  avail: ({ w, c, o }) => {
+    if (c.hands.length || !o!.room) return null;
+    if (o!.kind === "guitar_stand" && Object.values(w.chars).some((x) => x.task?.obj === o!.id)) return null;
+    return `🤲 Переставить: ${o!.st.item ? itemName(o!.st.item) : (OBJECTS[o!.kind]?.name ?? "")}`.replace(/: $/, "");
+  },
   dur: () => 2,
   done: ({ w, c, o }) => {
-    const back = o!.kind === "keepsake" ? o!.st.item : Object.keys(FURNITURE).find((k) => FURNITURE[k].obj === o!.kind);
+    const back = o!.st.item ?? Object.keys(FURNITURE).find((k) => FURNITURE[k].obj === o!.kind);
     if (!back) return;
     if (o!.st.item === "album") w.flags.album_home = 0;
     delete w.objs[o!.id];

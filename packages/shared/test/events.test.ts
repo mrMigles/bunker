@@ -101,6 +101,8 @@ describe("events engine", () => {
     const w = startedWorld({ seed: 99, dayLength: 120 });
     w.day = 6;
     for (let i = 0; i < 20 * 600 && !w.stats.events.length && !w.vote; i++) {
+      // a lone player: the council waits for «Готов»
+      if (w.phase === "night" && w.council) for (const pid in w.players) w.council.ready[pid] = true;
       tickWorld(w, 0.05);
       w.fx = [];
       if (Object.keys(w.flags).some((k) => /^_(leak|wiring|bulb)_/.test(k)) || Object.keys(w.flags).some((k) => k.startsWith("_ev_day"))) break;

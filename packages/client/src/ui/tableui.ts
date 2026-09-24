@@ -256,7 +256,7 @@ export class TableUI {
   renderPanel(t: any, view: any, legal: any[], seats: (string | null)[], me: string | null) {
     const v = net.pub!;
     const seated = me && seats.includes(me);
-    const key = JSON.stringify([t?.status, t?.talk, t?.turnT, legal, seats, t?.result, this.opts, this.stake, this.game, this.scene.selected, [...this.scene.multi], this.keep, this.claim, this.sel, view?.taking, view?.attacker, view?.defender, t?.paused, t?.toAct]);
+    const key = JSON.stringify([t?.status, t?.talk, t?.log?.length, t?.turnT, legal, seats, t?.result, this.opts, this.stake, this.game, this.scene.selected, [...this.scene.multi], this.keep, this.claim, this.sel, view?.taking, view?.attacker, view?.defender, t?.paused, t?.toAct]);
     if (key === this.key) return;
     this.key = key;
     const name = (id: string) => (v.chars[id] ? v.chars[id].card.name.split(" ")[0] : id);
@@ -279,9 +279,33 @@ export class TableUI {
         t.result.text ? h("div.dim", null, t.result.text.replace(/\bc[0-9a-z]+\b/g, (id: string) => name(id))) : null,
       );
     else add(this.status, h("span.dim", null, seated ? "Стол свободен. Выберите игру и начните." : "Вы смотрите партию. Чужих карт не видно."));
-    // talk
+    // who is at the table, whose turn it is
     clear(this.talk);
-    for (const m of t?.talk ?? []) this.talk.appendChild(h("div", null, h("b", null, m.who + ": "), m.text));
+    const toAct: string[] = t?.toAct ?? [];
+    this.talk.appendChild(
+      h(
+        "div.table-seats",
+        null,
+        ...seats.map((id, i) => {
+          if (!id) return h("div.table-seat.empty", null, `Место ${i + 1} свободно`);
+          const c = v.chars[id];
+          const who = c?.ctrl ? v.players[c.ctrl]?.name ?? "игрок" : "бот";
+          return h(
+            "div.table-seat" + (toAct.includes(id) ? ".turn" : "") + (id === me ? ".me" : ""),
+            { style: { borderColor: "#" + (c?.card.color ?? 0x555555).toString(16).padStart(6, "0") } },
+            h("b", null, c ? c.card.name.split(" ")[0] : id),
+            h("small", null, id === me ? "вы" : who),
+            toAct.includes(id) ? h("span.table-turn", null, "ходит") : null,
+          );
+        }),
+      ),
+    );
+    // the game journal: every move with its author
+    const log = (t?.log ?? []) as { who: string; text: string; n: number }[];
+    const jr = h("div.table-journal", null, h("div.table-journal-head", null, "Журнал партии"), ...(log.length ? log.slice(-12).map((l) => h("div", null, h("span.dim", null, `${l.n}. `), h("b", null, l.who + ": "), l.text)) : [h("div.dim", null, "Ходов пока нет")]));
+    this.talk.appendChild(jr);
+    for (const m of t?.talk ?? []) this.talk.appendChild(h("div.table-chat", null, h("b", null, m.who + ": "), m.text));
+    setTimeout(() => (jr.scrollTop = jr.scrollHeight), 0);
     // controls
     clear(this.panel);
     const btn = (label: string, move: any, cls = "") => h("button" + cls, { onclick: () => this.send(move) }, label);

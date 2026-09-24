@@ -140,6 +140,10 @@ try {
     await page.keyboard.up("KeyE");
     step("holding E turns the search into a loud rush", rush === true, { rush, noise });
   } else step("a container to search", false);
+  // the rush may have drawn a dog: silence the building for the next checks
+  await ev(() => window.__net.send({ k: "debug", op: "quiet" }));
+  await page.waitForFunction(() => !window.__net.pub.mods.combat?.active, null, { timeout: 30000 }).catch(() => {});
+  await wait(800);
   // room search
   const room = await ev(() => window.__game.exp.actions.find((a) => a.a === "searchRoom") ?? null);
   if (room) {

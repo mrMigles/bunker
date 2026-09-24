@@ -1029,8 +1029,9 @@ function siteTick(w: World, e: Expedition, s: Site, dt: number) {
     if (t.a === "search") {
       if (t.rush) {
         rate *= 2.5;
-        s.noise = clamp(s.noise + 4.5 * dt);
-        if (R.chance(dt * 0.12)) {
+        // a rush is loud: drawers slam, cans roll — noise climbs fast
+        s.noise = clamp(s.noise + 12 * dt);
+        if (R.chance(dt * 0.2)) {
           s.noise = clamp(s.noise + 12);
           elog(e, `💥 ${firstName(c)} роняет что-то с грохотом!`);
           fx(w, { k: "sound", id: "clang" });
@@ -1078,15 +1079,22 @@ function siteTick(w: World, e: Expedition, s: Site, dt: number) {
     threatsThink(w, e, s, squad, 0.25, R);
   }
   // reinforcements drawn by noise
-  if (s.noise >= 55 && s.spawned < 1) {
-    s.spawned = 1;
-    for (let i = 0; i < 2; i++) s.threats.push({ id: "t" + w.nextId++, etype: "dog", x: s.exitX + i, lv: s.exitLv, dir: 1, state: "alert", detect: 60, room: s.rooms[0].id, tx: leader.x });
-    elog(e, "🐕 Лай у входа — на шум сбегаются собаки!");
+  // one kind of trouble at a time: a small group of one type, and the second wave only much later
+  const wave = (etype: string, n: number, text: string) => {
+    for (let i = 0; i < n; i++) s.threats.push({ id: "t" + w.nextId++, etype, x: s.exitX + i * 0.6, lv: s.exitLv, dir: 1, state: "alert", detect: 60, room: s.rooms[0].id, tx: leader.x });
+    elog(e, text);
     fx(w, { k: "sound", id: "alarm" });
-  } else if (s.noise >= 80 && s.spawned < 2) {
+    w.flags._waveT = w.phaseT;
+  };
+  const kinds = ((LOC.types[s.type]?.threats ?? ["dog"]) as string[]).filter((k) => k !== "boss");
+  if (s.noise >= 60 && s.spawned < 1) {
+    s.spawned = 1;
+    const k = kinds.includes("dog") ? "dog" : R.pick(kinds);
+    wave(k, k === "rat" ? 2 : k === "dog" ? R.int(1, 2) : 1, k === "dog" ? "🐕 Лай у входа — на шум бежит собака!" : k === "rat" ? "🐀 Писк в стенах: на шум лезут крысы." : "⚠ На шум кто-то идёт с улицы…");
+  } else if (s.noise >= 90 && s.spawned < 2 && w.phaseT - (w.flags._waveT ?? 0) > 45 && !s.threats.some((t) => t.state === "alert")) {
     s.spawned = 2;
-    for (const t of ["marauder", "raider"]) s.threats.push({ id: "t" + w.nextId++, etype: t, x: s.exitX, lv: s.exitLv, dir: 1, state: "alert", detect: 60, room: s.rooms[0].id, tx: leader.x });
-    elog(e, "🏴 На шум пришли мародёры с улицы!");
+    const k = R.pick(kinds.filter((x) => x !== "rat")) ?? "marauder";
+    wave(k, 1, "🏴 Грохот слышно на всю улицу — к зданию идут чужие.");
   }
 }
 
@@ -1181,7 +1189,10 @@ export function siteFight(w: World, e: Expedition, s: Site, ambush: boolean) {
   const squad = squadChars(w, e);
   const taken: Record<string, number> = {};
   const allies = squad.map((c) => squadUnit(w, e, c, Math.floor(c.x), c.lv, taken));
-  const near = s.threats.filter((t) => squad.some((c) => c.lv === t.lv && Math.abs(c.x - t.x) < (t.state === "alert" ? 9 : t.state === "asleep" ? 3 : 6)));
+  const close = s.threats.filter((t) => squad.some((c) => c.lv === t.lv && Math.abs(c.x - t.x) < (t.state === "alert" ? 9 : t.state === "asleep" ? 3 : 6)));
+  // one type of enemy per fight: whoever spotted us, with their own kind nearby (at most three)
+  const lead = close.slice().sort((a, b) => b.detect - a.detect)[0];
+  const near = lead ? close.filter((t) => t.etype === lead.etype).slice(0, 3) : [];
   const foes: UnitInit[] = (near.length ? near : s.threats.slice(0, 2)).map((t) => ({ id: "e_" + t.id, side: "enemy", name: "", col: Math.max(1, Math.min(s.W - 2, Math.round(t.x))), floor: t.lv, etype: t.etype }));
   if (!foes.length) return;
   startBattle(w, field, allies, foes, "expedition", { coordination: e.coord + (ambush ? 1 : 0), onEnd: "expedition", tag: "site" });
@@ -1769,6 +1780,15 @@ debugOps.sortie = (w, _a, pid) => {
   const shop = Object.values(wmap(w).nodes).filter((n) => n.type === "shop" && n.known).sort((a, b) => Math.hypot(a.x - 50, a.y - 46) - Math.hypot(b.x - 50, b.y - 46))[0];
   e.node = shop.id;
   enterSite(w, e, shop);
+};
+/** dev: silence the building — no noise, no threats, and a running fight is won */
+debugOps.quiet = (w) => {
+  const e = exped(w);
+  if (!e?.site) return;
+  e.site.noise = 0;
+  e.site.threats = [];
+  const b = battle(w);
+  if (b) for (const u of Object.values(b.state.units)) if (u.side === "enemy") Object.assign(u, { hp: 0, dead: true });
 };
 debugOps.leaveSite = (w) => {
   const e = exped(w);

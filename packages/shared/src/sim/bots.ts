@@ -16,6 +16,9 @@ import { clamp, firstName, hasTrait, rng, skillLevel } from "./util";
 const BARKS = barksJson as Record<string, string[]>;
 import { BAL } from "../data/balance";
 const BAL_BIKE = BAL.bikeKw;
+/** real seconds a bot pedals in one go, and game hours before the same bot pedals again */
+const PEDAL_SHIFT = 50;
+const PEDAL_REST_H = 1.5;
 
 // ---------------------------------------------------------------- barks
 
@@ -219,7 +222,7 @@ function choreScore(w: World, c: Char, ch: Chore): number {
   let s = ch.urgency + (ch.prio ? 0.35 : 0);
   if (def?.skill) s *= 1 + (skillLevel(c, def.skill) - 1) * 0.08;
   if (INTEREST[c.card.prof]?.includes(ch.kind)) s *= 1.35;
-  if (ch.kind === "pedal" && c.needs.energy < 45) return -1;
+  if (ch.kind === "pedal" && (c.needs.energy < 45 || (c.mind.pedalRest ?? 0) > w.day * 24 + w.hour)) return -1;
   if ((ch.kind === "dig" || ch.kind === "haul") && c.needs.energy < 25) return -1;
   const pos = choreTarget(w, ch);
   if (!pos) return -1;
@@ -422,6 +425,13 @@ function shouldStop(w: World, c: Char): boolean {
     if (c.needs.energy < 30 || frac > 0.97) return true;
     if (w.hour < 15 && frac > 0.7 && w.power.gen - BAL_BIKE > w.power.demand) return true;
     if (c.needs.water < 30 || c.needs.food < 25) return true;
+    // shifts: nobody pedals for ever — after a stint the bike rests a little and someone else takes over
+    if (t.t > PEDAL_SHIFT) {
+      const now = w.day * 24 + w.hour; // game hours: phaseT restarts every day
+      c.mind.pedalRest = now + PEDAL_REST_H;
+      w.flags._pedalGap = now + 0.25 + rng(w).range(0, 0.35);
+      return true;
+    }
   }
   if (t.action === "sleep") {
     if (c.needs.energy >= 96) return true;

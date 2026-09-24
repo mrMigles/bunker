@@ -41,6 +41,8 @@ export interface TableState {
   pot: Record<string, number>;
   result: GameResult | null;
   talk: { who: string; text: string }[];
+  /** the game journal: every move, who made it */
+  log?: { who: string; text: string; n: number }[];
   thinkT: Record<string, number>;
   paused: boolean;
   overT: number;
@@ -84,6 +86,21 @@ function turnTime(w: World, t: TableState) {
 /** Games talk about seats by character id; show first names instead. */
 function named(w: World, text: string) {
   return text.replace(/\bc[0-9a-z]+\b/g, (id) => (w.chars[id] ? firstName(w.chars[id]) : id));
+}
+
+/** One line in the game journal (every move, by whom). */
+function journal(w: World, t: TableState, who: string, move: any) {
+  const g = GAMES[t.game!];
+  let text = "";
+  try {
+    const names = Object.fromEntries(t.seats.filter(Boolean).map((id) => [id, w.chars[id!] ? firstName(w.chars[id!]) : id]));
+    text = g.describe?.(t.state, who, move) ?? g.label?.(move, { ...g.viewFor(t.state, null), names }) ?? "";
+  } catch {
+    text = "";
+  }
+  const log = (t.log ??= []);
+  log.push({ who: w.chars[who] ? firstName(w.chars[who]) : who, text: named(w, text || "ход"), n: log.length + 1 });
+  if (log.length > 40) log.shift();
 }
 
 function say(t: TableState, who: string, text: string) {
@@ -179,6 +196,7 @@ export function startTableGame(w: World, t: TableState, gid: string, opts: Recor
   t.pot = {};
   t.thinkT = {};
   t.talk = [];
+  t.log = [];
   if (stake) for (const id of players) {
     w.chars[id].stash[stake.item] -= stake.n;
     t.pot[stake.item] = (t.pot[stake.item] ?? 0) + stake.n;
@@ -196,6 +214,7 @@ registerCmd("tableMove", (w, p, cmd) => {
   const r = tryMove(g, t.state, c.id, cmd.move);
   if (r.error) return r.error;
   t.state = r.state;
+  journal(w, t, c.id, cmd.move);
   const d = g.describe?.(t.state, c.id, cmd.move);
   if (d) say(t, firstName(c), named(w, d));
   t.turnT = turnTime(w, t);
@@ -359,6 +378,7 @@ onTick("tables", "*", (w, dt) => {
       const r = tryMove(g, t.state, p, move, trusted);
       if (r.error) continue;
       t.state = r.state;
+      journal(w, t, p, move);
       const d = g.describe?.(t.state, p, move);
       if (d && c) say(t, firstName(c), named(w, d));
       if (c && R.chance(0.15)) c.bark = { text: R.pick(["Ха!", "Ну-ну…", "Бито!", "А вот так?", "Эх…", "Кто так ходит?!", "Держи козыря!"]), t: 2.5 };
@@ -388,6 +408,7 @@ modViews.tables = {
         pot: t.pot,
         result: t.result,
         talk: t.talk,
+        log: t.log ?? [],
         paused: t.paused,
         view: g && t.state ? g.viewFor(t.state, null) : null,
         toAct: g && t.state && t.status === "playing" ? g.toAct(t.state) : [],

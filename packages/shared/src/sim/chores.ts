@@ -147,7 +147,8 @@ export function refreshChores(w: World) {
   const p = w.power;
   const frac = p.cap > 0 ? p.battery / p.cap : 1;
   // …and top the battery up in the evening so the air filter survives the night
-  if ((p.gen < p.demand && frac < 0.6) || (w.hour > 15 && frac < 0.9 && p.gen < p.demand + 0.3)) {
+  // (after a shift change the bike stands idle for a short while)
+  if (((p.gen < p.demand && frac < 0.6) || (w.hour > 15 && frac < 0.9 && p.gen < p.demand + 0.3)) && (w.flags._pedalGap ?? 0) < w.day * 24 + w.hour) {
     for (const id in w.objs) {
       const o = w.objs[id];
       if (o.kind === "bike_gen" && !o.broken) add({ kind: "pedal", obj: id, urgency: Math.min(1, 0.4 + (0.6 - frac)) });
