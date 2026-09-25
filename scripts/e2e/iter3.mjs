@@ -91,8 +91,13 @@ try {
     const o = Object.values(window.__net.pub.chars).find((c) => c.id !== me.id && c.status === "ok");
     return o ? { id: o.id, x: o.x, lv: o.lv } : null;
   });
-  await ev((t) => window.__game.navigation.go(t.x, t.lv, () => window.__net.send({ k: "do", a: "talk", tt: "char", t: t.id })), other);
-  let talk = await page.waitForSelector(".talk-modal", { timeout: 10000 }).then(() => true).catch(() => false);
+  let talk = false;
+  // residents walk about: chase the current position a few times
+  for (let i = 0; i < 3 && !talk; i++) {
+    const t = await ev((id) => { const c = window.__net.pub.chars[id]; return { id, x: c.x, lv: c.lv }; }, other.id);
+    await ev((t) => window.__game.navigation.go(t.x, t.lv, () => window.__net.send({ k: "do", a: "talk", tt: "char", t: t.id })), t);
+    talk = await page.waitForSelector(".talk-modal", { timeout: 8000 }).then(() => true).catch(() => false);
+  }
   // residents walk about: if the one we went to has moved on, talk to whoever the menu offers
   if (!talk) {
     await page.locator(".prompt .opt", { hasText: "Поговорить" }).first().click({ timeout: 5000 }).catch(() => {});

@@ -27,12 +27,12 @@
       "name": "hand strokes fill the bucket (task done by the minigame)",
       "ok": true,
       "dirty0": 0,
-      "dirty1": 0.7
+      "dirty1": 1.8
     },
     {
       "name": "talking to a resident shows today's story",
-      "ok": false,
-      "story": ""
+      "ok": true,
+      "story": "«Посчитал: до войны я пил четыре кружки кофе в день. Сейчас — ноль. И ничего, жи"
     },
     {
       "name": "the intercom rings and opens a dialog with the visitor",
@@ -49,27 +49,32 @@
       "name": "holding E turns the search into a loud rush",
       "ok": true,
       "rush": true,
-      "noise": 18
+      "noise": 6
     },
     {
       "name": "a click on «Обыскать» searches carefully (no rush)",
       "ok": true,
       "task": {
         "a": "search",
-        "id": "c4",
-        "t": 1.406,
-        "dur": 16.296,
+        "id": "c9",
+        "t": 1.3110000000000002,
+        "dur": 4.656,
         "rush": false
       }
+    },
+    {
+      "name": "«обыскать комнату» sends the companions to containers",
+      "ok": true,
+      "busy": 1
     },
     {
       "name": "companions stand apart",
       "ok": true,
       "xs": [
-        5.07,
-        6.33
+        8.27,
+        8.72
       ],
-      "minGap": 1.2599999999999998,
+      "minGap": 0.45000000000000107,
       "bubbles": 0
     },
     {
@@ -83,5 +88,5 @@
     }
   ],
   "errors": [],
-  "ok": false
+  "ok": true
 }

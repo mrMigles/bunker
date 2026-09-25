@@ -3,7 +3,7 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "TC6VM",
+      "code": "T3RRA",
       "head": "ГЛУБЖЕ Бункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
@@ -12,7 +12,7 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "TC6VM",
+      "code": "T3RRA",
       "head": "ГЛУБЖЕ Бункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
@@ -26,7 +26,7 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "TC6VM",
+      "code": "T3RRA",
       "head": "ГЛУБЖЕ Бункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
@@ -35,7 +35,7 @@
     {
       "name": "a second chat member joins the same bunker",
       "ok": true,
-      "code2": "TC6VM",
+      "code2": "T3RRA",
       "players": [
         "Анна П.",
         "Борис"
@@ -66,7 +66,7 @@
       "name": "the stick walks the character",
       "ok": true,
       "x0": 25.5,
-      "x1": 30.59,
+      "x1": 31.32,
       "anim": "run"
     },
     {
@@ -144,14 +144,99 @@
       "stickHidden": true
     },
     {
-      "name": "build mode: «Уже / Шире / Готово» buttons",
-      "ok": false,
-      "buildPad": []
+      "name": "build mode: the room strip with width and «Готово»",
+      "ok": true,
+      "strip": true,
+      "cards": 28,
+      "wide": true,
+      "done": true
     },
     {
-      "name": "script error",
-      "ok": false,
-      "error": "locator.tap: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.touch-pad .touch-btn').filter({ hasText: 'Готово' })\u001b[22m\n"
+      "name": "«Готово» leaves build mode",
+      "ok": true
+    },
+    {
+      "name": "pinch zooms the bunker in",
+      "ok": true,
+      "vh0": 9,
+      "vh1": 6,
+      "under": "CANVAS."
+    },
+    {
+      "name": "site: Камень / Обыск buttons, stick stays",
+      "ok": true,
+      "sitePad": [
+        "Камень",
+        "Обыск"
+      ]
+    },
+    {
+      "name": "the site bar's flashlight button works by touch",
+      "ok": true,
+      "lightOff": true
+    },
+    {
+      "name": "the backpack opens by touch",
+      "ok": true
+    },
+    {
+      "name": "the pump minigame fits the phone screen",
+      "ok": true,
+      "mbox": {
+        "x": 202.046875,
+        "y": 55,
+        "width": 439.90625,
+        "height": 240
+      }
+    },
+    {
+      "name": "finger strokes work the pump",
+      "ok": true,
+      "p0": 0.03,
+      "p1": 1
+    },
+    {
+      "name": "the council fits (or scrolls) on the phone",
+      "ok": true,
+      "top": 52,
+      "bottom": 378,
+      "H": 390,
+      "scrolls": true,
+      "ready": 369
+    },
+    {
+      "name": "fight: no stick or pad, «Конец хода» on screen, nothing off-screen",
+      "ok": true,
+      "pad": 0,
+      "stick": false,
+      "end": true,
+      "scrollW": 844,
+      "W": 844
+    },
+    {
+      "name": "fight: a tap on a cell moves the unit",
+      "ok": true,
+      "u0": {
+        "col": 1,
+        "ap": 3
+      },
+      "u1": {
+        "col": 5,
+        "ap": 2
+      },
+      "viaTap": true
+    },
+    {
+      "name": "Вера Г.",
+      "ok": true,
+      "head": "ГЛУБЖЕ Бункер чата «Игровой чат»",
+      "code": "TJG5Y",
+      "url": ""
+    },
+    {
+      "name": "a forged game link is refused",
+      "ok": true,
+      "forged": 403
     },
     {
       "name": "no page errors",
@@ -160,5 +245,5 @@
     }
   ],
   "errors": [],
-  "ok": false
+  "ok": true
 }
