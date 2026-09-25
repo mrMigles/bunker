@@ -1,0 +1,1470 @@
+{
+ "config": {
+  "PLAYERS": 1,
+  "DAYS": 30,
+  "SEEDS": 4,
+  "TELLER": "classic",
+  "DAY_LEN": 360,
+  "INITIATIVE": true,
+  "HUMAN": true
+ },
+ "deaths": 6,
+ "botErr": {},
+ "clumpWhereTotal": {},
+ "frozenWhereTotal": {
+  "airlock: player · Осматриваюсь": 4,
+  "living: idle · Осматриваюсь": 28
+ },
+ "runs": [
+  {
+   "seed": 1000,
+   "ending": "dead",
+   "firstDeathDay": 6,
+   "rows": [
+    {
+     "day": 1,
+     "alive": 1,
+     "food": 12,
+     "water": 18,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 73,
+     "needsAvg": {
+      "food": 67,
+      "water": 60,
+      "energy": 75,
+      "sanity": 66,
+      "health": 100
+     },
+     "needsMin": {
+      "food": 53,
+      "water": 40,
+      "energy": 61,
+      "sanity": 46,
+      "health": 100
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 0,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 360
+     },
+     "events": [],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "airlock: player · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 2,
+     "alive": 1,
+     "food": 11,
+     "water": 16,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 67,
+      "water": 60,
+      "energy": 85,
+      "sanity": 22,
+      "health": 100
+     },
+     "needsMin": {
+      "food": 53,
+      "water": 40,
+      "energy": 70,
+      "sanity": 3,
+      "health": 100
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 59,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 360
+     },
+     "events": [
+      "door_dog"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 3,
+     "alive": 1,
+     "food": 9,
+     "water": 14,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 67,
+      "water": 60,
+      "energy": 75,
+      "sanity": 8,
+      "health": 99
+     },
+     "needsMin": {
+      "food": 53,
+      "water": 40,
+      "energy": 54,
+      "sanity": 0,
+      "health": 97
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 100,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 286,
+      "(breakdown)": 74
+     },
+     "events": [
+      "door_soldier"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 4,
+     "alive": 1,
+     "food": 8,
+     "water": 12,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 67,
+      "water": 60,
+      "energy": 63,
+      "sanity": 8,
+      "health": 76
+     },
+     "needsMin": {
+      "food": 53,
+      "water": 40,
+      "energy": 35,
+      "sanity": 0,
+      "health": 61
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 100,
+      "health": 0
+     },
+     "acts": {
+      "(breakdown)": 120,
+      "(бездельничает: Осматриваюсь)": 240
+     },
+     "events": [
+      "panel_fire"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 5,
+     "alive": 1,
+     "food": 7,
+     "water": 10,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 67,
+      "water": 60,
+      "energy": 57,
+      "sanity": 7,
+      "health": 29
+     },
+     "needsMin": {
+      "food": 53,
+      "water": 40,
+      "energy": 29,
+      "sanity": 0,
+      "health": 8
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 100,
+      "health": 37
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 240,
+      "(breakdown)": 120
+     },
+     "events": [
+      "night_eater"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 3,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 3
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 6,
+     "alive": 0,
+     "food": 4,
+     "water": 8,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.26,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 0,
+      "health": 0
+     },
+     "needsMin": {
+      "food": 100,
+      "water": 100,
+      "energy": 100,
+      "sanity": 100,
+      "health": 100
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 0,
+      "health": 0
+     },
+     "acts": {},
+     "events": [
+      "karaoke"
+     ],
+     "deaths": [
+      "Яков Подвальный (сгорел(а))"
+     ],
+     "clumpShare": 0,
+     "clumpMax": 0,
+     "clumpWhere": {},
+     "frozen": 0,
+     "frozenWhere": {},
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 0,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    }
+   ]
+  },
+  {
+   "seed": 8919,
+   "ending": "dead",
+   "firstDeathDay": 9,
+   "rows": [
+    {
+     "day": 1,
+     "alive": 1,
+     "food": 12,
+     "water": 18,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 73,
+     "needsAvg": {
+      "food": 67,
+      "water": 60,
+      "energy": 72,
+      "sanity": 66,
+      "health": 100
+     },
+     "needsMin": {
+      "food": 53,
+      "water": 40,
+      "energy": 53,
+      "sanity": 46,
+      "health": 100
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 0,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 360
+     },
+     "events": [],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "airlock: player · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 2,
+     "alive": 1,
+     "food": 11,
+     "water": 16,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 67,
+      "water": 60,
+      "energy": 81,
+      "sanity": 22,
+      "health": 100
+     },
+     "needsMin": {
+      "food": 53,
+      "water": 40,
+      "energy": 62,
+      "sanity": 4,
+      "health": 100
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 57,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 360
+     },
+     "events": [
+      "door_doctor"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 3,
+     "alive": 1,
+     "food": 10,
+     "water": 14,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 67,
+      "water": 60,
+      "energy": 72,
+      "sanity": 8,
+      "health": 99
+     },
+     "needsMin": {
+      "food": 53,
+      "water": 40,
+      "energy": 46,
+      "sanity": 0,
+      "health": 96
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 100,
+      "health": 0
+     },
+     "acts": {
+      "(breakdown)": 120,
+      "(бездельничает: Осматриваюсь)": 240
+     },
+     "events": [
+      "night_eater"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 4,
+     "alive": 1,
+     "food": 7,
+     "water": 12,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.45,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 67,
+      "water": 60,
+      "energy": 59,
+      "sanity": 7,
+      "health": 70
+     },
+     "needsMin": {
+      "food": 53,
+      "water": 40,
+      "energy": 27,
+      "sanity": 0,
+      "health": 52
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 100,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 240,
+      "(breakdown)": 120
+     },
+     "events": [
+      "door_dog"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 2,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 2
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 5,
+     "alive": 2,
+     "food": 6,
+     "water": 12.1,
+     "battery": 0,
+     "gen": 0.32,
+     "demand": 0.56,
+     "offShare": 37,
+     "needsAvg": {
+      "food": 67,
+      "water": 60,
+      "energy": 57,
+      "sanity": 40,
+      "health": 62
+     },
+     "needsMin": {
+      "food": 53,
+      "water": 38,
+      "energy": 22,
+      "sanity": 0,
+      "health": 26
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 4,
+      "sanity": 52,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 276,
+      "(идёт) pedal": 11,
+      "pedal": 146,
+      "(breakdown)": 84,
+      "(идёт) water_plants": 2,
+      "water_plants": 5,
+      "(идёт) fix_leak": 1,
+      "fix_leak": 13,
+      "treat_pests": 10,
+      "mix_solution": 13,
+      "(идёт) dry_room": 3,
+      "dry_room": 14,
+      "plant": 8,
+      "clean_room": 29,
+      "(идёт) clean_air_filter": 1,
+      "clean_air_filter": 16,
+      "(идёт) drink": 2,
+      "drink": 4,
+      "(идёт) listen_radio": 2,
+      "listen_radio": 28,
+      "(идёт) sleep": 6,
+      "sleep": 16
+     },
+     "events": [
+      "day_knock",
+      "rats_ate"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 2,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 2
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 1,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 6,
+     "alive": 2,
+     "food": 1,
+     "water": 7.3,
+     "battery": 0,
+     "gen": 0.37,
+     "demand": 0.5,
+     "offShare": 28,
+     "needsAvg": {
+      "food": 68,
+      "water": 60,
+      "energy": 72,
+      "sanity": 25,
+      "health": 68
+     },
+     "needsMin": {
+      "food": 53,
+      "water": 37,
+      "energy": 34,
+      "sanity": 0,
+      "health": 33
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 50,
+      "health": 0
+     },
+     "acts": {
+      "(breakdown)": 120,
+      "(бездельничает: Пора спать)": 1,
+      "(идёт) pedal": 6,
+      "pedal": 167,
+      "(идёт) morning_coffee": 3,
+      "morning_coffee": 22,
+      "(бездельничает: Осматриваюсь)": 240,
+      "(идёт) fix_wiring": 1,
+      "fix_wiring": 15,
+      "(идёт) repair": 6,
+      "repair": 16,
+      "(идёт) oil_generator": 6,
+      "oil_generator": 13,
+      "read_book": 87,
+      "(идёт) drink": 4,
+      "drink": 3,
+      "(идёт) read_book": 5,
+      "(идёт) sleep": 1,
+      "sleep": 4
+     },
+     "events": [
+      "door_fever"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 1,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 7,
+     "alive": 2,
+     "food": 0,
+     "water": 0,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.51,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 48,
+      "water": 61,
+      "energy": 82,
+      "sanity": 12,
+      "health": 72
+     },
+     "needsMin": {
+      "food": 2,
+      "water": 40,
+      "energy": 60,
+      "sanity": 0,
+      "health": 36
+     },
+     "critShare": {
+      "food": 18,
+      "water": 0,
+      "energy": 0,
+      "sanity": 83,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 241,
+      "(бездельничает: Пора спать)": 1,
+      "(идёт) read_book": 27,
+      "read_book": 31,
+      "(идёт) morning_coffee": 4,
+      "(breakdown)": 172,
+      "morning_coffee": 26,
+      "(идёт) listen_radio": 32,
+      "listen_radio": 100,
+      "(идёт) sit_table": 27,
+      "(идёт) chat_table": 54,
+      "sit_table": 3,
+      "chat_table": 3,
+      "(бездельничает: Отдыхаю: Почитать книгу)": 1
+     },
+     "events": [
+      "clear_sky"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 2,
+     "clumpWhere": {},
+     "frozen": 2,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 2
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 1,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 8,
+     "alive": 2,
+     "food": 0,
+     "water": 0,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 13,
+      "water": 50,
+      "energy": 60,
+      "sanity": 7,
+      "health": 40
+     },
+     "needsMin": {
+      "food": 0,
+      "water": 29,
+      "energy": 28,
+      "sanity": 0,
+      "health": 2
+     },
+     "critShare": {
+      "food": 72,
+      "water": 0,
+      "energy": 0,
+      "sanity": 100,
+      "health": 29
+     },
+     "acts": {
+      "(breakdown)": 294,
+      "(бездельничает: Осматриваюсь)": 186,
+      "(идёт) read_book": 2,
+      "read_book": 215,
+      "sleep": 22,
+      "(бездельничает: Пора спать)": 1
+     },
+     "events": [
+      "door_dog"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 2,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 2
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 1,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 9,
+     "alive": 1,
+     "food": 0,
+     "water": 0,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.33,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 14,
+      "water": 18,
+      "energy": 77,
+      "sanity": 13,
+      "health": 18
+     },
+     "needsMin": {
+      "food": 0,
+      "water": 0,
+      "energy": 64,
+      "sanity": 0,
+      "health": 0
+     },
+     "critShare": {
+      "food": 82,
+      "water": 82,
+      "energy": 0,
+      "sanity": 82,
+      "health": 82
+     },
+     "acts": {
+      "(down)": 180,
+      "(бездельничает: Осматриваюсь)": 40
+     },
+     "events": [
+      "day_knock",
+      "karaoke"
+     ],
+     "deaths": [
+      "Демьян Жестянкин (не дождался помощи)",
+      "Инна Сиренина (не дождался помощи)"
+     ],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 0,
+     "frozenWhere": {},
+     "roomsDone": 6,
+     "roomsPlanned": 1,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 10,
+     "alive": 1,
+     "food": 0,
+     "water": 0,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.31,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 50,
+      "water": 36,
+      "energy": 54,
+      "sanity": 19,
+      "health": 56
+     },
+     "needsMin": {
+      "food": 37,
+      "water": 16,
+      "energy": 25,
+      "sanity": 0,
+      "health": 36
+     },
+     "critShare": {
+      "food": 0,
+      "water": 24,
+      "energy": 0,
+      "sanity": 66,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 260,
+      "(breakdown)": 100
+     },
+     "events": [
+      "door_trader"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 2,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 2
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 1,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 11,
+     "alive": 0,
+     "food": 3,
+     "water": 0,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.27,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 60,
+      "water": 0,
+      "energy": 72,
+      "sanity": 0,
+      "health": 0
+     },
+     "needsMin": {
+      "food": 57,
+      "water": 0,
+      "energy": 64,
+      "sanity": 0,
+      "health": 0
+     },
+     "critShare": {
+      "food": 0,
+      "water": 100,
+      "energy": 0,
+      "sanity": 100,
+      "health": 100
+     },
+     "acts": {
+      "(down)": 90
+     },
+     "events": [
+      "found_tape"
+     ],
+     "deaths": [
+      "Макар Лампочкин (не дождался помощи)"
+     ],
+     "clumpShare": 0,
+     "clumpMax": 0,
+     "clumpWhere": {},
+     "frozen": 0,
+     "frozenWhere": {},
+     "roomsDone": 6,
+     "roomsPlanned": 1,
+     "avgLevel": 0,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    }
+   ]
+  },
+  {
+   "seed": 16838,
+   "ending": "dead",
+   "firstDeathDay": 4,
+   "rows": [
+    {
+     "day": 1,
+     "alive": 1,
+     "food": 12,
+     "water": 18,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 73,
+     "needsAvg": {
+      "food": 69,
+      "water": 60,
+      "energy": 72,
+      "sanity": 66,
+      "health": 100
+     },
+     "needsMin": {
+      "food": 59,
+      "water": 40,
+      "energy": 53,
+      "sanity": 46,
+      "health": 100
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 0,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 360
+     },
+     "events": [],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "airlock: player · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 2,
+     "alive": 1,
+     "food": 11,
+     "water": 16,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 77,
+      "water": 60,
+      "energy": 81,
+      "sanity": 22,
+      "health": 100
+     },
+     "needsMin": {
+      "food": 67,
+      "water": 40,
+      "energy": 62,
+      "sanity": 4,
+      "health": 100
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 57,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 360
+     },
+     "events": [
+      "rats_ate"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 3,
+     "alive": 1,
+     "food": 8,
+     "water": 14,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 79,
+      "water": 60,
+      "energy": 72,
+      "sanity": 8,
+      "health": 99
+     },
+     "needsMin": {
+      "food": 68,
+      "water": 40,
+      "energy": 46,
+      "sanity": 0,
+      "health": 96
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 100,
+      "health": 0
+     },
+     "acts": {
+      "(breakdown)": 120,
+      "(бездельничает: Осматриваюсь)": 240
+     },
+     "events": [
+      "knock_at_door_child"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 4,
+     "alive": 0,
+     "food": 7,
+     "water": 12,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.45,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 81,
+      "water": 64,
+      "energy": 65,
+      "sanity": 7,
+      "health": 65
+     },
+     "needsMin": {
+      "food": 72,
+      "water": 48,
+      "energy": 40,
+      "sanity": 0,
+      "health": 0
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 100,
+      "health": 10
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 169,
+      "(breakdown)": 120
+     },
+     "events": [
+      "day_knock",
+      "vent_cat"
+     ],
+     "deaths": [
+      "Тамара Пескарёва (сгорел(а))"
+     ],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 0,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    }
+   ]
+  },
+  {
+   "seed": 24757,
+   "ending": "dead",
+   "firstDeathDay": 5,
+   "rows": [
+    {
+     "day": 1,
+     "alive": 1,
+     "food": 12,
+     "water": 18,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 73,
+     "needsAvg": {
+      "food": 67,
+      "water": 60,
+      "energy": 72,
+      "sanity": 68,
+      "health": 100
+     },
+     "needsMin": {
+      "food": 53,
+      "water": 40,
+      "energy": 53,
+      "sanity": 50,
+      "health": 100
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 0,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 360
+     },
+     "events": [],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "airlock: player · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 2,
+     "alive": 1,
+     "food": 11,
+     "water": 16,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 67,
+      "water": 60,
+      "energy": 81,
+      "sanity": 21,
+      "health": 100
+     },
+     "needsMin": {
+      "food": 53,
+      "water": 40,
+      "energy": 62,
+      "sanity": 0,
+      "health": 100
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 60,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 326,
+      "(breakdown)": 34
+     },
+     "events": [
+      "rats_ate"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 3,
+     "alive": 1,
+     "food": 9,
+     "water": 14,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 73,
+      "water": 60,
+      "energy": 72,
+      "sanity": 9,
+      "health": 99
+     },
+     "needsMin": {
+      "food": 60,
+      "water": 40,
+      "energy": 46,
+      "sanity": 0,
+      "health": 96
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 100,
+      "health": 0
+     },
+     "acts": {
+      "(breakdown)": 120,
+      "(бездельничает: Осматриваюсь)": 240
+     },
+     "events": [
+      "door_soldier"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 2,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 2
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 2
+    },
+    {
+     "day": 4,
+     "alive": 1,
+     "food": 8,
+     "water": 12,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.46,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 73,
+      "water": 60,
+      "energy": 59,
+      "sanity": 8,
+      "health": 68
+     },
+     "needsMin": {
+      "food": 60,
+      "water": 40,
+      "energy": 27,
+      "sanity": 0,
+      "health": 50
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 0,
+      "sanity": 100,
+      "health": 0
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 240,
+      "(breakdown)": 120
+     },
+     "events": [
+      "day_knock",
+      "night_eater"
+     ],
+     "deaths": [],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 2,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 2
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 1,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    },
+    {
+     "day": 5,
+     "alive": 0,
+     "food": 5,
+     "water": 10,
+     "battery": 0,
+     "gen": 0,
+     "demand": 0.43,
+     "offShare": 100,
+     "needsAvg": {
+      "food": 73,
+      "water": 60,
+      "energy": 54,
+      "sanity": 7,
+      "health": 11
+     },
+     "needsMin": {
+      "food": 60,
+      "water": 41,
+      "energy": 22,
+      "sanity": 0,
+      "health": 0
+     },
+     "critShare": {
+      "food": 0,
+      "water": 0,
+      "energy": 4,
+      "sanity": 100,
+      "health": 88
+     },
+     "acts": {
+      "(бездельничает: Осматриваюсь)": 146,
+      "(breakdown)": 120,
+      "(down)": 90
+     },
+     "events": [
+      "radio_numbers"
+     ],
+     "deaths": [
+      "Галина Бурова (не дождался помощи)"
+     ],
+     "clumpShare": 0,
+     "clumpMax": 1,
+     "clumpWhere": {},
+     "frozen": 1,
+     "frozenWhere": {
+      "living: idle · Осматриваюсь": 1
+     },
+     "roomsDone": 6,
+     "roomsPlanned": 0,
+     "avgLevel": 0,
+     "sorties": 0,
+     "raids": 0,
+     "tableGames": 0,
+     "notice": 0
+    }
+   ]
+  }
+ ]
+}
