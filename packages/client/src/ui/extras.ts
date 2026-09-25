@@ -91,6 +91,7 @@ export function installExtras(game: GameUI) {
     h("button", { onclick: () => { game.chatWrap.classList.remove("hidden"); game.chatBox.focus(); }, title: "Чат (Enter)" }, icon("chat"), h("span", null, "Чат")));
   ui().append(toolbar, dock);
   (window as any).__openCharacter = () => openCharacterScreen();
+  (window as any).__openBoard = (tab?: string) => openBoard(tab as any);
   installTouch(game as any);
   GameUI.extraKeysUp.push((e) => pro.handleKey(e, false));
   GameUI.extraKeysUp.push((e) => exp.mode === "site" && exp.handleKeyUp(e));
