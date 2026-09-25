@@ -109,6 +109,11 @@ battleEndHooks.ark_home = (w, b: BattleMod) => {
 registerCmd("newGame", (w, p) => {
   if (w.phase !== "ending") return "Партия ещё идёт";
   if (!p.host) return "Новую партию начинает хост";
+  resetWorld(w);
+});
+
+/** A new bunker in place of this one: same code and settings, everyone online back in the lobby. */
+export function resetWorld(w: World) {
   const players = Object.values(w.players).filter((x) => x.online);
   const fresh = createWorld(w.code, (w.seed * 48271 + 11) % 2147483647, w.settings);
   for (const k of Object.keys(w) as (keyof World)[]) delete (w as any)[k];
@@ -117,6 +122,50 @@ registerCmd("newGame", (w, p) => {
     w.players[pl.id] = { ...pl, char: null, ready: false, ghost: false, aquarium: false, cards: undefined, pick: undefined };
     offerCards(w, w.players[pl.id]);
   }
+  log(w, "Бункер начат заново.", "system");
+}
+
+// ---------------------------------------------------------------- «Начать заново» in a running game
+// One player asks; the bunker is only wiped when someone else agrees — another player in the game, or
+// (in a Telegram chat) any member of the chat with the button under the bot's message.
+
+registerCmd("restartAsk", (w, p) => {
+  if (w.phase === "lobby") return "Игра ещё не началась";
+  if (w.restart) return "Уже спрашиваем — ждём ответа";
+  w.restart = { by: p.id, name: p.name, day: w.day };
+  log(w, `🔄 ${p.name} предлагает начать бункер заново. Нужен ещё хотя бы один «за».`, "event");
 });
+
+registerCmd("restartYes", (w, p) => restartAgree(w, p.id, p.name));
+
+registerCmd("restartNo", (w, p) => {
+  if (w.restart?.by === p.id) {
+    log(w, `${p.name} передумал начинать заново.`, "system");
+    w.restart = null;
+  } else restartRefuse(w, p.name);
+});
+
+/** Someone is against starting over: the question is closed. */
+export function restartRefuse(w: World, name: string) {
+  if (!w.restart) return;
+  log(w, `${name} против того, чтобы начинать заново. Играем дальше.`, "system");
+  fx(w, { k: "toast", text: `${name}: играем дальше` });
+  w.restart = null;
+}
+
+/** Someone agrees to start over (from the game or from the chat). Returns an error text, or wipes the bunker. */
+export function restartAgree(w: World, pid: string, name: string): string | void {
+  const r = w.restart;
+  if (!r) return "Никто не предлагал начать заново";
+  if (pid === r.by) return "Нужен кто-то ещё — своё предложение не подтвердить";
+  log(w, `${name} согласен. Начинаем заново.`, "system");
+  resetWorld(w);
+}
+
+/** An unanswered question lapses with the next morning. */
+export function restartExpire(w: World) {
+  if (w.restart && w.day > w.restart.day) w.restart = null;
+}
+nightHooks.dayStart.push(restartExpire);
 
 export { exped };

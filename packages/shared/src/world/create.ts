@@ -224,7 +224,7 @@ function feminize(s: string) {
 export function createChar(w: World, card: Card, x: number, lv: number): Char {
   // two residents with the same first name make the journal ambiguous: give the newcomer another one
   const first = card.name.split(" ")[0];
-  if (Object.values(w.chars).some((o) => o.card.name.split(" ")[0] === first) && !card.custom) {
+  if (Object.values(w.chars).some((o) => o.card.name.split(" ")[0] === first) && !card.custom && !card.tg) {
     const pool = (card.gender === 1 ? NAMES_F : NAMES_M).filter((n) => !Object.values(w.chars).some((o) => o.card.name.startsWith(n + " ")));
     if (pool.length) card = { ...card, name: pool[(w.nextId * 7) % pool.length] + card.name.slice(first.length) };
   }

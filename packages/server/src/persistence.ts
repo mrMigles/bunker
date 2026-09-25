@@ -18,6 +18,10 @@ db.exec(`
     players TEXT NOT NULL,
     updated INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS tgchats (
+    code TEXT PRIMARY KEY,
+    chat TEXT NOT NULL
+  );
   CREATE TABLE IF NOT EXISTS legacy (
     name TEXT PRIMARY KEY,
     points INTEGER NOT NULL,
@@ -65,6 +69,17 @@ export function listSaves(limit = 20) {
 
 export function deleteSave(code: string) {
   stmtDel.run(code);
+}
+
+const stmtChatSet = db.prepare("INSERT INTO tgchats(code, chat) VALUES (?, ?) ON CONFLICT(code) DO UPDATE SET chat=excluded.chat");
+const stmtChatGet = db.prepare("SELECT chat FROM tgchats WHERE code = ?");
+
+/** The Telegram chat a chat bunker lives in (known once someone pressed «Играть» there): the bot writes to it. */
+export function setBunkerChat(code: string, chat: string) {
+  stmtChatSet.run(code, chat);
+}
+export function bunkerChat(code: string): string | null {
+  return (stmtChatGet.get(code) as { chat: string } | undefined)?.chat ?? null;
 }
 
 export function getLegacy(name: string) {

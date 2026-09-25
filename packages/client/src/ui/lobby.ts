@@ -1,3 +1,4 @@
+import { avatar } from "./avatar";
 import { portrait } from "../render/portrait";
 import { GOALS, PROFS, STAT_NAMES, TRAITS_MINUS, TRAITS_PLUS, type Card } from "@bunker/shared";
 import { net } from "../net";
@@ -64,8 +65,9 @@ export class LobbyUI {
           h(
             "div.pchip" + (p.ready ? ".ready" : ""),
             { style: { borderColor: p.ready ? undefined : "#" + p.color.toString(16).padStart(6, "0") } },
-            p.host ? icon("crown") : icon("user"),
+            avatar(p.id, p.name, p.color, 18),
             p.name,
+            p.host ? icon("crown", { title: "Хост" }) : null,
             p.id === me.pid ? h("span.dim", null, "(вы)") : null,
             p.ready ? h("span.good", null, icon("check"), "готов") : h("span.dim", null, p.pick ? "выбрал" : "выбирает…"),
           ),

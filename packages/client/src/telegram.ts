@@ -9,6 +9,8 @@ export interface TgInfo {
   name: string;
   chatTitle?: string;
   verified: boolean;
+  /** a signed link token to this bunker: opens the same game in a normal browser */
+  token?: string;
 }
 
 export let tgInfo: TgInfo | null = null;
@@ -115,6 +117,61 @@ async function prepareTelegramViewport() {
   return app;
 }
 
+/** The same bunker in the system browser: a whole screen instead of Telegram's small window. */
+export function openInBrowser() {
+  if (!tgInfo?.token) return;
+  const url = `${location.origin}/?tg=${encodeURIComponent(tgInfo.token)}`;
+  const app = tg();
+  try {
+    // a Mini App opens links outside through Telegram; a game page opens them like any page
+    if (app?.initData && app.openLink) app.openLink(url);
+    else window.open(url, "_blank", "noopener");
+  } catch {
+    location.href = url;
+  }
+}
+
+/** The page runs inside Telegram itself (its game page carries the share hash; a Mini App knows its platform),
+ *  not in a browser opened with a game link. */
+export function insideTelegram() {
+  return /tgShareScoreUrl|tgWebApp/.test(location.hash) || !!(window as any).TelegramWebviewProxy || !!tg()?.initData || /tdesktop|macos|weba|webk|android|ios/.test(String(tg()?.platform ?? ""));
+}
+
+/** Telegram on a computer shows games in a small upright window: offer the browser (or a wider window). */
+function offerWideScreen() {
+  const root = document.documentElement;
+  if (!root.classList.contains("tg-desktop") || !tgInfo?.token) return;
+  if (!insideTelegram()) return;
+  let shown = false;
+  const check = () => {
+    const narrow = innerWidth < 900 || innerWidth < innerHeight * 1.15;
+    const old = document.querySelector(".wide-offer");
+    if (!narrow) return old?.remove();
+    if (shown || old) return;
+    shown = true;
+    const box = document.createElement("div");
+    box.className = "wide-offer";
+    box.innerHTML = `<b>Окно Telegram маловато для бункера</b><small>Растяните окно за край — или откройте игру в браузере на весь экран. Бункер тот же, вы — тоже.</small>`;
+    const go = document.createElement("button");
+    go.className = "primary small";
+    go.textContent = "Открыть в браузере";
+    go.onclick = () => {
+      box.remove();
+      openInBrowser();
+    };
+    const stay = document.createElement("button");
+    stay.className = "small";
+    stay.textContent = "Остаться здесь";
+    stay.onclick = () => box.remove();
+    const row = document.createElement("div");
+    row.append(go, stay);
+    box.append(row);
+    document.body.append(box);
+  };
+  check();
+  window.addEventListener("resize", check);
+}
+
 /** Light haptic feedback when Telegram offers it. */
 export function haptic(kind: "light" | "medium" | "heavy" | "success" | "error" = "light") {
   const hf = tg()?.HapticFeedback;
@@ -142,12 +199,13 @@ export async function startTelegram(onJoined: () => void): Promise<boolean> {
       } catch {}
       return false;
     }
-    tgInfo = { code: s.code, name: s.name, chatTitle: s.chatTitle, verified: s.verified };
+    tgInfo = { code: s.code, name: s.name, chatTitle: s.chatTitle, verified: s.verified, token: s.token ?? token };
     setPlayerId(s.pid);
     net.joinExtra = { sig: s.sig };
     localStorage.setItem("bunker.name", s.name);
     await net.join(s.code, s.name);
     onJoined();
+    offerWideScreen();
     return true;
   }
   const initData = app?.initData || initDataFromUrl();
@@ -157,7 +215,7 @@ export async function startTelegram(onJoined: () => void): Promise<boolean> {
     toast(s.error ?? "Не удалось войти через Telegram");
     return false;
   }
-  tgInfo = { code: s.code, name: s.name, chatTitle: s.chatTitle, verified: s.verified };
+  tgInfo = { code: s.code, name: s.name, chatTitle: s.chatTitle, verified: s.verified, token: s.token };
   setPlayerId(s.pid);
   net.joinExtra = { sig: s.sig };
   localStorage.setItem("bunker.name", s.name);
@@ -171,5 +229,6 @@ export async function startTelegram(onJoined: () => void): Promise<boolean> {
     setInterval(() => (isModalOpen() ? back.show?.() : back.hide?.()), 300);
   }
   onJoined();
+  offerWideScreen();
   return true;
 }

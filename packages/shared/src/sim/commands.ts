@@ -2,7 +2,7 @@ import { Rng } from "../rng";
 import { GOALS } from "../data/characters";
 import type { Cmd, InputMsg } from "../net/protocol";
 import type { Player, World } from "../types";
-import { addPlayer, offerCards, sanitizeName, startGame, takeChar, validateCustomCard } from "./lobby";
+import { addPlayer, isTg, offerCards, sanitizeName, startGame, takeChar, validateCustomCard } from "./lobby";
 import { stepMove } from "./move";
 import { fx } from "./util";
 
@@ -78,6 +78,7 @@ registerCmd("customCard", (w, p, c) => {
   const goals = Object.keys(GOALS).filter((g) => !GOALS[g].hostile && g !== "saboteur");
   const card = validateCustomCard(c.card, c.card?.goal && p.cards.some((x) => x.goal === c.card.goal) ? c.card.goal : new Rng(w.rng).pick(goals));
   if (typeof card === "string") return card;
+  if (isTg(p.id)) Object.assign(card, { name: p.name, tg: true });
   p.cards = [...p.cards.slice(0, 3), card];
   p.pick = 3;
 });

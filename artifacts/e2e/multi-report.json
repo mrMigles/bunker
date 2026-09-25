@@ -3,7 +3,7 @@
     {
       "name": "the friend joins by code and shows up in the host's lobby",
       "ok": true,
-      "code": "LRJ92",
+      "code": "9AWUT",
       "names": [
         "Хозяин",
         "Гость"
@@ -21,15 +21,15 @@
       "name": "both players have characters in the prologue",
       "ok": true,
       "chars": [
-        "Кира Сухарева",
-        "Инна Сухарева"
+        "Тимофей Консервин",
+        "Тамара Бурова"
       ]
     },
     {
       "name": "the host sees the guest walk",
       "ok": true,
       "x0": 26.7,
-      "x1": 29.07
+      "x1": 29.54
     },
     {
       "name": "chat reaches the other player",
@@ -39,7 +39,7 @@
       "name": "the guest sees the host move in the bunker",
       "ok": true,
       "before": 21.5,
-      "seen": 20.84
+      "seen": 20.62
     },
     {
       "name": "a dropped connection rejoins the same character",
@@ -59,7 +59,7 @@
     {
       "name": "a reload brings the player back into the same bunker and body",
       "ok": true,
-      "code": "LRJ92",
+      "code": "9AWUT",
       "char": "c11"
     },
     {

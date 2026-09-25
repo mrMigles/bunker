@@ -7,6 +7,7 @@
 // (the https address of the game). Long polling: no webhook and no open port are needed.
 import crypto from "node:crypto";
 import { codeForChat, signPid } from "./telegram";
+import { bunkerChat, setBunkerChat } from "./persistence";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? "";
 const GAME = process.env.TELEGRAM_GAME ?? "glubzhe";
@@ -33,6 +34,7 @@ export function makeGameToken(claim: GameClaim) {
 
 /** The session behind a game link, or an error (bad signature, older than a day). */
 export function gameSession(token: string) {
+  token = String(token);
   const [body, sig] = String(token).split(".");
   if (!body || !sig || mac(body) !== sig) return { error: "Ссылка на игру не подписана — откройте игру кнопкой «Играть» в чате" };
   let c: GameClaim;
@@ -44,15 +46,80 @@ export function gameSession(token: string) {
   if (Date.now() / 1000 - c.t > 86400) return { error: "Ссылка устарела — нажмите «Играть» в чате ещё раз" };
   const code = codeForChat(c.c);
   const pid = "tg_" + c.u;
-  return { code, pid, sig: signPid(pid, code), name: c.n, chat: c.c, chatTitle: c.title, verified: true };
+  knownUsers.add(c.u);
+  return { code, pid, sig: signPid(pid, code), name: c.n, chat: c.c, chatTitle: c.title, verified: true, token };
+}
+
+// ---------------------------------------------------------------- avatars
+// Telegram photos come through the bot (its file links carry the bot token, so the server fetches and serves
+// them itself). Only people who opened the game are served, not any Telegram user by id.
+export const knownUsers = new Set<number>();
+const photoUrls = new Map<number, string>();
+const avatars = new Map<number, { t: number; buf: Buffer | null; type: string }>();
+
+/** A Mini App tells us the photo link directly. */
+export function rememberPhoto(uid: number, url: unknown) {
+  knownUsers.add(uid);
+  if (typeof url === "string" && /^https:\/\/[^/]*t\.me\//.test(url)) photoUrls.set(uid, url);
+}
+
+async function download(url: string) {
+  const r = await fetch(url);
+  if (!r.ok) return null;
+  const type = r.headers.get("content-type") ?? "image/jpeg";
+  if (!type.startsWith("image/")) return null;
+  const buf = Buffer.from(await r.arrayBuffer());
+  return buf.length > 512 * 1024 ? null : { buf, type };
+}
+
+/** The user's small profile photo (cached for six hours), or null. */
+export async function avatarOf(uid: number): Promise<{ buf: Buffer; type: string } | null> {
+  const hit = avatars.get(uid);
+  if (hit && Date.now() - hit.t < 6 * 3600e3) return hit.buf ? { buf: hit.buf, type: hit.type } : null;
+  let got: { buf: Buffer; type: string } | null = null;
+  try {
+    const direct = photoUrls.get(uid);
+    if (direct) got = await download(direct);
+    if (!got && TOKEN) {
+      const ph = await call("getUserProfilePhotos", { user_id: uid, limit: 1 }, true);
+      const sizes: any[] = ph?.result?.photos?.[0] ?? [];
+      const size = sizes.find((s) => s.width >= 150) ?? sizes[sizes.length - 1];
+      if (size) {
+        const f = await call("getFile", { file_id: size.file_id }, true);
+        if (f?.result?.file_path) got = await download(`https://api.telegram.org/file/bot${TOKEN}/${f.result.file_path}`);
+      }
+    }
+  } catch (e) {
+    console.warn("[tg] avatar", uid, (e as Error).message);
+  }
+  avatars.set(uid, { t: Date.now(), buf: got?.buf ?? null, type: got?.type ?? "" });
+  return got;
+}
+
+// ---------------------------------------------------------------- «Начать заново» in the chat
+type RestartHandler = (code: string, pid: string, name: string) => string | void;
+let onRestart: RestartHandler = () => "Бункер сейчас не запущен";
+export function setRestartHandler(fn: RestartHandler) {
+  onRestart = fn;
+}
+
+/** A player asked to start the bunker over: the chat sees it and anyone there can agree with a button. */
+export function announceRestart(code: string, name: string) {
+  const chat = bunkerChat(code);
+  if (!TOKEN || !chat) return;
+  call("sendMessage", {
+    chat_id: chat,
+    text: `🔄 ${name} предлагает начать бункер заново. Всё, что построено и найдено, пропадёт.\nНужен ещё хотя бы один «за» — из игры или здесь.`,
+    reply_markup: { inline_keyboard: [[{ text: "✅ Начать заново", callback_data: "rs:" + code }, { text: "✖ Оставить как есть", callback_data: "rn:" + code }]] },
+  }).catch(() => {});
 }
 
 const nameOf = (u: any) => [u?.first_name, u?.last_name ? u.last_name[0] + "." : ""].filter(Boolean).join(" ").slice(0, 16) || u?.username || "Выживший";
 
-async function call(method: string, body: Record<string, unknown>) {
+async function call(method: string, body: Record<string, unknown>, quiet = false) {
   const r = await fetch(`${API}/${method}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const j: any = await r.json().catch(() => ({}));
-  if (!j.ok) console.warn(`[tg] ${method}:`, j.description ?? r.status);
+  if (!j.ok && !quiet) console.warn(`[tg] ${method}:`, j.description ?? r.status);
   return j;
 }
 
@@ -63,6 +130,15 @@ async function onUpdate(u: any) {
     return;
   }
   const q = u.callback_query;
+  const rs = /^(rs|rn):([A-Z0-9]{5})$/.exec(q?.data ?? "");
+  if (q && rs) {
+    const [, kind, code] = rs;
+    const who = nameOf(q.from);
+    const err = kind === "rs" ? onRestart(code, "tg_" + q.from.id, who) : onRestart(code, "", who);
+    await call("answerCallbackQuery", { callback_query_id: q.id, text: err ?? (kind === "rs" ? "Бункер начат заново" : "Оставили как есть"), show_alert: !!err });
+    if (!err && q.message) await call("editMessageText", { chat_id: q.message.chat.id, message_id: q.message.message_id, text: kind === "rs" ? `✅ ${who} согласен — бункер начат заново. Нажмите «Играть», чтобы спуститься.` : `✖ ${who}: оставляем бункер как есть.` });
+    return;
+  }
   if (q?.game_short_name) {
     if (!PUBLIC_URL) {
       await call("answerCallbackQuery", { callback_query_id: q.id, text: "Сервер игры не знает свой адрес (PUBLIC_URL)", show_alert: true });
@@ -72,6 +148,7 @@ async function onUpdate(u: any) {
     // from that chat gets, so the game button and a t.me/bot/app link lead to the same bunker
     const chat = q.message?.chat;
     const key = q.chat_instance ? "ci" + q.chat_instance : String(chat?.id ?? "u" + q.from.id);
+    if (chat?.id) setBunkerChat(codeForChat(key), String(chat.id));
     const token = makeGameToken({ c: key, u: q.from.id, n: nameOf(q.from), t: Math.floor(Date.now() / 1000), title: chat?.title });
     await call("answerCallbackQuery", { callback_query_id: q.id, url: `${PUBLIC_URL}/?tg=${token}` });
     return;

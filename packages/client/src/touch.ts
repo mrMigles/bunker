@@ -149,13 +149,8 @@ export function installTouch(game: GameLike) {
     const c = net.myChar() as any;
     const hands = !!c?.hands?.length;
     if (isModalOpen() || b.contains("mode-combat") || b.contains("mode-map") || b.contains("mode-table")) return [];
-    if (b.contains("mode-build"))
-      return [
-        { id: "narrow", icon: "−", label: "Уже", code: "BracketLeft" },
-        { id: "wide", icon: "+", label: "Шире", code: "BracketRight" },
-        { id: "erase", icon: "🗑", label: "Снести", code: "Delete" },
-        { id: "done", icon: "✕", label: "Готово", code: "Escape" },
-      ];
+    // building has its own strip at the bottom (rooms, width, «Разметить», «Готово»)
+    if (b.contains("mode-build")) return [];
     if (b.contains("mode-site"))
       return [
         // the flashlight, the backpack and the exit are on the site's own bar
@@ -201,7 +196,7 @@ export function installTouch(game: GameLike) {
   };
   // fingers on the scene (the canvas or the name tags over it), not on panels and buttons
   const onScene = (e: PointerEvent) =>
-    e.pointerType === "touch" && !(e.target as Element | null)?.closest?.("button, input, textarea, select, .modal, .touch-stick, .touch-pad, .action-dock, .prologue-actions, .hud-me, .hud-top, .objectives, .tip-card, .game-dock, .game-toolbar, .chat, .council-panel, .exp-map, .exp-hud, .exp-dock, .exp-context, .combat-panel, .combat-intel");
+    e.pointerType === "touch" && !(e.target as Element | null)?.closest?.("button, input, textarea, select, .modal, .touch-stick, .touch-pad, .action-dock, .prologue-actions, .hud-me, .hud-top, .objectives, .tip-card, .game-dock, .game-toolbar, .chat, .council-panel, .exp-map, .exp-hud, .exp-dock, .exp-context, .combat-panel, .combat-intel, .build-strip");
   // every finger on the screen, wherever it is: two at once is a gesture, never a tap
   const fingers = new Set<number>();
   window.addEventListener(

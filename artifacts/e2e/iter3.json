@@ -27,12 +27,12 @@
       "name": "hand strokes fill the bucket (task done by the minigame)",
       "ok": true,
       "dirty0": 0,
-      "dirty1": 1.4
+      "dirty1": 0.7
     },
     {
       "name": "talking to a resident shows today's story",
-      "ok": true,
-      "story": "«Я сегодня смеялся впервые за неделю. Спасибо, что вы все рядом.»"
+      "ok": false,
+      "story": ""
     },
     {
       "name": "the intercom rings and opens a dialog with the visitor",
@@ -49,33 +49,28 @@
       "name": "holding E turns the search into a loud rush",
       "ok": true,
       "rush": true,
-      "noise": 6
+      "noise": 18
     },
     {
       "name": "a click on «Обыскать» searches carefully (no rush)",
       "ok": true,
       "task": {
         "a": "search",
-        "id": "c7",
-        "t": 1.323,
-        "dur": 6.983999999999999,
+        "id": "c4",
+        "t": 1.406,
+        "dur": 16.296,
         "rush": false
       }
-    },
-    {
-      "name": "«обыскать комнату» sends the companions to containers",
-      "ok": true,
-      "busy": 1
     },
     {
       "name": "companions stand apart",
       "ok": true,
       "xs": [
-        9.4,
-        9.83
+        5.07,
+        6.33
       ],
-      "minGap": 0.4299999999999997,
-      "bubbles": 1
+      "minGap": 1.2599999999999998,
+      "bubbles": 0
     },
     {
       "name": "the map shows the drawn city of Новоград",
@@ -88,5 +83,5 @@
     }
   ],
   "errors": [],
-  "ok": true
+  "ok": false
 }

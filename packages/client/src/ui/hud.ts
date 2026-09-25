@@ -1,3 +1,4 @@
+import { avatar, ownerOf } from "./avatar";
 import { portrait } from "../render/portrait";
 import { ITEMS, NEED_NAMES, PERKS, PROFS, itemName, threatLevel, xpForLevel, type Fx } from "@bunker/shared";
 import { net } from "../net";
@@ -231,8 +232,11 @@ export class Hud {
       el.style.left = sx + "px";
       el.style.top = sy + "px";
       const player = c.ctrl ? v.players[c.ctrl] : null;
-      const showName = !this.hidden && (id === hoverChar || !!player || id === myChar);
-      const k = JSON.stringify([c.bark?.text, c.task?.p, showName, c.emote, c.status, player?.name, c.anim === "sleep"]);
+      // a player who is away still owns their resident: it keeps their name and face, marked as played by a bot
+      const owner = player ?? ownerOf(v, id);
+      const away = !!owner && !player;
+      const showName = !this.hidden && (id === hoverChar || !!owner || id === myChar);
+      const k = JSON.stringify([c.bark?.text, c.task?.p, showName, c.emote, c.status, owner?.name, away, c.anim === "sleep"]);
       if ((el as any)._k === k) continue;
       (el as any)._k = k;
       clear(el);
@@ -240,7 +244,11 @@ export class Hud {
       if (c.bark?.text) el.append(h("div.bubble", null, c.bark.text));
       if (c.anim === "sleep" && !c.bark) el.append(h("div", { style: { fontSize: "14px" } }, "💤"));
       if (c.task && c.task.p >= 0 && c.task.p < 1) el.append(h("div.pbar", null, h("i", { style: { width: Math.round(c.task.p * 100) + "%" } })));
-      if (showName) el.append(h("div.nm" + (player ? ".player" : ""), null, (player ? player.name + " · " : "") + c.card.name.split(" ")[0] + (c.status === "down" ? " ✚" : "")));
+      if (showName && owner) {
+        // a Telegram resident carries the player's own name: no «player · resident» pair
+        const text = c.card.tg || owner.name === c.card.name ? owner.name : owner.name + " · " + c.card.name.split(" ")[0];
+        el.append(h("div.nm.player" + (away ? ".away" : ""), null, avatar(owner.id, owner.name, owner.color, 15, away), h("span", null, text + (c.status === "down" ? " ✚" : "")), away ? h("small.nm-bot", null, "бот") : null));
+      } else if (showName) el.append(h("div.nm", null, c.card.name.split(" ")[0] + (c.status === "down" ? " ✚" : "")));
     }
     for (const [id, el] of this.labelEls) {
       if (!seen.has(id)) {

@@ -15,6 +15,7 @@ export interface TgSession {
   chat: string;
   chatTitle?: string;
   verified: boolean;
+  photo?: string;
 }
 
 /** Telegram's check: HMAC-SHA256 over the sorted fields with a key derived from the bot token. */
@@ -75,5 +76,5 @@ export function tgSession(initData: string): TgSession | { error: string } {
   const chatKey = (ci ? "ci" + ci : "") || (chat?.id ? String(chat.id) : "") || p.get("start_param") || "u" + user.id;
   const pid = "tg_" + user.id;
   const name = [user.first_name, user.last_name ? user.last_name[0] + "." : ""].filter(Boolean).join(" ").slice(0, 16) || user.username || "Выживший";
-  return { code: codeForChat(chatKey), pid, sig: signPid(pid, codeForChat(chatKey)), name, chat: chatKey, chatTitle: chat?.title, verified: !!BOT_TOKEN };
+  return { code: codeForChat(chatKey), pid, sig: signPid(pid, codeForChat(chatKey)), name, chat: chatKey, chatTitle: chat?.title, verified: !!BOT_TOKEN, photo: user.photo_url };
 }

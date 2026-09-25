@@ -7,7 +7,26 @@ import { fileURLToPath } from "node:url";
 import { GameRoom } from "./GameRoom";
 import { addLegacy, getLegacy, hasSave, listSaves } from "./persistence";
 import { tgSession } from "./telegram";
-import { gameSession, makeGameToken, startTelegramBot } from "./tgbot";
+import { avatarOf, gameSession, knownUsers, makeGameToken, rememberPhoto, setRestartHandler, startTelegramBot } from "./tgbot";
+import { liveRooms } from "./GameRoom";
+import { deleteSave, loadWorld } from "./persistence";
+import { restartAgree, restartRefuse } from "@bunker/shared";
+
+// «Начать заново» pressed under the bot's message in the chat: the running bunker, or its save
+setRestartHandler((code, pid, name) => {
+  const room = liveRooms.get(code);
+  if (!pid) {
+    // «Оставить как есть»
+    if (room) restartRefuse(room.world, name + " (в чате)");
+    return;
+  }
+  if (room) return room.restartFromChat(pid, name);
+  const w = loadWorld(code);
+  if (!w?.restart) return "Никто не предлагал начать заново";
+  const err = restartAgree(w, pid, name);
+  if (!err) deleteSave(code);
+  return err;
+});
 
 const BUILD_ID = process.env.BUILD_ID ?? "dev";
 
@@ -34,6 +53,10 @@ const server = defineServer({
     app.post("/api/tg/session", async (req, res) => {
       const s = tgSession(String(req.body?.initData ?? ""));
       if ("error" in s) return res.status(403).json(s);
+      const uid = Number(s.pid.slice(3));
+      rememberPhoto(uid, s.photo);
+      // a signed link to the same bunker, for «Открыть в браузере»
+      (s as any).token = makeGameToken({ c: s.chat, u: uid, n: s.name, t: Math.floor(Date.now() / 1000), title: s.chatTitle });
       try {
         const found = await matchMaker.query({ roomId: s.code } as any);
         if (!found.length) await matchMaker.createRoom("game", { code: s.code, restore: hasSave(s.code), private: true });
@@ -56,6 +79,16 @@ const server = defineServer({
         return res.status(500).json({ error: "Не удалось поднять бункер чата" });
       }
       res.json(s);
+    });
+
+    // a Telegram player's photo (served by us: the bot's file links carry its token)
+    app.get("/api/tg/avatar/:uid", async (req, res) => {
+      const uid = Number(req.params.uid);
+      const inGame = [...liveRooms.values()].some((r) => !!r.world.players["tg_" + uid]);
+      if (!Number.isSafeInteger(uid) || (!knownUsers.has(uid) && !inGame)) return res.status(404).end();
+      const a = await avatarOf(uid);
+      if (!a) return res.status(404).set("Cache-Control", "public, max-age=600").end();
+      res.set("Content-Type", a.type).set("Cache-Control", "public, max-age=21600").send(a.buf);
     });
 
     // development only: a game link as the bot would hand out (for e2e and trying without Telegram)

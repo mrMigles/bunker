@@ -35,9 +35,33 @@ export function addPlayer(w: World, pid: string, name: string): Player {
       w.chars[p.char].ctrl = pid;
     }
   }
-  // mid-game: take a free resident automatically if possible
-  if (w.phase !== "lobby" && !p.char) autoTake(w, p);
+  // mid-game: a chat member comes down as their own resident; anyone else takes a free one
+  if (w.phase !== "lobby" && !p.char && !(isTg(pid) && tgNewcomer(w, p))) autoTake(w, p);
   return p;
+}
+
+/** Telegram players (their ids are signed by the server) play as themselves: their name on their resident. */
+export const isTg = (pid: string) => pid.startsWith("tg_");
+
+/** A chat bunker holds at most this many residents before newcomers take over free ones. */
+export const MAX_TG_RESIDENTS = 10;
+
+/** A chat member joins a running game: a new resident under their name comes down the hatch. */
+function tgNewcomer(w: World, p: Player): boolean {
+  const alive = Object.values(w.chars).filter((c) => c.status !== "dead");
+  if (alive.length >= MAX_TG_RESIDENTS) return false;
+  const R = new Rng(w.rng);
+  const card: Card = { ...makeCard(R, new Set(alive.map((c) => c.card.prof))), name: p.name, tg: true };
+  const airlock = roomsOfType(w, "airlock")[0];
+  const c = createChar(w, card, airlock ? airlock.x + 1 : 20, airlock?.lv ?? 0);
+  c.y = feetY(c.lv);
+  for (const o of alive) {
+    o.rel[c.id] = R.int(-5, 5);
+    c.rel[o.id] = R.int(0, 10);
+  }
+  log(w, `🚪 Новый жилец из чата: ${p.name}, ${(PROFS[card.prof]?.name ?? "без профессии").toLowerCase()}.`, "good");
+  takeChar(w, p, c.id);
+  return true;
 }
 
 export function sanitizeName(n: string) {
@@ -53,6 +77,8 @@ export function offerCards(w: World, p: Player) {
   const taken = new Set<string>();
   for (const q of Object.values(w.players)) if (q.cards && q.pick !== undefined) taken.add(q.cards[q.pick].prof);
   p.cards = [makeCard(rng, taken, w.settings.traitor && rng.chance(0.25)), makeCard(rng, taken), makeCard(rng, taken)];
+  // a Telegram player picks a profession, not a name: every card carries theirs
+  if (isTg(p.id)) p.cards = p.cards.map((c) => ({ ...c, name: p.name, tg: true }));
   if (w.settings.traitor) {
     // exactly one traitor overall, assigned on start
   }
@@ -125,7 +151,8 @@ export function startGame(w: World) {
   const taken = new Set<string>();
   let i = 0;
   for (const p of players) {
-    const card = p.cards && p.pick !== undefined ? p.cards[p.pick] : makeCard(rng, taken);
+    let card = p.cards && p.pick !== undefined ? p.cards[p.pick] : makeCard(rng, taken);
+    if (isTg(p.id)) card = { ...card, name: p.name, tg: true };
     taken.add(card.prof);
     const c = createChar(w, card, spawnX + (i % 3), 0);
     c.ctrl = p.id;

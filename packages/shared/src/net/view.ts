@@ -113,6 +113,7 @@ export function publicView(w: World) {
     chores: w.chores,
     council: w.council ? { ...w.council, vote: w.council.vote ? voteView(w.council.vote) : null } : null,
     vote: w.vote ? voteView(w.vote) : null,
+    restart: w.restart ?? null,
     log: w.log.slice(-40),
     gazette: w.gazette.slice(-1),
     gazetteCount: w.gazette.length,

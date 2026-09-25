@@ -7,3 +7,5 @@ coverage
 artifacts/mobile-layout-*/
 
 **/data/*.sqlite*
+artifacts/mobile-land/
+artifacts/tg/

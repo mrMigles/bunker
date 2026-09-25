@@ -55,6 +55,8 @@ export class Net {
     this.leaving = true;
     try {
       sessionStorage.removeItem("bunker.session");
+      // a chat bunker opened in the browser: back to the normal menu, not into the chat's bunker again
+      sessionStorage.removeItem("bunker.tg");
     } catch {}
     try {
       await this.room?.leave(true);

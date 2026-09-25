@@ -12,19 +12,23 @@ import {
   migrateWorld,
   privateView,
   publicView,
+  restartAgree,
   setOffline,
   tickWorld,
   type Cmd,
   type InputMsg,
   type World,
 } from "@bunker/shared";
-import { loadWorld, saveWorld } from "./persistence";
+import { deleteSave, loadWorld, saveWorld } from "./persistence";
+import { announceRestart } from "./tgbot";
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const SAVE_INTERVAL = 30; // seconds
 const EMPTY_UNLOAD = Number(process.env.EMPTY_UNLOAD_SEC || 300);
 
 export const activeCodes = new Set<string>();
+/** running rooms by code (the Telegram bot reaches a chat's bunker through this) */
+export const liveRooms = new Map<string, GameRoom>();
 
 export function genCode(): string {
   for (;;) {
@@ -59,6 +63,7 @@ export class GameRoom extends Room {
     const code = typeof options?.code === "string" && /^[A-Z0-9]{5}$/.test(options.code) ? options.code : genCode();
     this.roomId = code;
     activeCodes.add(code);
+    liveRooms.set(code, this);
     const saved = options?.restore ? loadWorld(code) : null;
     if (saved) {
       this.world = migrateWorld(saved);
@@ -101,13 +106,16 @@ export class GameRoom extends Room {
       if (!pid || !this.rate(client)) return;
       if (!cmd || typeof cmd !== "object" || typeof cmd.k !== "string") return;
       if (cmd.k.startsWith("debug") && !this.devMode) return;
+      const phase = this.world.phase;
       try {
         const err = applyCmd(this.world, pid, cmd);
         if (err) client.send(MSG.err, { text: err });
+        else if (cmd.k === "restartAsk" && this.roomId.startsWith("T")) announceRestart(this.roomId, this.world.players[pid]?.name ?? "Кто-то");
       } catch (e) {
         console.error(`[room ${this.roomId}] cmd ${cmd.k} failed`, e);
         client.send(MSG.err, { text: "Ошибка сервера" });
       }
+      if (phase !== "lobby" && this.world.phase === "lobby") this.afterReset();
       if (cmd.k === "start" || cmd.k === "settings") this.updateMeta();
     });
 
@@ -118,6 +126,21 @@ export class GameRoom extends Room {
     });
 
     this.setSimulationInterval((ms) => this.tick(Math.min(0.2, ms / 1000)), 50);
+  }
+
+  /** The bunker was started over: the old save must not come back when the room reloads. */
+  afterReset() {
+    deleteSave(this.roomId);
+    this.lastDay = this.world.day;
+    this.updateMeta();
+  }
+
+  /** «Начать заново» confirmed from the Telegram chat (a member who may not be in the game). */
+  restartFromChat(pid: string, name: string): string | void {
+    const was = this.world.phase;
+    const err = restartAgree(this.world, pid, name);
+    if (!err && was !== "lobby" && this.world.phase === "lobby") this.afterReset();
+    return err;
   }
 
   lim(client: Client): Limiter {
@@ -196,6 +219,7 @@ export class GameRoom extends Room {
   onDispose() {
     if (this.world.phase !== "lobby") saveWorld(this.world);
     activeCodes.delete(this.roomId);
+    liveRooms.delete(this.roomId);
     console.log(`[room ${this.roomId}] disposed`);
   }
 

@@ -1,3 +1,5 @@
+import { askRestart } from "./restart";
+import { insideTelegram, openInBrowser, tgInfo } from "../telegram";
 import { portrait } from "../render/portrait";
 import { art, portraitTile } from "./art";
 import { postfx, type FxQuality } from "../render/postfx";
@@ -698,7 +700,7 @@ export function openSettings(r: { shadows: boolean }) {
   );
   const inTg = !!(window as any).Telegram?.WebApp?.initData;
   // opened with the game button: Telegram's own ✕ closes the game, there is no other bunker to go to
-  const tgGame = !inTg && document.body.classList.contains("tg");
+  const tgGame = !inTg && document.body.classList.contains("tg") && insideTelegram();
   modal(
     "Меню",
     h(
@@ -722,6 +724,17 @@ export function openSettings(r: { shadows: boolean }) {
         h("label.row", null, h("span", { style: { width: "120px" } }, "Эффекты"), quality),
         h("label.row", null, shadows, "Тени от ламп"),
         h("button.small", { onclick: () => ((window as any).__tips?.reset(), closeModal()) }, icon("refresh"), "Показать подсказки заново"),
+      ),
+      h(
+        "div.sect",
+        null,
+        h("div.sect-h", null, icon("hatch"), "Бункер"),
+        tgInfo?.token && insideTelegram() ? h("button.small", { onclick: () => openInBrowser() }, icon("fullscreen"), "Открыть в браузере — на весь экран") : null,
+        net.pub && net.pub.phase !== "lobby" && net.pub.phase !== "ending"
+          ? (net.pub as any).restart
+            ? h("span.dim", null, "Начать заново уже предложено — ответ на полосе сверху.")
+            : h("button.small.danger", { onclick: () => (closeModal(), askRestart()), title: "Нужно согласие ещё хотя бы одного игрока" + (tgInfo ? " (в игре или в чате)" : "") }, icon("refresh"), "Начать бункер заново…")
+          : null,
       ),
       h(
         "div.settings-foot",

@@ -1,3 +1,5 @@
+import { updateRestartBanner } from "./restart";
+import { avatar, ownerOf } from "./avatar";
 import { portrait } from "../render/portrait";
 import { PROFS } from "@bunker/shared";
 import type { Fx } from "@bunker/shared";
@@ -54,13 +56,19 @@ export function installExtras(game: GameUI) {
         null,
         Object.values(net.pub?.chars ?? {}).map((c: any) => {
           const player = c.ctrl ? net.pub?.players[c.ctrl] : null;
+          const owner = player ?? ownerOf(net.pub, c.id);
           const state = c.status === "away" ? "на вылазке" : c.status === "dead" ? "погиб" : c.status === "down" ? "без сознания" : c.task?.action ? "занят делом" : "свободен";
           const mini = (k: string) => h("span.crew-need", { title: k }, cic(NEED_IC, k), bar(c.needs[k]));
           return h(
             "button.crew-entry" + (c.status === "dead" ? ".dead" : ""),
             { onclick: () => openCharacter(c.id) },
             portrait(c.id, c.card, "crew-portrait", () => art(portraitTile(c.card.prof, c.card.gender))),
-            h("span.crew-main", null, h("b", null, c.card.name), h("small", null, `${PROFS[c.card.prof]?.name ?? ""} · ур. ${c.level ?? 1} · `, player ? h("span.warn", null, player.name) : h("span.dim", null, "бот"), ` · ${state}`)),
+            h(
+              "span.crew-main",
+              null,
+              h("b", null, owner ? avatar(owner.id, owner.name, owner.color, 16, !player) : null, c.card.name),
+              h("small", null, `${PROFS[c.card.prof]?.name ?? ""} · ур. ${c.level ?? 1} · `, player ? h("span.warn", null, player.name === c.card.name ? "игрок" : player.name) : owner ? h("span.dim", null, `${owner.name} не в сети — играет бот`) : h("span.dim", null, "бот"), ` · ${state}`),
+            ),
             h("span.crew-needs", null, mini("health"), mini("food"), mini("energy"), mini("sanity")),
             icon("chevronRight"),
           );
@@ -214,6 +222,7 @@ export function installExtras(game: GameUI) {
     audio.soundtrack.setMood(!v || v.phase === "lobby" ? "bunker" : v.phase === "ending" ? "night" : act === "combat" ? "combat" : act === "expedition" || v.phase === "prologue" ? "sortie" : v.phase === "night" ? "night" : "bunker");
   });
   GameUI.extraPatch.push(() => {
+    updateRestartBanner();
     dayVote.update();
     table.update();
     combat.update();

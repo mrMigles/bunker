@@ -44,6 +44,8 @@ export interface Card {
   hair?: number;
   /** made in the character editor */
   custom?: boolean;
+  /** a Telegram player's resident: carries their Telegram name (and avatar on screen) */
+  tg?: boolean;
 }
 
 export interface HandItem {
@@ -321,6 +323,14 @@ export interface Player {
   joinedDay: number;
 }
 
+/** «Начать заново» mid-game: one asks, anyone else (in the game or in the Telegram chat) agrees */
+export interface RestartVote {
+  by: string;
+  name: string;
+  /** game day it was asked on: it lapses with the next morning */
+  day: number;
+}
+
 export interface World {
   v: number;
   code: string;
@@ -374,6 +384,7 @@ export interface World {
   factions: Record<string, number>;
   canvas: string; // wall drawing pixels (base64-ish palette indices)
   radio: { station: number; on: boolean; freq: number; by?: string };
+  restart?: RestartVote | null;
   mods: Record<string, any>; // other subsystem state (expedition, combat, raid, tables, prologue)
   ending: { kind: string; text: string } | null;
   temp: number; // outside temperature factor

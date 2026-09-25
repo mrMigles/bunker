@@ -161,10 +161,10 @@ try {
   // build mode: width buttons instead of [ ]
   await page.getByRole("button", { name: /Строить/ }).first().tap().catch(async () => ev(() => window.__game.build.toggle(true)));
   await wait(600);
-  const buildPad = await ev(() => [...document.querySelectorAll(".touch-pad .touch-btn small")].map((s) => s.textContent));
-  step("build mode: «Уже / Шире / Готово» buttons", buildPad.includes("Шире") && buildPad.includes("Готово"), { buildPad });
+  const buildStrip = await ev(() => ({ strip: !!document.querySelector(".build-strip:not(.hidden)"), cards: document.querySelectorAll(".build-card").length, wide: !!document.querySelector(".build-wide"), done: !!document.querySelector(".build-done") }));
+  step("build mode: the room strip with width and «Готово»", buildStrip.strip && buildStrip.cards > 5 && buildStrip.wide && buildStrip.done, buildStrip);
   await shot("m-05-build");
-  await page.locator(".touch-pad .touch-btn", { hasText: "Готово" }).tap();
+  await page.locator(".build-done").tap();
   await wait(400);
   step("«Готово» leaves build mode", await ev(() => !window.__game.build.active));
   // pinch zoom

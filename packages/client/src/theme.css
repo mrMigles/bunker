@@ -1453,3 +1453,77 @@ html.mobile .charscreen p.dim {
 .ration-need { width: 90px; }
 .ration-controls { display: flex; gap: 6px; }
 .mobile-action-toggle { display: none; }
+
+/* ---------------------------------------------------------------- players' faces (Telegram photos or a letter) */
+.ava {
+  position: relative;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 1px solid #ffd49a88;
+  color: #fff3dc;
+  font-weight: 800;
+  line-height: 1;
+  vertical-align: middle;
+  box-shadow: 0 1px 4px #0008;
+}
+.ava img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ava.off { filter: grayscale(1) brightness(.75); border-color: #ffffff40; }
+.label .nm.player { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.label .nm.player.away { opacity: .8; color: #d9cfbf; border-color: #ffffff30; }
+.label .nm-bot { font-size: 8.5px; padding: 0 4px; border-radius: 6px; background: #ffffff1a; color: #c9bfae; letter-spacing: .3px; }
+.crew-main b { display: inline-flex; align-items: center; gap: 6px; }
+.pchip .ava { margin-right: 2px; }
+
+/* ---------------------------------------------------------------- «Начать заново»: the open question on top */
+.restart-banner {
+  position: fixed;
+  z-index: 45;
+  top: calc(56px + var(--st, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 20px);
+  padding: 7px 10px 7px 12px;
+  border: 1px solid var(--frame);
+  border-radius: 12px;
+  background: var(--glass);
+  box-shadow: 0 8px 26px #000b, 0 0 20px #efa54c22;
+  pointer-events: auto;
+}
+.restart-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.restart-text b { font-size: 13px; }
+.restart-text small { font-size: 11px; color: var(--dim); }
+.restart-banner button { flex: none; display: inline-flex; align-items: center; gap: 4px; }
+button.danger { border-color: #ef6b5a88; color: #ffd0c8; }
+button.danger:hover { background: #ef6b5a22; }
+html.mobile .restart-banner { top: calc(var(--top) + 4px); gap: 6px; padding: 5px 6px 5px 9px; }
+html.mobile .restart-text b { font-size: 11.5px; }
+html.mobile .restart-text small { font-size: 9.5px; }
+
+/* ---------------------------------------------------------------- Telegram on a computer: offer the browser */
+.wide-offer {
+  position: fixed;
+  z-index: 90;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 20px));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--frame);
+  border-radius: 14px;
+  background: var(--glass);
+  box-shadow: 0 10px 30px #000c;
+  color: var(--text);
+  font-size: 12px;
+}
+.wide-offer b { color: var(--warm); font-size: 13px; }
+.wide-offer small { color: var(--dim); line-height: 1.35; }
+.wide-offer > div { display: flex; gap: 6px; margin-top: 6px; }
