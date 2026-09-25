@@ -155,7 +155,9 @@ export class WorldRenderer {
       h = window.innerHeight;
     // Preserve the player's zoom when rotating, but show several rooms on a phone,
     // not a portrait crop of the landscape camera.
-    const scale = document.documentElement.classList.contains("mobile") ? Math.max(1, 1.1 * h / w) : 1;
+    // Keep roughly thirteen world units visible across an upright phone. The old
+    // ten-unit crop opened on a close-up of one resident and hid the bunker context.
+    const scale = document.documentElement.classList.contains("mobile") ? Math.max(1, 1.45 * h / w) : 1;
     this.viewH *= scale / this.portraitScale;
     this.portraitScale = scale;
     this.renderer.setSize(w, h, false);

@@ -85,6 +85,14 @@ export const debugOps: Record<string, (w: World, arg: any, pid: string) => strin
   games: (w) => {
     for (const g of ["cards36", "cards52", "domino", "checkers", "chess", "backgammon", "dice", "lotto", "magnate", "wasteland", "mafia"]) if (!w.games.includes(g)) w.games.push(g);
   },
+  /** Put the current player into an instrument action for touch/audio UI checks. */
+  music: (w, _a, pid) => {
+    const c = w.chars[w.players[pid]?.char ?? ""];
+    if (!c) return "Нет персонажа";
+    w.res.harmonica = Math.max(1, w.res.harmonica ?? 0);
+    c.hands = [];
+    return startAction(w, c, "play_harmonica", { type: "self", id: c.id });
+  },
 };
 
 import { EVENT_BY_ID, applyEffect, makeVote } from "./events";

@@ -60,6 +60,7 @@ export class CombatUI {
   private selectedTarget: string | null = null;
   private submenu: "attack" | "items" | "more" | null = null;
   private mobileCollapsed = false;
+  private cameraFollow = false;
   private markerMaterials = new Map<string, THREE.MeshBasicMaterial>();
   private markerGeometry = new THREE.PlaneGeometry(0.92, 1.9);
   intel = h("aside.combat-intel.panel.hidden");
@@ -204,6 +205,7 @@ export class CombatUI {
     this.plan = [];
     audio.sfx("blip", 0.5);
     this.mode = null;
+    if (a.t === "move") this.setCameraFollow(true);
     net.send({ k: "cact", action: a });
     this.key = "";
   }
@@ -304,7 +306,19 @@ export class CombatUI {
     this.panel.classList.remove("hidden");
     this.top.classList.remove("hidden");
     this.intel.classList.remove("hidden");
+    if (this.where !== "bunker") {
+      this.site.follow = true;
+      this.cameraFollow = false;
+    }
     audio.sfx("siren", 0.4);
+  }
+
+  setCameraFollow(on: boolean) {
+    if (this.where === "bunker") this.r.follow = on;
+    else {
+      this.site.follow = false;
+      this.cameraFollow = on;
+    }
   }
 
   teardown() {
@@ -402,6 +416,12 @@ export class CombatUI {
     }
     this.drawOverlay();
     if (this.where !== "bunker") {
+      const me = this.myUnit();
+      const vw = me ? this.views.get(me.id) : null;
+      if (vw && this.cameraFollow) {
+        this.site.camX += (vw.x - this.site.camX) * Math.min(1, dt * 4);
+        this.site.camY += (vw.y + 1.4 - this.site.camY) * Math.min(1, dt * 4);
+      }
       this.site.render(this.r.renderer);
       this.renderLabels();
       return true;
@@ -622,7 +642,8 @@ export class CombatUI {
     // left to right; a label that would overlap its neighbour climbs one row up
     const placed: { l: number; r: number; row: number; floorY: number }[] = [];
     const mobileRects: DOMRect[] = [];
-    const panels = [this.top, this.panel, this.intel].map(e => e.getBoundingClientRect()).filter(r => r.width && r.height);
+    const controls = document.querySelector(".camera-controls") as HTMLElement | null;
+    const panels = [this.top, this.panel, this.intel, controls].filter(Boolean).map(e => e!.getBoundingClientRect()).filter(r => r.width && r.height);
     const small = document.documentElement.classList.contains("mobile");
     const LABEL_W = small ? 92 : 108,
       ROW_H = small ? 28 : 40;
@@ -750,10 +771,14 @@ export class CombatUI {
       h("button.combat-panel-toggle", {
         "aria-label": this.mobileCollapsed ? "Показать команды" : "Скрыть команды",
         "aria-expanded": String(!this.mobileCollapsed),
-        onclick: () => {
+        onclick: (event: MouseEvent) => {
           this.mobileCollapsed = !this.mobileCollapsed;
+          this.panel.classList.toggle("mobile-collapsed", this.mobileCollapsed);
+          const button = event.currentTarget as HTMLButtonElement;
+          button.setAttribute("aria-label", this.mobileCollapsed ? "Показать команды" : "Скрыть команды");
+          button.setAttribute("aria-expanded", String(!this.mobileCollapsed));
+          button.textContent = this.mobileCollapsed ? "⌃" : "⌄";
           this.key = "";
-          this.renderPanel();
         },
       }, this.mobileCollapsed ? "⌃" : "⌄"),
     );

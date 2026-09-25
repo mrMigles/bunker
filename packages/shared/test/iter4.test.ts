@@ -3,6 +3,16 @@ import { addPlayer, applyCmd, charUnit, createWorld, validateCustomCard } from "
 import { startedWorld } from "./helpers";
 
 describe("iteration 4: gear, passing things, the character editor", () => {
+  it("relays notes from every playable instrument to the whole multiplayer room", () => {
+    const w = startedWorld({ players: 2, seed: 100 });
+    const me = w.chars[w.players.p0.char!];
+    w.fx = [];
+    me.task = { action: "play_guitar_stand", obj: "guitar", t: 0, dur: 0, hold: false };
+    expect(applyCmd(w, "p0", { k: "note", n: 7, v: 0.9 })).toBeUndefined();
+    expect(w.fx).toContainEqual(expect.objectContaining({ k: "music", x: me.x, lv: me.lv, data: expect.objectContaining({ n: 7, inst: "guitar", who: me.id }) }));
+    expect(w.fx.find((f) => f.k === "music")?.to).toBeUndefined();
+  });
+
   it("a resident wears their own weapon from the storage and fights with it", () => {
     const w = startedWorld({ players: 1, seed: 101 });
     const me = w.chars[w.players.p0.char!];

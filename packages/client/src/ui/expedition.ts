@@ -73,6 +73,7 @@ export class ExpeditionUI {
   private selectedNode = "";
   private markerNodes = new Map<string, HTMLElement>();
   banner = h("div.panel.exp-banner.hidden");
+  lootPop = h("div.exp-loot-pop.hidden", { role: "status", "aria-live": "polite" });
   mode: "none" | "map" | "site" = "none";
   actions: SiteAction[] = [];
   sel = 0;
@@ -82,11 +83,17 @@ export class ExpeditionUI {
   private bannerKey = "";
   private tradeGive: Record<string, number> = {};
   private tradeTake: Record<string, number> = {};
+  private cameraSite = "";
+  private cameraFollow = true;
 
   constructor(private r: WorldRenderer) {
     this.site.scene.add(this.dyn);
-    ui().append(this.mapEl, this.siteHud, this.prompt, this.banner, this.dock, this.markers, this.bubbleLayer);
+    ui().append(this.mapEl, this.siteHud, this.prompt, this.banner, this.dock, this.markers, this.bubbleLayer, this.lootPop);
     net.onFx.add((f) => {
+      if (f.k === "loot" && (!f.to || f.to === net.priv?.pid)) {
+        this.showLoot(f.text ?? "Найдена добыча");
+        return;
+      }
       if (f.k !== "news" || (f.to && f.to !== net.priv?.pid)) return;
       if (f.id === "expedition") {
         // effects arrive before the state patch of the same tick
@@ -97,6 +104,22 @@ export class ExpeditionUI {
         }, 200);
       } else if (f.id === "talk") this.openTalk(f.data);
     });
+  }
+
+  private lootTimer = 0;
+  private showLoot(text: string) {
+    clearTimeout(this.lootTimer);
+    clear(this.lootPop);
+    this.lootPop.append(h("span", null, "🎒"), h("div", null, h("b", null, "ДОБЫЧА"), h("p", null, text.replace(/^Найдено:\s*/, ""))));
+    this.lootPop.classList.remove("hidden", "leaving");
+    // Restart the entrance animation when finds arrive close together.
+    void this.lootPop.offsetWidth;
+    this.lootPop.classList.add("visible");
+    audio.sfx("find", 0.8);
+    this.lootTimer = window.setTimeout(() => {
+      this.lootPop.classList.add("leaving");
+      window.setTimeout(() => this.lootPop.classList.add("hidden"), 260);
+    }, 3200);
   }
 
   get e(): any {
@@ -115,6 +138,16 @@ export class ExpeditionUI {
     const mine = this.inSquad();
     const combat = net.pub?.mods?.combat?.active;
     this.mode = mine && !combat ? (e.stage === "site" && e.site ? "site" : "map") : "none";
+    if (this.mode === "site") {
+      const siteKey = String(e.site?.node ?? e.site?.id ?? "site");
+      if (siteKey !== this.cameraSite) {
+        this.cameraSite = siteKey;
+        this.cameraFollow = true;
+        this.site.follow = false;
+        const aspect = innerWidth / innerHeight;
+        this.site.viewH = mobile ? Math.max(12, 14 / aspect) : 9;
+      }
+    } else if (this.mode === "none") this.cameraSite = "";
     this.mapEl.classList.toggle("hidden", this.mode !== "map");
     this.siteHud.classList.toggle("hidden", this.mode !== "site");
     this.dock.classList.toggle("hidden", this.mode !== "site");
@@ -127,6 +160,11 @@ export class ExpeditionUI {
     if (this.mode === "map") this.renderMap();
     if (this.mode === "site") this.renderHud();
     this.renderBanner();
+  }
+
+  setCameraFollow(on: boolean) {
+    this.cameraFollow = on;
+    this.site.follow = false;
   }
 
   private sendNode = "";
@@ -979,14 +1017,14 @@ export class ExpeditionUI {
       }
     this.site.build(this.siteField(s), { lit });
     this.syncEntities(s, e, dt);
-    // camera follows me
+    // A gesture may detach the camera for inspection. The next movement reattaches it
+    // through GameUI without overwriting the scale the player chose.
     const me = net.myChar();
     const pred = net.pred;
-    if (me) {
+    if (me && this.cameraFollow) {
       const x = pred ? pred.x : me.x,
         y = pred ? pred.y : me.y;
       this.site.follow = false;
-      this.site.viewH = mobile ? Math.max(9, 10 / (innerWidth / innerHeight)) : 9;
       this.site.camX += (x - this.site.camX) * Math.min(1, dt * 4);
       this.site.camY += (-y + 1.5 - this.site.camY) * Math.min(1, dt * 4);
     }

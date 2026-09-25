@@ -767,6 +767,18 @@ textarea {
   transform: translateX(-50%);
   padding: 10px 14px;
 }
+.instr-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.instr-head .dim { flex: 1; font-size: 11px; }
+.instr-keys {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(34px, 1fr));
+  gap: 4px;
+  margin-top: 7px;
+}
 .instr-key {
   width: 38px;
   height: 58px;
@@ -780,7 +792,11 @@ textarea {
   font-weight: bold;
   cursor: pointer;
   box-shadow: 0 3px 0 #555;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 2px;
 }
+.instr-key small { font-size: 9px; opacity: .65; }
 .instr-key.on {
   background: var(--warm);
   transform: translateY(2px);
@@ -828,6 +844,7 @@ textarea {
   border-radius: 3px;
   pointer-events: none !important;
 }
+.camera-controls { display: none; }
 .combat-panel {
   position: fixed;
   left: 50%;

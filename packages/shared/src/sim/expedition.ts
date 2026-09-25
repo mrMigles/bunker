@@ -1529,6 +1529,18 @@ function addLoot(w: World, e: Expedition, loot: Record<string, number>, c: Char)
   return got;
 }
 
+/** Loot is shared by the squad, so every human member gets immediate transient feedback. */
+function announceLoot(w: World, e: Expedition, got: string[]) {
+  if (!got.length) return;
+  const sent = new Set<string>();
+  for (const id of e.squad) {
+    const pid = w.chars[id]?.ctrl;
+    if (!pid || sent.has(pid)) continue;
+    sent.add(pid);
+    fx(w, { k: "loot", to: pid, text: `Найдено: ${got.join(", ")}`, data: { items: got } });
+  }
+}
+
 function finishSiteTask(w: World, e: Expedition, s: Site, c: Char, t: SquadTask) {
   const R = rng(w);
   const cont = s.conts.find((x) => x.id === t.id);
@@ -1542,6 +1554,7 @@ function finishSiteTask(w: World, e: Expedition, s: Site, c: Char, t: SquadTask)
       for (const g of cont.guaranteed ?? []) loot[g] = (loot[g] ?? 0) + 1;
       cont.searched = 1;
       const got = addLoot(w, e, loot, c);
+      announceLoot(w, e, got);
       if (isBotDriven(w, c.id) || R.chance(0.3)) siteBark(w, c, got.length ? (cont.kind === "body" ? "exp_body" : "exp_found") : "exp_empty");
       elog(e, `${firstName(c)} обыскивает «${cont.name}»: ${got.length ? got.join(", ") : "пусто"}${dark ? " (в темноте могли что-то упустить)" : ""}.`);
       if (cont.kind === "weapon_crate") for (const id of e.squad) if (w.chars[id]?.card.goal === "armory") w.flags["_goal_armory_" + id] = 1;
@@ -1598,6 +1611,7 @@ function finishSiteTask(w: World, e: Expedition, s: Site, c: Char, t: SquadTask)
       } else if (d.kind === "note" || d.kind === "photo") elog(e, `📝 ${d.text}`);
       if (d.loot) {
         const got = addLoot(w, e, d.loot, c);
+        announceLoot(w, e, got);
         elog(e, `Найдено: ${got.join(", ")}.`);
       }
       if (c.ctrl && (d.kind === "note" || d.kind === "photo")) fx(w, { k: "toast", to: c.ctrl, text: d.text.slice(0, 120) });
@@ -1609,6 +1623,7 @@ function finishSiteTask(w: World, e: Expedition, s: Site, c: Char, t: SquadTask)
       if (R.d20() + skillLevel(c, "repair") * 2 >= 10) {
         hz.armed = false;
         e.loot.parts = (e.loot.parts ?? 0) + 1;
+        announceLoot(w, e, ["⚙Запчасти×1"]);
         elog(e, "✂️ Растяжка обезврежена. +1 запчасть.");
       } else {
         hz.armed = false;

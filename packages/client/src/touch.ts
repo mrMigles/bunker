@@ -40,9 +40,13 @@ interface Btn {
 }
 
 interface GameLike {
-  r: { renderer: { domElement: HTMLCanvasElement }; viewH: number; camX: number; camY: number; follow: boolean; updateCamera(): void };
+  r: { renderer: { domElement: HTMLCanvasElement } };
   prompt: { list: unknown[] };
   exp?: { mode?: string; actions?: unknown[] } | null;
+  cameraGesture(): unknown;
+  applyCameraGesture(start: any, distanceRatio: number, dx: number, dy: number): void;
+  setCameraFollow(on: boolean): void;
+  resumeCameraFollow(): void;
 }
 
 export function installTouch(game: GameLike) {
@@ -80,6 +84,7 @@ export function installTouch(game: GameLike) {
     // in a building a gentle push sneaks (the «Shift» of the site); elsewhere a full push runs
     const site = document.body.classList.contains("mode-site");
     touchAxis.run = site ? m > 0.15 && m < 0.6 : m > 0.92;
+    if (touchAxis.mx || touchAxis.my) game.resumeCameraFollow();
     stick.classList.toggle("sneak", site && touchAxis.run);
   };
   const stickEnd = () => {
@@ -189,7 +194,7 @@ export function installTouch(game: GameLike) {
   canvas.style.touchAction = "none";
   const pts = new Map<number, { x: number; y: number }>();
   let suppressClick = 0;
-  let pinch: { d: number; viewH: number; mx: number; my: number; camX: number; camY: number } | null = null;
+  let pinch: { d: number; mx: number; my: number; state: unknown } | null = null;
   const mid = () => {
     const [a, b] = [...pts.values()];
     return { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
@@ -221,20 +226,16 @@ export function installTouch(game: GameLike) {
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pts.size === 2) {
       const m = mid();
-      pinch = { d: m.d, viewH: game.r.viewH, mx: m.mx, my: m.my, camX: game.r.camX, camY: game.r.camY };
-      game.r.follow = false;
+      pinch = { d: m.d, mx: m.mx, my: m.my, state: game.cameraGesture() };
+      game.setCameraFollow(false);
     }
   });
   window.addEventListener("pointermove", (e) => {
     if (!pts.has(e.pointerId)) return;
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (!pinch || pts.size !== 2 || document.body.classList.contains("mode-site")) return;
+    if (!pinch || pts.size !== 2) return;
     const m = mid();
-    game.r.viewH = Math.max(6, Math.min(40, (pinch.viewH * pinch.d) / Math.max(20, m.d)));
-    const k = game.r.viewH / window.innerHeight;
-    game.r.camX = pinch.camX - (m.mx - pinch.mx) * k;
-    game.r.camY = pinch.camY + (m.my - pinch.my) * k;
-    game.r.updateCamera();
+    game.applyCameraGesture(pinch.state, Math.max(20, m.d) / Math.max(20, pinch.d), m.mx - pinch.mx, m.my - pinch.my);
   });
   const lift = (e: PointerEvent) => {
     pts.delete(e.pointerId);

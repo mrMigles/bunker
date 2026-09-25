@@ -86,6 +86,7 @@ setInterval(() => {
   if (net.pub && net.pub.phase !== "lobby") {
     if (game?.inputBlocked()) game.navigation.cancel();
     const a = game?.inputBlocked() ? { mx: 0, my: 0, run: false } : game?.navigation.input(axis(), dt) ?? axis();
+    if (a.mx || a.my) game?.resumeCameraFollow();
     net.sendInput(a.mx, a.my, a.run, dt);
   }
 }, 50);

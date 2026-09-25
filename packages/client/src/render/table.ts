@@ -106,6 +106,9 @@ export class TableScene {
   private backMat: THREE.MeshLambertMaterial;
   private t = 0;
   private smoke: THREE.Points;
+  /** Player-controlled table scale. Portrait starts wider so the hand and board fit. */
+  zoom = 1;
+  private zoomTouched = false;
 
   constructor() {
     this.scene.background = new THREE.Color(0x0d0a08);
@@ -155,6 +158,16 @@ export class TableScene {
     this.board.position.set(0, 0.01, 0.2);
     this.board.visible = false;
     this.scene.add(this.board);
+  }
+
+  zoomBy(factor: number) {
+    this.zoomTouched = true;
+    this.zoom = Math.max(0.55, Math.min(1.65, this.zoom * factor));
+  }
+
+  resetZoom() {
+    this.zoomTouched = false;
+    this.zoom = innerHeight > innerWidth ? 0.68 : 1;
   }
 
   /** Redraw the board texture when the view changes. `game` null hides it. */
@@ -291,6 +304,8 @@ export class TableScene {
     const w = window.innerWidth,
       h = window.innerHeight;
     this.camera.aspect = w / h;
+    if (!this.zoomTouched) this.zoom = h > w ? 0.68 : 1;
+    this.camera.zoom = this.zoom;
     this.camera.updateProjectionMatrix();
     const k = Math.min(1, dt * 4);
     const want = this.topDown ? new THREE.Vector3(0, 8.6, 2.6) : new THREE.Vector3(0, 7.2, 6.2);

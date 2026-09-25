@@ -14,7 +14,8 @@ export class GameUI {
   routeMarker = h("div.route-marker.hidden", null, "◎");
   hoverChar: string | null = null;
   mouse = { x: 0, y: 0, wx: 0, wy: 0 };
-  dragging: { x: number; y: number; cx: number; cy: number } | null = null;
+  dragging: { x: number; y: number; state: CameraGesture } | null = null;
+  cameraControls = h("div.camera-controls", null);
   chatBox: HTMLInputElement;
   chatWrap: HTMLElement;
   prompt: Prompt;
@@ -35,7 +36,12 @@ export class GameUI {
     public hud: Hud,
   ) {
     const canvas = r.renderer.domElement;
-    ui().append(this.routeMarker);
+    this.cameraControls.append(
+      h("button", { "aria-label": "Отдалить камеру", onclick: () => this.zoomCamera(1.2) }, "−"),
+      h("button", { "aria-label": "Вернуть камеру к персонажу", onclick: () => this.resumeCameraFollow() }, "⌾"),
+      h("button", { "aria-label": "Приблизить камеру", onclick: () => this.zoomCamera(1 / 1.2) }, "+"),
+    );
+    ui().append(this.routeMarker, this.cameraControls);
     canvas.addEventListener("click", (e) => {
       if (e.button !== 0 || this.build.active || this.inputBlocked()) return;
       if (this.pro?.active) { this.pro.handleClick(e.clientX, e.clientY); return; }
@@ -57,14 +63,13 @@ export class GameUI {
     });
     canvas.addEventListener("wheel", (e) => {
       e.preventDefault();
-      r.viewH = Math.max(6, Math.min(40, r.viewH * (e.deltaY > 0 ? 1.12 : 1 / 1.12)));
-      r.updateCamera();
+      this.zoomCamera(e.deltaY > 0 ? 1.12 : 1 / 1.12);
     });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     canvas.addEventListener("mousedown", (e) => {
       if (e.button === 1 || (e.button === 2 && !e.shiftKey)) {
-        this.dragging = { x: e.clientX, y: e.clientY, cx: r.camX, cy: r.camY };
-        r.follow = false;
+        this.dragging = { x: e.clientX, y: e.clientY, state: this.cameraGesture() };
+        this.setCameraFollow(false);
       }
     });
     window.addEventListener("mouseup", () => (this.dragging = null));
@@ -72,9 +77,7 @@ export class GameUI {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
       if (this.dragging) {
-        const k = r.viewH / window.innerHeight;
-        r.camX = this.dragging.cx - (e.clientX - this.dragging.x) * k;
-        r.camY = this.dragging.cy + (e.clientY - this.dragging.y) * k;
+        this.applyCameraGesture(this.dragging.state, 1, e.clientX - this.dragging.x, e.clientY - this.dragging.y);
       }
     });
     this.chatBox = h("input", { placeholder: "Сообщение… (Enter)", maxLength: 200 }) as HTMLInputElement;
@@ -97,6 +100,56 @@ export class GameUI {
     this.council = new CouncilUI();
     onKeyDown((e) => this.keyDown(e));
     onKeyUp((e) => this.keyUp(e));
+  }
+
+  private cameraSurface() {
+    if (this.combat?.active && this.combat.where !== "bunker") return this.combat.site;
+    if (this.exp?.mode === "site") return this.exp.site;
+    return this.r;
+  }
+
+  cameraGesture(): CameraGesture {
+    if (this.table?.active) return { kind: "table", zoom: this.table.scene.zoom };
+    const s = this.cameraSurface();
+    return { kind: "world", surface: s, viewH: s.viewH, camX: s.camX, camY: s.camY };
+  }
+
+  applyCameraGesture(start: CameraGesture, distanceRatio: number, dx: number, dy: number) {
+    if (start.kind === "table") {
+      if (!this.table?.active) return;
+      const desired = Math.max(0.55, Math.min(1.65, start.zoom * distanceRatio));
+      this.table.scene.zoomBy(desired / this.table.scene.zoom);
+      return;
+    }
+    const s = start.surface;
+    s.viewH = Math.max(6, Math.min(48, start.viewH / Math.max(0.2, distanceRatio)));
+    const k = s.viewH / innerHeight;
+    s.camX = start.camX - dx * k;
+    s.camY = start.camY + dy * k;
+    if (s === this.r) this.r.updateCamera();
+    this.setCameraFollow(false);
+  }
+
+  zoomCamera(factor: number) {
+    if (this.table?.active) {
+      this.table.scene.zoomBy(1 / factor);
+      return;
+    }
+    const s = this.cameraSurface();
+    s.viewH = Math.max(6, Math.min(48, s.viewH * factor));
+    if (s === this.r) this.r.updateCamera();
+    this.setCameraFollow(false);
+  }
+
+  setCameraFollow(on: boolean) {
+    if (this.combat?.active) this.combat.setCameraFollow(on);
+    else if (this.exp?.mode === "site") this.exp.setCameraFollow(on);
+    else this.r.follow = on;
+  }
+
+  /** Moving always finds the controlled survivor again without changing player-selected zoom. */
+  resumeCameraFollow() {
+    this.setCameraFollow(true);
   }
 
   inputBlocked() {
@@ -267,3 +320,6 @@ export class GameUI {
   }
 }
 
+export type CameraGesture =
+  | { kind: "table"; zoom: number }
+  | { kind: "world"; surface: { viewH: number; camX: number; camY: number }; viewH: number; camX: number; camY: number };

@@ -102,7 +102,7 @@ defAction({
 
 registerCmd("note", (w, p, cmd) => {
   const c = p.char ? w.chars[p.char] : undefined;
-  if (!c?.task || !["play_guitar", "play_piano", "play_harmonica"].includes(c.task.action)) return;
+  if (!c?.task || !["play_guitar", "play_guitar_stand", "play_piano", "play_harmonica"].includes(c.task.action)) return;
   const n = Math.max(-12, Math.min(24, Math.floor(Number(cmd.n) || 0)));
   const inst = c.task.action === "play_piano" ? "piano" : c.task.action === "play_harmonica" ? "harmonica" : "guitar";
   fx(w, { k: "music", x: c.x, lv: c.lv, data: { n, inst, who: c.id, v: Math.max(0.2, Math.min(1, Number(cmd.v) || 0.8)) } });

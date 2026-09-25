@@ -14,6 +14,7 @@ page.setDefaultTimeout(10000);
 const report = { checks: [], errors: [] };
 page.on('pageerror', e => report.errors.push(e.message));
 const check = (name, ok, data) => { report.checks.push({ name, ok, data }); console.log(ok ? 'PASS' : 'FAIL', name, JSON.stringify(data ?? '')); };
+const stage = name => console.log(`STAGE ${name}`);
 const sizes = process.env.PASS === 'before' ? [[390, 844]] : [[390, 844], [320, 640], [844, 390], [740, 320]];
 const cdp = await ctx.newCDPSession(page);
 async function touchScrollEnd(selector) {
@@ -30,6 +31,22 @@ async function touchScrollEnd(selector) {
     m = await metrics();
   }
   check(`${selector} ${page.viewportSize().width}: touch scroll reaches end`, m.top >= m.max - 2, m);
+}
+async function pinchScene(y, spreadFrom = 38, spreadTo = 88) {
+  const { width, height } = page.viewportSize();
+  const cy = Math.max(90, Math.min(height - 100, y));
+  const points = spread => [
+    { id: 1, x: width / 2 - spread, y: cy, radiusX: 5, radiusY: 5, force: 1 },
+    { id: 2, x: width / 2 + spread, y: cy, radiusX: 5, radiusY: 5, force: 1 },
+  ];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: points(spreadFrom) });
+  for (let i = 1; i <= 6; i++) {
+    const spread = spreadFrom + (spreadTo - spreadFrom) * i / 6;
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: points(spread) });
+    await page.waitForTimeout(30);
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await page.waitForTimeout(250);
 }
 async function start(arena = false) {
   await page.goto(`${base}/?mobile=1`);
@@ -104,9 +121,22 @@ async function combatResizeSweep() {
   }
 }
 try {
+  stage('bunker');
   await start();
   await page.waitForFunction(() => window.__net.pub.phase === 'day');
   await capture('bunker', ['.hud-top', '.game-toolbar', '.objectives:not(.hidden)', '.hud-me', '.game-dock', '.touch-stick:not(.hidden)', '.touch-pad', '.action-dock:not(.hidden)']);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const bunkerInitial = await page.evaluate(() => ({ viewH: window.__r.viewH, horizontal: window.__r.viewH * innerWidth / innerHeight }));
+  check('bunker opens at a useful portrait scale', bunkerInitial.horizontal >= 12, bunkerInitial);
+  await pinchScene(330);
+  const bunkerZoomed = await page.evaluate(() => ({ viewH: window.__r.viewH, follow: window.__r.follow }));
+  check('bunker pinch changes zoom and detaches inspection camera', bunkerZoomed.viewH < bunkerInitial.viewH * .8 && !bunkerZoomed.follow, bunkerZoomed);
+  await page.keyboard.down('d');
+  await page.waitForTimeout(250);
+  await page.keyboard.up('d');
+  await page.waitForTimeout(150);
+  const bunkerMoved = await page.evaluate(() => ({ viewH: window.__r.viewH, follow: window.__r.follow }));
+  check('movement reattaches bunker camera without resetting zoom', bunkerMoved.follow && Math.abs(bunkerMoved.viewH - bunkerZoomed.viewH) < .05, bunkerMoved);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('.action-dock .mobile-action-toggle').tap();
   check('nearby actions expand', await page.locator('.action-dock .opt:visible').count() > 1);
@@ -115,14 +145,43 @@ try {
   await page.locator('.hud-me-toggle').tap();
   await capture('bunker-stats', ['.hud-me', '.game-dock', '.touch-stick', '.touch-pad', '.action-dock:not(.hidden)']);
   await page.locator('.hud-me-toggle').tap();
+  await page.evaluate(() => window.__net.send({ k: 'debug', op: 'games' }));
+  stage('table');
+  await page.evaluate(() => window.__net.send({ k: 'debug', op: 'sit' }));
+  await page.waitForFunction(() => window.__game.table?.active, null, { timeout: 15000 });
+  for (let i = 0; i < 2; i++) {
+    await page.evaluate(() => window.__net.send({ k: 'tableInvite' }));
+    await page.waitForTimeout(250);
+  }
+  const startTable = page.locator('.table-panel button').filter({ hasText: 'Начать' });
+  if (await startTable.isEnabled()) await startTable.tap();
+  await page.waitForTimeout(400);
+  await capture('table', ['.table-status', '.table-talk', '.table-panel', '.camera-controls']);
+  const tableZoom = await page.evaluate(() => window.__game.table.scene.zoom);
+  await pinchScene(410);
+  const tableZoomed = await page.evaluate(() => window.__game.table.scene.zoom);
+  check('table supports touch pinch zoom', tableZoomed > tableZoom * 1.25, { tableZoom, tableZoomed });
+  check('table hides bunker HUD on mobile', await page.locator('.hud-top:visible, .game-dock:visible, .hud-me:visible').count() === 0);
+  await page.getByRole('button', { name: /Встать/ }).tap();
+  stage('instrument');
+  await page.evaluate(() => window.__net.send({ k: 'debug', op: 'music' }));
+  await page.locator('.instr-panel:not(.hidden)').waitFor({ timeout: 10000 });
+  await capture('instrument', ['.hud-top', '.instr-panel']);
+  const noteKeys = await page.locator('.instr-key:visible').count();
+  check('instrument exposes all ten touch notes', noteKeys === 10, { noteKeys });
+  await page.locator('.instr-key').first().tap();
+  await page.locator('.instr-stop').tap();
+  await page.waitForFunction(() => document.querySelector('.instr-panel')?.classList.contains('hidden'));
   await page.locator('.game-dock button').first().tap();
   await capture('character', ['.modal']);
   await page.keyboard.press('Escape');
   await page.evaluate(() => window.__net.send({ k: 'debug', op: 'night' }));
+  stage('council');
   await page.locator('.council-panel:not(.hidden)').waitFor();
   await capture('council', ['.hud-top', '.council-panel']);
   await page.evaluate(async () => { await window.__net.room.leave(); sessionStorage.clear(); });
   await start();
+  stage('expedition');
   await page.waitForFunction(() => window.__net.pub.phase === 'day');
   await page.evaluate(() => {
     const o = Object.values(window.__net.pub.objs).find(o => o.kind === 'sortie_terminal');
@@ -133,23 +192,53 @@ try {
   await page.getByRole('button', { name: 'Выйти на поверхность →', exact: true }).tap();
   await page.waitForFunction(() => window.__game.exp.mode === 'map');
   await capture('map', ['.hud-top', '.exp-map']);
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => window.__net.send({ k: 'debug', op: 'sortie' }));
   await page.waitForFunction(() => window.__game.exp.mode === 'site', null, { timeout: 15000 });
   await page.evaluate(() => window.__net.send({ k: 'debug', op: 'quiet' }));
   await page.waitForTimeout(500);
-  await capture('site', ['.hud-top', '.game-toolbar', '.exp-hud:not(.hidden)', '.exp-dock:not(.hidden)', '.touch-stick:not(.hidden)', '.touch-pad', '.exp-context:not(.hidden)']);
+  const siteInitial = await page.evaluate(() => ({ viewH: window.__game.exp.site.viewH, horizontal: window.__game.exp.site.viewH * innerWidth / innerHeight }));
+  check('expedition opens wide enough in portrait', siteInitial.horizontal >= 13, siteInitial);
+  await capture('site', ['.hud-top', '.game-toolbar', '.exp-hud:not(.hidden)', '.exp-dock:not(.hidden)', '.camera-controls', '.touch-stick:not(.hidden)', '.touch-pad', '.exp-context:not(.hidden)']);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await pinchScene(360);
+  const siteZoomed = await page.evaluate(() => ({ viewH: window.__game.exp.site.viewH, follow: window.__game.exp.cameraFollow }));
+  check('expedition pinch changes its own camera', siteZoomed.viewH < siteInitial.viewH * .8 && !siteZoomed.follow, siteZoomed);
+  await page.keyboard.down('d');
+  await page.waitForTimeout(300);
+  await page.keyboard.up('d');
+  await page.waitForTimeout(150);
+  const siteMoved = await page.evaluate(() => ({ viewH: window.__game.exp.site.viewH, follow: window.__game.exp.cameraFollow }));
+  check('movement reattaches expedition camera without resetting zoom', siteMoved.follow && Math.abs(siteMoved.viewH - siteZoomed.viewH) < .05, siteMoved);
+  await page.evaluate(() => { for (const h of window.__net.onFx) h({ k: 'loot', text: 'Найдено: 🥫Консервы×2, ⚙Запчасти×1' }); });
+  await page.locator('.exp-loot-pop.visible').waitFor();
+  await capture('site-loot', ['.exp-hud:not(.hidden)', '.exp-dock:not(.hidden)', '.exp-loot-pop.visible', '.exp-context:not(.hidden)']);
   await page.locator('.exp-dock button').nth(2).tap();
   await capture('backpack', ['.modal']);
   await page.keyboard.press('Escape');
   await page.evaluate(async () => { await window.__net.room.leave(); sessionStorage.clear(); });
+  stage('combat');
   await start(true);
   await page.waitForFunction(() => window.__game.combat?.active && window.__game.combat.cs?.phase === 'plan', null, { timeout: 15000 });
   await combatResizeSweep();
-  await capture('combat', ['.combat-top', '.game-toolbar', '.combat-panel', '.combat-intel']);
+  await capture('combat', ['.combat-top', '.game-toolbar', '.combat-panel', '.combat-intel', '.camera-controls']);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator('.combat-panel-toggle').tap();
-  check('combat commands collapse to reveal the field', await page.locator('.combat-panel').evaluate(e => getComputedStyle(e).display === 'none'));
-  await page.locator('.combat-panel-toggle').tap();
+  const combatZoom = await page.evaluate(() => window.__game.combat.site.viewH);
+  await pinchScene(360);
+  const combatZoomed = await page.evaluate(() => window.__game.combat.site.viewH);
+  check('combat supports touch pinch zoom', combatZoomed < combatZoom * .8, { combatZoom, combatZoomed });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const panelCollapsed = await page.locator('.combat-panel-toggle').evaluate(e => {
+    e.click();
+    const panel = document.querySelector('.combat-panel');
+    return !!panel?.classList.contains('mobile-collapsed') && getComputedStyle(panel).display === 'none';
+  });
+  check('combat commands collapse to reveal the field', panelCollapsed);
+  const panelExpanded = await page.locator('.combat-panel-toggle').evaluate(e => {
+    e.click();
+    return !document.querySelector('.combat-panel')?.classList.contains('mobile-collapsed');
+  });
+  check('combat commands expand again', panelExpanded);
   await page.locator('.combat-action').last().tap();
   await capture('combat-more', ['.combat-top', '.game-toolbar', '.combat-panel', '.combat-intel']);
   await page.locator('.combat-action').last().tap();

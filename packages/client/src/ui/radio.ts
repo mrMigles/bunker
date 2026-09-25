@@ -98,13 +98,24 @@ export class RadioUI {
 /** Instrument keyboard: A S D F G H J K L ; → notes of a pentatonic scale (you can't play a wrong note). */
 export class InstrumentUI {
   el = h("div.panel.instr-panel.hidden");
+  title = h("b.instr-title", null, "🎶 Инструмент");
   keys = ["KeyA", "KeyS", "KeyD", "KeyF", "KeyG", "KeyH", "KeyJ", "KeyK", "KeyL", "Semicolon"];
   scale = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22];
   active = false;
   constructor() {
-    this.el.append(h("div", null, "🎶 Играйте клавишами ", h("b", null, "A S D F G H J K L ;"), h("span.dim", null, " — ноты подстроены под лад. Шаг — перестать.")));
-    const row = h("div.row", { style: { marginTop: "6px" } });
-    this.keys.forEach((k, i) => row.appendChild(h("div.instr-key", { onmousedown: () => this.play(i) }, k.replace("Key", "").replace("Semicolon", ";"))));
+    this.el.append(
+      h("div.instr-head", null, this.title, h("span.dim", null, "Коснитесь нот — они подстроены под лад"), h("button.small.instr-stop", { onclick: () => net.send({ k: "stop" }) }, "Закончить")),
+    );
+    const row = h("div.instr-keys");
+    const names = ["Ля", "До", "Ре", "Ми", "Соль", "Ля", "До", "Ре", "Ми", "Соль"];
+    this.keys.forEach((k, i) => {
+      const el = h("button.instr-key", null, h("b", null, names[i]), h("small", null, k.replace("Key", "").replace("Semicolon", ";")));
+      el.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        this.play(i);
+      });
+      row.appendChild(el);
+    });
     this.el.appendChild(row);
     ui().appendChild(this.el);
     net.onFx.add((f) => {
@@ -114,8 +125,10 @@ export class InstrumentUI {
       const d = f.data ?? {};
       if (d.who === me?.id) return; // already played locally
       const aq = (window as any).__game?.aquarium;
-      if (!aq && (!me || me.lv !== f.lv || Math.abs(me.x - (f.x ?? 0)) > 10)) return;
-      audio.note(d.n, d.inst, (d.v ?? 0.8) * (aq ? 0.6 : 1));
+      if (!aq && (!me || me.status === "away")) return;
+      const distance = me ? Math.abs(me.x - (f.x ?? 0)) + Math.abs(me.lv - (f.lv ?? 0)) * 7 : 30;
+      const audible = aq ? 0.6 : Math.max(0.12, 1 - distance / 28);
+      audio.note(d.n, d.inst, (d.v ?? 0.8) * audible);
       void v;
     });
   }
@@ -124,6 +137,7 @@ export class InstrumentUI {
     if (!this.active) return false;
     const i = this.keys.indexOf(e.code);
     if (i < 0) return false;
+    if (e.repeat) return true;
     this.play(i);
     return true;
   }
@@ -143,6 +157,10 @@ export class InstrumentUI {
     const me = net.myChar();
     this.active = !!me?.task && ["play_guitar", "play_guitar_stand", "play_piano", "play_harmonica"].includes(me.task.action);
     this.el.classList.toggle("hidden", !this.active);
+    if (this.active) {
+      const kind = me.task.action === "play_piano" ? "🎹 Пианино" : me.task.action === "play_harmonica" ? "🎵 Губная гармошка" : "🎸 Гитара";
+      if (this.title.textContent !== kind) this.title.textContent = kind;
+    }
   }
 }
 

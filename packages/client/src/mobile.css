@@ -1247,3 +1247,205 @@ html.mobile :is(.action-dock, .exp-context).mobile-expanded > :first-child {
   html.mobile .touch-knob { left: 24px; top: 24px; width: 36px; height: 36px; }
   html.mobile .hud-me-peek { gap: 4px; }
 }
+
+/* ---------------------------------------------------------------- camera: the same controls drive bunker/site/combat/table cameras. */
+html.mobile body:is(.mode-site, .mode-combat, .mode-table) .camera-controls {
+  position: fixed;
+  z-index: 31;
+  display: flex;
+  gap: 4px;
+  left: calc(6px + var(--sl));
+  top: calc(var(--top) + 112px);
+  padding: 3px;
+  border: 1px solid var(--frame-soft);
+  border-radius: 11px;
+  background: #18130fe8;
+  box-shadow: 0 5px 18px #0008;
+}
+html.mobile .camera-controls button {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  font-size: 19px;
+}
+html.mobile body.mode-combat .camera-controls { top: calc(58px + var(--st)); }
+html.mobile body.mode-combat:has(.combat-intel.has-target) .camera-controls { top: calc(151px + var(--st)); }
+html.mobile body.mode-site .camera-controls {
+  left: calc(120px + var(--sl));
+  top: calc(var(--top) + 6px);
+}
+
+/* ---------------------------------------------------------------- table games: clear the felt and keep only decisions around its edges. */
+html.mobile body.mode-table :is(.hud-top, .game-toolbar, .game-dock, .hud-me, .objectives, .touch-stick, .touch-pad, .help) {
+  display: none !important;
+}
+html.mobile body.mode-table .camera-controls {
+  top: calc(70px + var(--st));
+}
+html.mobile .table-status {
+  top: calc(5px + var(--st));
+  left: calc(6px + var(--sl));
+  right: calc(6px + var(--sr));
+  width: auto;
+  max-width: none;
+  transform: none;
+  box-sizing: border-box;
+  padding: 7px 9px;
+  border: 1px solid var(--frame-soft);
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 1.25;
+  text-align: left;
+  z-index: 29;
+}
+html.mobile .table-log-toggle {
+  float: right;
+  margin: -3px -3px -3px 8px;
+  min-height: 28px;
+  font-size: 10px;
+}
+html.mobile .table-talk {
+  left: calc(6px + var(--sl));
+  right: calc(6px + var(--sr));
+  top: calc(121px + var(--st));
+  width: auto;
+  padding: 0;
+  background: transparent;
+  z-index: 28;
+}
+html.mobile .table-seats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+html.mobile .table-seat {
+  min-width: 0;
+  padding: 4px 5px;
+  overflow: hidden;
+}
+html.mobile .table-seat b,
+html.mobile .table-seat small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.mobile .table-journal,
+html.mobile .table-chat { display: none; }
+html.mobile .table-talk.journal-open {
+  max-height: 38dvh;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--frame-soft);
+  border-radius: 10px;
+  background: #11100fed;
+  pointer-events: auto !important;
+  touch-action: pan-y;
+}
+html.mobile .table-talk.journal-open :is(.table-journal, .table-chat) { display: block; }
+html.mobile .table-panel {
+  left: calc(6px + var(--sl));
+  right: calc(6px + var(--sr));
+  bottom: calc(6px + var(--sb));
+  width: auto;
+  max-width: none;
+  max-height: min(25dvh, 185px);
+  transform: none;
+  overflow-y: auto;
+  box-sizing: border-box;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px;
+  z-index: 30;
+  touch-action: pan-y;
+}
+html.mobile .table-panel button { min-height: 40px; }
+
+/* ---------------------------------------------------------------- instruments: real touch notes, never hidden behind the normal HUD. */
+html.mobile body:has(.instr-panel:not(.hidden)) :is(.action-dock, .hud-me, .touch-stick, .touch-pad, .game-dock) {
+  display: none !important;
+}
+html.mobile .instr-panel {
+  left: calc(6px + var(--sl));
+  right: calc(6px + var(--sr));
+  bottom: calc(6px + var(--sb));
+  width: auto;
+  max-width: none;
+  transform: none;
+  padding: 8px;
+  z-index: 35;
+}
+html.mobile .instr-head { gap: 7px; }
+html.mobile .instr-head .dim { font-size: 9px; }
+html.mobile .instr-title { white-space: nowrap; }
+html.mobile .instr-stop { margin-left: auto; }
+html.mobile .instr-keys {
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 3px;
+}
+html.mobile .instr-key {
+  width: auto;
+  min-width: 0;
+  height: 52px;
+  min-height: 52px;
+  border-radius: 3px 3px 7px 7px;
+  font-size: 10px;
+  padding: 3px 1px;
+}
+
+/* Loot is gameplay feedback, not a journal entry hidden behind another screen. */
+.exp-loot-pop {
+  position: fixed;
+  z-index: 40;
+  left: 50%;
+  top: calc(var(--top) + 8px);
+  transform: translate(-50%, -8px) scale(.96);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(320px, calc(100vw - 28px));
+  padding: 10px 14px;
+  border: 1px solid #f0b862aa;
+  border-radius: 12px;
+  color: #fff3d6;
+  background: linear-gradient(135deg, #4a321deF, #1a1511f5);
+  box-shadow: 0 9px 28px #000b, 0 0 22px #eaa34a38;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s, transform .25s;
+}
+.exp-loot-pop > span { font-size: 25px; }
+.exp-loot-pop b { color: #ffc974; font-size: 10px; letter-spacing: 1px; }
+.exp-loot-pop p { margin: 2px 0 0; font-size: 12px; line-height: 1.3; }
+.exp-loot-pop.visible { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.exp-loot-pop.leaving { opacity: 0; transform: translate(-50%, -10px) scale(.98); }
+
+@media (orientation: landscape) {
+  html.mobile .exp-loot-pop {
+    left: auto;
+    right: calc(252px + var(--sr));
+    width: min(320px, calc(100vw - 264px));
+    transform: translateY(-8px) scale(.96);
+  }
+  html.mobile .exp-loot-pop.visible { transform: translateY(0) scale(1); }
+  html.mobile .exp-loot-pop.leaving { transform: translateY(-10px) scale(.98); }
+}
+
+@media (orientation: portrait) and (max-width: 700px) {
+  html.mobile .exp-loot-pop { top: calc(var(--top) + 126px); width: min(430px, calc(100vw - 28px)); }
+  html.mobile .instr-head .dim { display: none; }
+  html.mobile .instr-keys { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  html.mobile .instr-key { height: 44px; min-height: 44px; }
+  html.mobile .table-talk { top: calc(114px + var(--st)); }
+  html.mobile body.mode-table .camera-controls { top: calc(62px + var(--st)); }
+  html.mobile body.mode-site .camera-controls {
+    left: calc(6px + var(--sl));
+    top: calc(var(--top) + 112px);
+  }
+  html.mobile .exp-task {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px;
+    padding: 6px 2px 2px;
+  }
+  html.mobile .exp-task > .bar { grid-column: 1 / -1; }
+  html.mobile .exp-task > small { display: none; }
+  html.mobile .exp-task > button { grid-column: 2; grid-row: 1; min-height: 34px; }
+}

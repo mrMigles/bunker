@@ -34,6 +34,7 @@ export class TableUI {
   private claim = "";
   private lastView: any = null;
   private lastGame: string | null = null;
+  private journalOpen = false;
 
   constructor(private r: WorldRenderer) {
     this.el.append(this.status, this.talk, this.panel);
@@ -105,6 +106,7 @@ export class TableUI {
       }
       return;
     }
+    if (!was) this.scene.resetZoom();
     const priv = net.priv?.mods?.tables;
     const meChar = net.priv?.char ?? null;
     const seats: (string | null)[] = t?.seats ?? [null, null, null, null];
@@ -256,7 +258,7 @@ export class TableUI {
   renderPanel(t: any, view: any, legal: any[], seats: (string | null)[], me: string | null) {
     const v = net.pub!;
     const seated = me && seats.includes(me);
-    const key = JSON.stringify([t?.status, t?.talk, t?.log?.length, t?.turnT, legal, seats, t?.result, this.opts, this.stake, this.game, this.scene.selected, [...this.scene.multi], this.keep, this.claim, this.sel, view?.taking, view?.attacker, view?.defender, t?.paused, t?.toAct]);
+    const key = JSON.stringify([t?.status, t?.talk, t?.log?.length, t?.turnT, legal, seats, t?.result, this.opts, this.stake, this.game, this.scene.selected, [...this.scene.multi], this.keep, this.claim, this.sel, view?.taking, view?.attacker, view?.defender, t?.paused, t?.toAct, this.journalOpen]);
     if (key === this.key) return;
     this.key = key;
     const name = (id: string) => (v.chars[id] ? v.chars[id].card.name.split(" ")[0] : id);
@@ -270,6 +272,15 @@ export class TableUI {
         h("span.dim", null, ` · ⏱ ${t.turnT}с`),
         t.stake ? h("span.warn", null, ` · на кону ${Object.values(t.pot)[0]} × ${t.stake.item === "food_can" ? "🥫" : t.stake.item === "ammo" ? "🔸" : "🚬"}`) : null,
         t.paused ? h("span.bad", null, " · ПАУЗА") : null,
+        h("button.small.table-log-toggle", {
+          "aria-expanded": String(this.journalOpen),
+          "aria-label": this.journalOpen ? "Скрыть журнал партии" : "Показать журнал партии",
+          onclick: () => {
+            this.journalOpen = !this.journalOpen;
+            this.talk.classList.toggle("journal-open", this.journalOpen);
+            this.key = "";
+          },
+        }, this.journalOpen ? "Скрыть журнал" : "Журнал"),
       );
       if (t.game === "durak" && view.out?.length) add(this.status, h("div.dim", null, "Вышли: " + view.out.map(name).join(", ")));
     } else if (t?.status === "over" && t.result)
@@ -281,6 +292,7 @@ export class TableUI {
     else add(this.status, h("span.dim", null, seated ? "Стол свободен. Выберите игру и начните." : "Вы смотрите партию. Чужих карт не видно."));
     // who is at the table, whose turn it is
     clear(this.talk);
+    this.talk.classList.toggle("journal-open", this.journalOpen);
     const toAct: string[] = t?.toAct ?? [];
     this.talk.appendChild(
       h(
