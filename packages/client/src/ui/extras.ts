@@ -1,3 +1,4 @@
+import { portrait } from "../render/portrait";
 import { PROFS } from "@bunker/shared";
 import type { Fx } from "@bunker/shared";
 import { audio } from "../audio/audio";
@@ -58,7 +59,7 @@ export function installExtras(game: GameUI) {
           return h(
             "button.crew-entry" + (c.status === "dead" ? ".dead" : ""),
             { onclick: () => openCharacter(c.id) },
-            art(portraitTile(c.card.prof, c.card.gender), "crew-portrait"),
+            portrait(c.id, c.card, "crew-portrait", () => art(portraitTile(c.card.prof, c.card.gender))),
             h("span.crew-main", null, h("b", null, c.card.name), h("small", null, `${PROFS[c.card.prof]?.name ?? ""} · ур. ${c.level ?? 1} · `, player ? h("span.warn", null, player.name) : h("span.dim", null, "бот"), ` · ${state}`)),
             h("span.crew-needs", null, mini("health"), mini("food"), mini("energy"), mini("sanity")),
             icon("chevronRight"),

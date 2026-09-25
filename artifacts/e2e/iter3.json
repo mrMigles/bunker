@@ -27,12 +27,12 @@
       "name": "hand strokes fill the bucket (task done by the minigame)",
       "ok": true,
       "dirty0": 0,
-      "dirty1": 1.6
+      "dirty1": 1.4
     },
     {
       "name": "talking to a resident shows today's story",
       "ok": true,
-      "story": "«Ты заметил, что генератор по утрам гудит тише? Или я привык.»"
+      "story": "«Я сегодня смеялся впервые за неделю. Спасибо, что вы все рядом.»"
     },
     {
       "name": "the intercom rings and opens a dialog with the visitor",
@@ -56,9 +56,9 @@
       "ok": true,
       "task": {
         "a": "search",
-        "id": "c19",
-        "t": 1.2560000000000007,
-        "dur": 13.967999999999998,
+        "id": "c7",
+        "t": 1.323,
+        "dur": 6.983999999999999,
         "rush": false
       }
     },
@@ -71,11 +71,11 @@
       "name": "companions stand apart",
       "ok": true,
       "xs": [
-        5.28,
-        7.37
+        9.4,
+        9.83
       ],
-      "minGap": 2.09,
-      "bubbles": 0
+      "minGap": 0.4299999999999997,
+      "bubbles": 1
     },
     {
       "name": "the map shows the drawn city of Новоград",

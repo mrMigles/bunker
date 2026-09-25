@@ -2,6 +2,7 @@ import { BAL, PROFS } from "@bunker/shared";
 import { net } from "../net";
 import { bar, clear, h, ui } from "./dom";
 import { foodTotal } from "./hud";
+import { icon } from "./icons";
 
 const MULTS: [number, string][] = [
   [0, "0"],
@@ -59,10 +60,10 @@ export class CouncilUI {
       h(
         "div.row",
         null,
-        h("h2", { style: { margin: 0, fontFamily: "var(--title)", fontSize: "18px", color: "var(--warm)" } }, `Ночь ${v.day} · Совет`),
+        h("h2.council-title", null, icon("moon"), `Ночь ${v.day} · Совет`),
         h("div.grow"),
-        solo ? h("span.dim", null, "ждём вас") : h("span", { style: { minWidth: "44px", textAlign: "right" } }, "⏱ ", h("span.council-left", null, String(left)), "с"),
-        h("button.small", { onclick: () => ((this.minimized = !this.minimized), (this.key = "")) }, this.minimized ? "▼" : "▲"),
+        solo ? h("span.chip", null, icon("clock"), "ждём вас") : h("span.chip", null, icon("clock"), h("span.council-left", null, String(left)), "с"),
+        h("button.small.icon-btn", { title: this.minimized ? "Развернуть" : "Свернуть", onclick: () => ((this.minimized = !this.minimized), (this.key = "")) }, icon(this.minimized ? "chevronDown" : "minus")),
       ),
     );
     if (this.minimized) return;

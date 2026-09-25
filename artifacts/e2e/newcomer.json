@@ -3,7 +3,7 @@
     {
       "name": "lobby cards readable (light text on dark card)",
       "ok": true,
-      "text": "Пётр Гвоздев\n🌾\nФермер, 46 лет\nРастения растут лучше под его рукой.\n2\nСИЛ\n2\nЛОВ\n",
+      "text": "Тамара Фильтрова\n⚕️\nВрач, 27 лет\nЛечит раны, болезни, радиацию.\n3\nСИЛ\n3\nЛОВ\n3\nИН",
       "lum": 241.66666666666666
     },
     {
@@ -23,27 +23,27 @@
         "hands": 0
       },
       "after": {
-        "x": 28.42,
+        "x": 25.38,
         "hands": [
-          "batteries"
+          "radio_portable"
         ]
       },
       "target": {
-        "id": "pi42",
-        "x": 28.5
+        "id": "pi33",
+        "x": 25.3
       }
     },
     {
       "name": "prologue: carried loot drops into the hatch",
       "ok": true,
-      "delivered": 1
+      "delivered": 2
     },
     {
       "name": "prologue ends; waiting at the hatch keeps you unhurt",
       "ok": true,
       "rad": 0,
       "injury": null,
-      "waited": 61
+      "waited": 60
     },
     {
       "name": "day 1: «Задачи» panel shows priorities and the first tutorial step",
@@ -56,9 +56,7 @@
     {
       "name": "day 1: no keepsake junk piled at the airlock",
       "ok": true,
-      "floor": [
-        "ball"
-      ],
+      "floor": [],
       "clutter": 6
     },
     {
@@ -69,14 +67,14 @@
       "name": "sortie prep: squad pre-filled (me + residents) and a base kit packed",
       "ok": true,
       "squad": 2,
-      "weight": 8.1,
+      "weight": 7.7,
       "gear": {
         "water": 4,
         "food_can": 2,
         "meds": 1,
         "batteries": 1,
         "pipe": 1,
-        "knife": 2
+        "knife": 1
       }
     },
     {
@@ -86,9 +84,61 @@
       "seconds": 1
     },
     {
-      "name": "script error",
-      "ok": false,
-      "error": "Error: page.evaluate: Target crashed "
+      "name": "site: squad survives the first exploration",
+      "ok": true,
+      "fights": 0,
+      "loot": {
+        "food_can": 3,
+        "parts": 3
+      },
+      "log": [
+        "Отряд поднялся наверх. Пепел хрустит под ногами.",
+        "Путь: Разрушенный магазин на Кирпичной (~29 мин игрового времени).",
+        "Прибыли: Разрушенный магазин на Кирпичной.",
+        "Вошли: Разрушенный магазин на Кирпичной. «Кооператив «Изобилие»».",
+        "✦ Ада замечает: что-то странное.",
+        "Тамара обыскивает «Холодильник»: 🥫Консервы «Вечность»×3 (в темноте могли что-то упустить).",
+        "Тамара обыскивает «Ящик»: ⚙️Запчасти×3 (в темноте могли что-то упустить).",
+        "🔒 Дверь заперта: отмычка, лом или выбить (подойдите и нажмите E)."
+      ],
+      "squad": [
+        {
+          "hp": 100,
+          "status": "away"
+        },
+        {
+          "hp": 100,
+          "status": "away"
+        }
+      ]
+    },
+    {
+      "name": "site: searching finds loot",
+      "ok": true,
+      "loot": {
+        "food_can": 3,
+        "parts": 3
+      },
+      "trace": [
+        "x4.8 lv1 conts2/2 rooms2/9",
+        "x6.7 lv1 conts2/0 rooms2/9",
+        "x6.7 lv1 conts2/0 rooms2/9",
+        "x6.7 lv1 conts2/0 rooms2/9",
+        "x6.7 lv1 conts2/0 rooms2/9",
+        "x6.7 lv1 conts2/0 rooms2/9"
+      ]
+    },
+    {
+      "name": "squad returns home",
+      "ok": true,
+      "home": true,
+      "me": "ok",
+      "log": [
+        "[debug] Новичок: speed 8",
+        "[debug] Новичок: speed 1",
+        "[debug] Новичок: speed 8",
+        "🏠 Отряд вернулся: 🥫Консервы «Вечность»×3, ⚙️Запчасти×3. Разберите добычу у шлюза!"
+      ]
     },
     {
       "name": "no page errors",
@@ -97,5 +147,5 @@
     }
   ],
   "errors": [],
-  "ok": false
+  "ok": true
 }

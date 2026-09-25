@@ -3,7 +3,7 @@
     {
       "name": "the friend joins by code and shows up in the host's lobby",
       "ok": true,
-      "code": "YG3HJ",
+      "code": "LRJ92",
       "names": [
         "Хозяин",
         "Гость"
@@ -21,8 +21,8 @@
       "name": "both players have characters in the prologue",
       "ok": true,
       "chars": [
-        "Лев Радиолов",
-        "Макар Радиолов"
+        "Кира Сухарева",
+        "Инна Сухарева"
       ]
     },
     {
@@ -59,7 +59,7 @@
     {
       "name": "a reload brings the player back into the same bunker and body",
       "ok": true,
-      "code": "YG3HJ",
+      "code": "LRJ92",
       "char": "c11"
     },
     {

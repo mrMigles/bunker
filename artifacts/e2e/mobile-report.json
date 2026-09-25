@@ -3,7 +3,7 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "TWMPV",
+      "code": "THLFM",
       "head": "ГЛУБЖЕ Бункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
@@ -12,7 +12,7 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "TWMPV",
+      "code": "THLFM",
       "head": "ГЛУБЖЕ Бункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
@@ -26,7 +26,7 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "TWMPV",
+      "code": "THLFM",
       "head": "ГЛУБЖЕ Бункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
@@ -35,7 +35,7 @@
     {
       "name": "a second chat member joins the same bunker",
       "ok": true,
-      "code2": "TWMPV",
+      "code2": "THLFM",
       "players": [
         "Анна П.",
         "Борис"
@@ -66,7 +66,7 @@
       "name": "the stick walks the character",
       "ok": true,
       "x0": 25.5,
-      "x1": 29.95,
+      "x1": 30.45,
       "anim": "run"
     },
     {
@@ -110,9 +110,9 @@
       },
       "actions": {
         "x": 466,
-        "y": 210,
+        "y": 175,
         "w": 250,
-        "h": 174
+        "h": 209
       },
       "pad": {
         "x": 722,
@@ -232,7 +232,7 @@
       "name": "Вера Г.",
       "ok": true,
       "head": "ГЛУБЖЕ Бункер чата «Игровой чат»",
-      "code": "TE3Y5",
+      "code": "TSZY7",
       "url": ""
     },
     {

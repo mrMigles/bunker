@@ -1,3 +1,4 @@
+import { portrait } from "../render/portrait";
 import { art, portraitTile } from "./art";
 import { postfx, type FxQuality } from "../render/postfx";
 import { NEED_IC, SKILL_IC, STAT_IC, cic, icon } from "./icons";
@@ -598,7 +599,7 @@ export function openCharacter(id: string) {
         h(
           "div.dossier-head",
           null,
-          art(portraitTile(c.card.prof, c.card.gender), "dossier-portrait"),
+          portrait(c.id, c.card, "dossier-portrait", () => art(portraitTile(c.card.prof, c.card.gender))),
           h(
             "div",
             null,
@@ -660,7 +661,7 @@ export function openCharacter(id: string) {
                 null,
                 rels.map(([oid, r]) => {
                   const o = v.chars[oid];
-                  return h("div.rel-row", null, art(portraitTile(o.card.prof, o.card.gender), "rel-portrait"), h("span.rel-name", null, o.card.name), relIcon(r), h("span.dim", null, relWord(r)));
+                  return h("div.rel-row", null, portrait(o.id, o.card, "rel-portrait", () => art(portraitTile(o.card.prof, o.card.gender))), h("span.rel-name", null, o.card.name), relIcon(r), h("span.dim", null, relWord(r)));
                 }),
               )
             : h("div.dim", null, "Пока ни с кем не знаком."),

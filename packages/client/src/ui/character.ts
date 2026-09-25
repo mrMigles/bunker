@@ -1,3 +1,4 @@
+import { portrait } from "../render/portrait";
 // «Персонаж»: your survivor and your companions. Tabs:
 //  Снаряжение — weapon, armour and tool slots (from the common storage), what is in hands, passing things over;
 //  Прокачка   — level, experience, perks (choose a new one), skills with progress, stats and traits;
@@ -111,7 +112,7 @@ function gearTab(v: any, me: any, mates: any[]) {
       h(
         "div.gear-head",
         null,
-        art(portraitTile(c.card.prof, c.card.gender), "gear-portrait"),
+        portrait(c.id, c.card, "gear-portrait", () => art(portraitTile(c.card.prof, c.card.gender))),
         h("div", null, h("b", null, c.card.name), h("div.dim", null, `${PROFS[c.card.prof]?.name ?? ""} · ур. ${c.level ?? 1}`, mine ? " · это вы" : ""), away ? h("span.chip", null, icon("backpack"), "на вылазке") : null),
       ),
       ...slots,

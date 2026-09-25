@@ -1,3 +1,4 @@
+import { portrait } from "../render/portrait";
 import { GOALS, PROFS, STAT_NAMES, TRAITS_MINUS, TRAITS_PLUS, type Card } from "@bunker/shared";
 import { net } from "../net";
 import { clear, h, toast, ui } from "./dom";
@@ -133,7 +134,7 @@ export function cardEl(c: Card, selected: boolean, onclick?: () => void) {
     h(
       "div.card-top",
       null,
-      art(portraitTile(c.prof, c.gender)),
+      portrait("card:" + c.name, c, "", () => art(portraitTile(c.prof, c.gender))),
       h(
         "div",
         null,

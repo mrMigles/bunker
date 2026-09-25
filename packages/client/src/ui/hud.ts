@@ -1,3 +1,4 @@
+import { portrait } from "../render/portrait";
 import { ITEMS, NEED_NAMES, PERKS, PROFS, itemName, threatLevel, xpForLevel, type Fx } from "@bunker/shared";
 import { net } from "../net";
 import type { WorldRenderer } from "../render/world";
@@ -134,7 +135,7 @@ export class Hud {
     this.meKey = key;
     clear(this.me);
     const pd = PROFS[c.card.prof];
-    this.me.append(art(portraitTile(c.card.prof, c.card.gender),"survivor-portrait"));
+    this.me.append(portrait(c.id, c.card, "survivor-portrait", () => art(portraitTile(c.card.prof, c.card.gender))));
     add(this.me,
       h("div.row", null, h("span.name", null, `${pd?.icon ?? ""} ${c.card.name}`), h("span.dim", null, pd?.name)),
       levelLine(c),
