@@ -2,6 +2,7 @@ import { OBJECTS } from "@bunker/shared";
 import { net } from "../net";
 import { add, clear, h, ui } from "./dom";
 import type { GameUI } from "./game";
+import { icon } from "./icons";
 
 const ICON: Record<string, string> = { urgent: "⚠", need: "●", quest: "💬", tutorial: "☐" };
 
@@ -14,7 +15,9 @@ export class ObjectivesUI {
   constructor(private game: GameUI) {
     ui().appendChild(this.el);
     try {
-      this.collapsed = localStorage.getItem("bunker.objectives.collapsed") === "1";
+      const saved = localStorage.getItem("bunker.objectives.collapsed");
+      // phones start with the list folded into its header: the scene matters more on a small screen
+      this.collapsed = saved === null ? document.documentElement.classList.contains("mobile") : saved === "1";
     } catch {
       /* private mode */
     }
@@ -52,7 +55,7 @@ export class ObjectivesUI {
             this.update();
           },
         },
-        h("b", null, "Задачи"),
+        h("b", null, icon("flag"), " Задачи"),
         urgent ? h("span.objectives-badge", null, String(urgent)) : null,
         h("span.dim", null, this.collapsed ? "▸" : "▾"),
       ),

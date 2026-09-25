@@ -13,7 +13,7 @@ import { CHORE_DEFS, defAction } from "./actions";
 import { registerCmd } from "./commands";
 import { grantXp } from "./progress";
 import { onTick } from "./tick";
-import { clamp, firstName, fx, isBotDriven, log, rng } from "./util";
+import { clamp, firstName, fx, isBotDriven, log, nameWith, rng } from "./util";
 
 export interface Quest {
   id: string;
@@ -254,7 +254,8 @@ defAction({
     const o = w.chars[t.id];
     if (!o || o.status !== "ok" || o === c || c.ctrl === undefined || !c.ctrl) return null;
     const today = talkToday(w, o);
-    return today.answered ? `💬 Поболтать с ${firstName(o)}` : `💬 Поговорить с ${firstName(o)} ✦`;
+    const w5 = nameWith(firstName(o), o.card.gender === 1);
+    return today.answered ? `💬 Поболтать с ${w5}` : `💬 Поговорить с ${w5} ✦`;
   },
   dur: () => 0,
   done: ({ w, c, t }) => {

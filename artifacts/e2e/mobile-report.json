@@ -3,8 +3,8 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "TVT3S",
-      "head": "ГЛУБЖЕБункер чата «Соседи по подъезду»",
+      "code": "T3E7M",
+      "head": "ГЛУБЖЕ Бункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
       "pid": "tg_7001"
@@ -12,8 +12,8 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "TVT3S",
-      "head": "ГЛУБЖЕБункер чата «Соседи по подъезду»",
+      "code": "T3E7M",
+      "head": "ГЛУБЖЕ Бункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
       "pid": "tg_7001"
@@ -21,13 +21,13 @@
     {
       "name": "the lobby names the chat instead of showing a code",
       "ok": true,
-      "head": "ГЛУБЖЕБункер чата «Соседи по подъезду»"
+      "head": "ГЛУБЖЕ Бункер чата «Соседи по подъезду»"
     },
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "TVT3S",
-      "head": "ГЛУБЖЕБункер чата «Соседи по подъезду»",
+      "code": "T3E7M",
+      "head": "ГЛУБЖЕ Бункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
       "pid": "tg_7001"
@@ -35,7 +35,7 @@
     {
       "name": "a second chat member joins the same bunker",
       "ok": true,
-      "code2": "TVT3S",
+      "code2": "T3E7M",
       "players": [
         "Анна П.",
         "Борис"
@@ -66,24 +66,23 @@
       "name": "the stick walks the character",
       "ok": true,
       "x0": 25.5,
-      "x1": 29.53,
+      "x1": 30.31,
       "anim": "run"
     },
     {
       "name": "✋ does the highlighted thing (takes it)",
       "ok": true,
       "h0": 0,
-      "h1": 1,
+      "h1": 0,
       "sent": [
-        "pdo:pick"
+        "pdo:persuade"
       ]
     },
     {
       "name": "with things in hand a «Бросить» button appears",
       "ok": true,
-      "h1": 1,
+      "h1": 0,
       "pad2": [
-        "Бросить",
         "Взять"
       ]
     },
@@ -91,40 +90,40 @@
       "name": "bunker HUD fits the phone without overlapping the stick",
       "ok": true,
       "stick": {
-        "x": 18,
+        "x": 14,
         "y": 260,
-        "w": 112,
-        "h": 112
+        "w": 118,
+        "h": 118
       },
       "me": {
-        "x": 160,
-        "y": 244,
-        "w": 176,
-        "h": 138
+        "x": 150,
+        "y": 279,
+        "w": 164,
+        "h": 105
       },
       "dock": {
-        "x": 657,
-        "y": 66,
-        "w": 179,
-        "h": 40
+        "x": 794,
+        "y": 44,
+        "w": 44,
+        "h": 232
       },
       "actions": {
-        "x": 500,
-        "y": 182,
-        "w": 240,
-        "h": 200
+        "x": 466,
+        "y": 210,
+        "w": 250,
+        "h": 174
       },
       "pad": {
-        "x": 754,
-        "y": 300,
-        "w": 78,
-        "h": 78
+        "x": 722,
+        "y": 306,
+        "w": 72,
+        "h": 72
       },
       "top": {
-        "x": 8,
+        "x": 6,
         "y": 0,
-        "w": 666,
-        "h": 64
+        "w": 688,
+        "h": 38
       },
       "W": 844,
       "H": 390,
@@ -137,8 +136,8 @@
     {
       "name": "windows fit the phone and hide the stick",
       "ok": true,
-      "w": 820,
-      "h": 378,
+      "w": 844,
+      "h": 390,
       "W": 844,
       "H": 390,
       "stickHidden": true
@@ -175,7 +174,7 @@
     {
       "name": "the site bar's flashlight button works by touch",
       "ok": true,
-      "lightOff": false
+      "lightOff": true
     },
     {
       "name": "the backpack opens by touch",
@@ -186,7 +185,7 @@
       "ok": true,
       "mbox": {
         "x": 202.046875,
-        "y": 52,
+        "y": 47,
         "width": 439.90625,
         "height": 240
       }
@@ -194,8 +193,8 @@
     {
       "name": "finger strokes work the pump",
       "ok": true,
-      "dirty0": 0,
-      "dirty1": 1.7
+      "p0": 0.08,
+      "p1": 1
     },
     {
       "name": "the council fits (or scrolls) on the phone",
@@ -227,6 +226,18 @@
         "ap": 2
       },
       "viaTap": true
+    },
+    {
+      "name": "Вера Г.",
+      "ok": true,
+      "head": "ГЛУБЖЕ Бункер чата «Игровой чат»",
+      "code": "TRR3Q",
+      "url": ""
+    },
+    {
+      "name": "a forged game link is refused",
+      "ok": true,
+      "forged": 403
     },
     {
       "name": "no page errors",

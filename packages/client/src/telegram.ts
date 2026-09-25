@@ -18,9 +18,20 @@ function initDataFromUrl(): string {
   return hash.get("tgWebAppData") ?? "";
 }
 
-/** Was the page opened inside Telegram? */
+/** A Telegram Games link (?tg=token from the «Играть» button); kept for reloads of this tab. */
+function gameToken(): string {
+  const q = new URLSearchParams(location.search).get("tg");
+  try {
+    if (q) sessionStorage.setItem("bunker.tg", q);
+    return q ?? sessionStorage.getItem("bunker.tg") ?? "";
+  } catch {
+    return q ?? "";
+  }
+}
+
+/** Was the page opened from Telegram (a Mini App or the game button)? */
 export function isTelegram() {
-  return !!initDataFromUrl() || !!(window as any).Telegram?.WebApp?.initData;
+  return !!initDataFromUrl() || !!(window as any).Telegram?.WebApp?.initData || !!gameToken();
 }
 
 function loadScript(src: string) {
@@ -49,6 +60,30 @@ export function haptic(kind: "light" | "medium" | "heavy" | "success" | "error" 
 /** Joins the chat's bunker. Returns false when not in Telegram (the normal menu then shows). */
 export async function startTelegram(onJoined: () => void): Promise<boolean> {
   if (!isTelegram()) return false;
+  const token = gameToken();
+  if (token && !initDataFromUrl()) {
+    // Telegram Games: the page runs in Telegram's browser, the chat and the player come signed in the link
+    document.body.classList.add("tg");
+    const u = new URL(location.href);
+    u.searchParams.delete("tg");
+    history.replaceState(null, "", u.toString());
+    const r = await fetch(`${SERVER}/api/tg/game`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
+    const s = await r.json().catch(() => ({}));
+    if (!r.ok || !s.code) {
+      toast(s.error ?? "Не удалось войти через Telegram");
+      try {
+        sessionStorage.removeItem("bunker.tg");
+      } catch {}
+      return false;
+    }
+    tgInfo = { code: s.code, name: s.name, chatTitle: s.chatTitle, verified: s.verified };
+    setPlayerId(s.pid);
+    net.joinExtra = { sig: s.sig };
+    localStorage.setItem("bunker.name", s.name);
+    await net.join(s.code, s.name);
+    onJoined();
+    return true;
+  }
   await loadScript("https://telegram.org/js/telegram-web-app.js");
   const app = tg();
   try {

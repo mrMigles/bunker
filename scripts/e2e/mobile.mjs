@@ -49,7 +49,7 @@ try {
   // ------------------------------------------------ Telegram: straight into the chat's bunker
   await page.goto(tgUrl(7001, "Анна", "Петрова"));
   await page.locator(".lobby .card").first().waitFor({ timeout: 15000 });
-  const lobby = await ev(() => ({ code: window.__net.code, head: document.querySelector(".lobby .row")?.textContent ?? "", menu: !!document.querySelector(".menu"), mobile: document.documentElement.classList.contains("mobile"), name: window.__net.pub.players[window.__net.priv.pid]?.name, pid: window.__net.priv.pid }));
+  const lobby = await ev(() => ({ code: window.__net.code, head: document.querySelector(".lobby-head")?.textContent ?? "", menu: !!document.querySelector(".menu"), mobile: document.documentElement.classList.contains("mobile"), name: window.__net.pub.players[window.__net.priv.pid]?.name, pid: window.__net.priv.pid }));
   step("Telegram opens the chat's bunker directly, no menu", lobby.code?.startsWith("T") && !lobby.menu, lobby);
   step("the player carries the Telegram name and id", lobby.name === "Анна П." && lobby.pid === "tg_7001", lobby);
   step("the lobby names the chat instead of showing a code", /Соседи по подъезду/.test(lobby.head) && !lobby.head.includes(lobby.code), { head: lobby.head });
@@ -216,7 +216,8 @@ try {
   const mbox = mini ? await page.locator(".mini-canvas").boundingBox() : null;
   step("the pump minigame fits the phone screen", !!mbox && mbox.y >= 0 && mbox.y + mbox.height <= 390 + 1, { mbox });
   if (mbox) {
-    const dirty0 = await ev(() => window.__net.pub.res.water_dirty ?? 0);
+    // the pump's own progress (dirty water itself is also spent by the filter and the watering can)
+    const p0 = await ev(() => window.__net.myChar().task?.p ?? 0);
     const x = mbox.x + mbox.width * 0.25;
     for (let i = 0; i < 7; i++) {
       await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y: mbox.y + mbox.height * 0.12, id: 3 }] });
@@ -227,9 +228,8 @@ try {
       await wait(150);
     }
     await shot("m-09-minigame");
-    await page.waitForFunction((d) => (window.__net.pub.res.water_dirty ?? 0) > d, dirty0, { timeout: 8000 }).catch(() => {});
-    const dirty1 = await ev(() => window.__net.pub.res.water_dirty ?? 0);
-    step("finger strokes work the pump", dirty1 > dirty0, { dirty0, dirty1 });
+    const p1 = await ev(() => { const t = window.__net.myChar().task; return t?.action === "pump" ? t.p : 1; });
+    step("finger strokes work the pump", p1 > p0 + 0.2, { p0, p1 });
     await page.keyboard.press("Escape");
   }
   // ------------------------------------------------ the night council on the phone
@@ -271,6 +271,19 @@ try {
   step("fight: a tap on a cell moves the unit", u1.col !== u0.col || u1.ap < u0.ap, { u0, u1, viaTap: !!cell });
   await p4.screenshot({ path: `${OUT}/m-08-combat.png` });
   await ctx3.close();
+
+  // ------------------------------------------------ Telegram Games: the «Играть» button's signed link
+  const tok = await (await fetch("http://localhost:2567/api/tg/dev-token?chat=ci-e2e-" + chat + "&user=7101&name=" + encodeURIComponent("Вера Г.") + "&title=" + encodeURIComponent("Игровой чат"))).json();
+  const ctx4 = await browser.newContext(phone);
+  const p5 = await ctx4.newPage();
+  p5.on("pageerror", (e) => report.errors.push(e.message));
+  await p5.goto(URL + "/?tg=" + tok.token);
+  await p5.locator(".lobby .card").first().waitFor({ timeout: 15000 });
+  const g = await p5.evaluate(() => ({ head: document.querySelector(".lobby-head")?.textContent ?? "", code: window.__net.code, name: window.__net.pub.players[window.__net.priv.pid]?.name, url: location.search }));
+  step("the game button's link opens the chat's bunker under the Telegram name", g.code.startsWith("T") && g.name === "Вера Г." && /Игровой чат/.test(g.head) && !g.url.includes("tg="), g);
+  const forged = await p5.evaluate(async () => (await fetch("/api/tg/game", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: "eyJjIjoieCJ9.bad" }) })).status);
+  step("a forged game link is refused", forged === 403, { forged });
+  await ctx4.close();
 } catch (e) {
   step("script error", false, { error: String(e?.message ?? e).slice(0, 300) });
   await shot("m-error").catch(() => {});

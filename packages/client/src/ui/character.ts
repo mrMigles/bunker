@@ -7,6 +7,10 @@ import { net } from "../net";
 import { bar, clear, h, isModalOpen, modal } from "./dom";
 import { openPerkChoice } from "./hud";
 import { openCharacter } from "./screens";
+import { art, portraitTile } from "./art";
+import { SKILL_IC, STAT_IC, cic, icon } from "./icons";
+
+const SLOT_IC: Record<string, [string, string]> = { weapon: ["swords", "#ef6a4c"], armor: ["shield", "#6fd07a"], tool: ["flashlight", "#f2c14e"] };
 
 type Tab = "gear" | "skills" | "card";
 let timer = 0;
@@ -45,13 +49,13 @@ export function openCharacterScreen(tab: Tab = "gear") {
     clear(body);
     body.append(
       h(
-        "div.row.charscreen-tabs",
+        "div.tabs.charscreen-tabs",
         null,
         ...([
           ["gear", "🎒 Снаряжение"],
           ["skills", "⭐ Прокачка"],
           ["card", "📇 Досье"],
-        ] as [Tab, string][]).map(([id, label]) => h("button.small" + (cur === id ? ".primary" : ""), { onclick: () => ((cur = id), (key = ""), render()) }, label)),
+        ] as [Tab, string][]).map(([id, label]) => h("button" + (cur === id ? ".primary" : ""), { onclick: () => ((cur = id), (key = ""), render()) }, icon(({ gear: "backpack", skills: "star", card: "user" } as Record<string, string>)[id]), label.replace(/^\S+\s/, ""))),
       ),
     );
     if (cur === "gear") body.append(gearTab(v, me, mates));
@@ -59,7 +63,7 @@ export function openCharacterScreen(tab: Tab = "gear") {
     else body.append(cardTab(me));
   };
   render();
-  modal("Персонаж", body, { cls: "charscreen-modal", wide: true, onClose: () => clearInterval(timer) });
+  modal("Персонаж", body, { cls: "charscreen-modal", wide: true, icon: "user", onClose: () => clearInterval(timer) });
   clearInterval(timer);
   timer = window.setInterval(() => (isModalOpen() && document.querySelector(".charscreen-modal") ? render() : clearInterval(timer)), 300);
 }
@@ -75,7 +79,7 @@ function gearTab(v: any, me: any, mates: any[]) {
       return h(
         "label.gear-slot",
         null,
-        h("span", null, GEAR[slot].name),
+        h("span", null, icon(SLOT_IC[slot][0], { color: SLOT_IC[slot][1] }), GEAR[slot].name),
         h(
           "select",
           { disabled: away, onchange: (e: Event) => net.send({ k: "equip", char: c.id, slot, item: (e.target as HTMLSelectElement).value }) },
@@ -104,9 +108,14 @@ function gearTab(v: any, me: any, mates: any[]) {
     return h(
       "div.gear-card" + (mine ? ".mine" : ""),
       null,
-      h("div.gear-head", null, h("b", null, c.card.name), h("span.dim", null, ` ${PROFS[c.card.prof]?.icon ?? ""} ${PROFS[c.card.prof]?.name ?? ""} · ур. ${c.level ?? 1}`), away ? h("span.tag", null, "на вылазке") : null),
+      h(
+        "div.gear-head",
+        null,
+        art(portraitTile(c.card.prof, c.card.gender), "gear-portrait"),
+        h("div", null, h("b", null, c.card.name), h("div.dim", null, `${PROFS[c.card.prof]?.name ?? ""} · ур. ${c.level ?? 1}`, mine ? " · это вы" : ""), away ? h("span.chip", null, icon("backpack"), "на вылазке") : null),
+      ),
       ...slots,
-      h("div.gear-sub", null, `В руках (${c.hands.length}/3)`),
+      h("div.gear-sub", null, icon("hand"), `В руках (${c.hands.length}/3)`),
       hands.length ? h("div", null, ...hands) : h("div.dim", null, "Пусто"),
       !mine && !near && !away ? h("div.dim", { style: { fontSize: "11px" } }, "Чтобы передавать вещи, подойдите ближе (до 4 шагов).") : null,
     );
@@ -129,7 +138,7 @@ function skillsTab(me: any) {
     const l = Math.min(10, 1 + Math.floor(Math.sqrt(xpS / 12)));
     const a = 12 * (l - 1) ** 2,
       b = 12 * l ** 2;
-    return h("div.skill-row", null, h("span", null, SKILL_NAMES[k as keyof typeof SKILL_NAMES]), h("b", null, String(l)), bar(l >= 10 ? 100 : ((xpS - a) / (b - a)) * 100, "#9fc2d6"));
+    return h("div.skill-row", null, h("span", null, cic(SKILL_IC, k), SKILL_NAMES[k as keyof typeof SKILL_NAMES]), h("b", null, String(l)), bar(l >= 10 ? 100 : ((xpS - a) / (b - a)) * 100, "#9fc2d6"));
   };
   return h(
     "div.skills-tab",
@@ -143,7 +152,7 @@ function skillsTab(me: any) {
     h("h4", null, "Навыки (растут от дела)"),
     ...Object.keys(SKILL_NAMES).map(skillRow),
     h("h4", null, "Характеристики и черты"),
-    h("div", null, ...Object.keys(STAT_NAMES).map((k) => h("span.tag", null, `${STAT_NAMES[k as keyof typeof STAT_NAMES]} ${me.card.stats[k]}`))),
+    h("div.stat-row", null, ...Object.keys(STAT_NAMES).map((k) => h("div.stat-tile", null, cic(STAT_IC, k), h("b", null, String(me.card.stats[k])), h("small", null, STAT_NAMES[k as keyof typeof STAT_NAMES])))),
     h("div", null, "➕ ", h("b", null, TRAITS_PLUS[me.card.plus]?.name), h("span.dim", null, " — " + (TRAITS_PLUS[me.card.plus]?.desc ?? ""))),
     h("div", null, "➖ ", h("b", null, TRAITS_MINUS[me.card.minus]?.name), h("span.dim", null, " — " + (TRAITS_MINUS[me.card.minus]?.desc ?? ""))),
     h("p.dim", null, "Опыт дают работа в бункере (и мини-игры), обыски и бои на вылазках, возвращение домой, выполненные просьбы жильцов."),

@@ -1,3 +1,4 @@
+import { PROFS } from "@bunker/shared";
 import type { Fx } from "@bunker/shared";
 import { audio } from "../audio/audio";
 import { net } from "../net";
@@ -18,8 +19,11 @@ import { ExpeditionUI } from "./expedition";
 import { PrologueUI } from "./prologue";
 import { EndingUI, openCraftItem, openResearch } from "./tech";
 import { openBoard, openBooks, openCanvas, openCharacter, openClipping, openCook, openCraft, openPeriscope, openSettings } from "./screens";
-import { h, ui, modal, toast } from "./dom";
+import { bar, h, ui, modal, toast } from "./dom";
 import { installTouch } from "../touch";
+import { postfx } from "../render/postfx";
+import { NEED_IC, cic, icon } from "./icons";
+import { art, portraitTile } from "./art";
 
 /** Hooks the 5b screens (radio, instruments, board, papers…) into the game UI. */
 export function installExtras(game: GameUI) {
@@ -41,20 +45,41 @@ export function installExtras(game: GameUI) {
     game.navigation.go(terminal.x + .5, terminal.lv, () => net.send({ k: "do", a: "sortie", tt: "obj", t: terminal.id }));
     toast("Идём к карте у шлюза…");
   };
-  const crew = () => modal("Жильцы убежища", h("div.crew-list", null, Object.values(net.pub?.chars ?? {}).map((c: any) =>
-    h("button.crew-entry", { onclick: () => openCharacter(c.id) }, h("span", null, c.card.name), h("small.dim", null, c.status === "away" ? "В вылазке" : c.status === "dead" ? "Погиб" : `Здоровье ${Math.round(c.needs.health)} · Бодрость ${Math.round(c.needs.energy)}`)))));
+  const crew = () =>
+    modal(
+      "Жильцы убежища",
+      h(
+        "div.crew-list",
+        null,
+        Object.values(net.pub?.chars ?? {}).map((c: any) => {
+          const player = c.ctrl ? net.pub?.players[c.ctrl] : null;
+          const state = c.status === "away" ? "на вылазке" : c.status === "dead" ? "погиб" : c.status === "down" ? "без сознания" : c.task?.action ? "занят делом" : "свободен";
+          const mini = (k: string) => h("span.crew-need", { title: k }, cic(NEED_IC, k), bar(c.needs[k]));
+          return h(
+            "button.crew-entry" + (c.status === "dead" ? ".dead" : ""),
+            { onclick: () => openCharacter(c.id) },
+            art(portraitTile(c.card.prof, c.card.gender), "crew-portrait"),
+            h("span.crew-main", null, h("b", null, c.card.name), h("small", null, `${PROFS[c.card.prof]?.name ?? ""} · ур. ${c.level ?? 1} · `, player ? h("span.warn", null, player.name) : h("span.dim", null, "бот"), ` · ${state}`)),
+            h("span.crew-needs", null, mini("health"), mini("food"), mini("energy"), mini("sanity")),
+            icon("chevronRight"),
+          );
+        }),
+      ),
+      { icon: "users" },
+    );
   const toolbar = h("nav.game-toolbar", { "aria-label": "Меню игры" },
-    h("button", { onclick: travel, title: "Карта и подготовка вылазки" }, "◫", h("small", null, "Карта")),
-    h("button", { onclick: crew, title: "Жильцы убежища" }, "♟", h("small", null, "Отряд")),
-    h("button", { onclick: () => openSettings(game.r), title: "Настройки" }, "⚙", h("small", null, "Меню")));
+    h("button", { onclick: travel, title: "Карта и подготовка вылазки" }, icon("map"), h("small", null, "Карта")),
+    h("button", { onclick: crew, title: "Жильцы убежища" }, icon("users"), h("small", null, "Отряд")),
+    h("button", { onclick: () => openSettings(game.r), title: "Меню: настройки, выход" }, icon("menu"), h("small", null, "Меню")));
   const dock = h("nav.game-dock", { "aria-label": "Действия в бункере" },
-    h("button", { onclick: () => openCharacterScreen(), title: "Персонаж: снаряжение, вещи спутников, прокачка (I)" }, "☻", h("span", null, "Персонаж")),
-    h("button", { onclick: () => openBoard(), title: "Убежище: склад, дела, газета, рецепты (Tab)" }, "▣", h("span", null, "Убежище")),
-    h("button", { onclick: () => { game.navigation.cancel(); game.build.toggle(); } }, "⚒", h("span", null, "Строить")),
-    h("button", { onclick: travel }, "↗", h("span", null, "Вылазка")),
-    h("button", { onclick: () => game.setAquarium(!game.aquarium) }, "◉", h("span", null, "Наблюдать")),
-    h("button", { onclick: () => { game.chatWrap.classList.remove("hidden"); game.chatBox.focus(); } }, "…", h("span", null, "Чат")));
+    h("button", { onclick: () => openCharacterScreen(), title: "Персонаж: снаряжение, вещи спутников, прокачка (I)" }, icon("user"), h("span", null, "Персонаж")),
+    h("button", { onclick: () => openBoard(), title: "Убежище: склад, дела, газета, рецепты (Tab)" }, icon("box"), h("span", null, "Убежище")),
+    h("button", { onclick: () => { game.navigation.cancel(); game.build.toggle(); }, title: "Стройка (B)" }, icon("hammer"), h("span", null, "Строить")),
+    h("button", { onclick: travel, title: "Вылазка" }, icon("backpack"), h("span", null, "Вылазка")),
+    h("button", { onclick: () => game.setAquarium(!game.aquarium), title: "Отдать персонажа боту и смотреть (H)" }, icon("eye"), h("span", null, "Наблюдать")),
+    h("button", { onclick: () => { game.chatWrap.classList.remove("hidden"); game.chatBox.focus(); }, title: "Чат (Enter)" }, icon("chat"), h("span", null, "Чат")));
   ui().append(toolbar, dock);
+  (window as any).__openCharacter = () => openCharacterScreen();
   installTouch(game as any);
   GameUI.extraKeysUp.push((e) => pro.handleKey(e, false));
   GameUI.extraKeysUp.push((e) => exp.mode === "site" && exp.handleKeyUp(e));
@@ -174,6 +199,10 @@ export function installExtras(game: GameUI) {
     }
   });
   GameUI.extraFrame.push(() => {
+    // a red edge on the picture when it is bad: a fight, my survivor down or near the end
+    const v0 = net.pub;
+    const me = net.myChar();
+    postfx(game.r.renderer).danger = !v0 ? 0 : Math.min(1, (v0.mods.combat?.active ? 0.3 : 0) + (me?.status === "down" ? 0.7 : me && me.needs.health < 25 ? 0.45 : 0));
     radio.frame();
     instr.frame();
     const v = net.pub;

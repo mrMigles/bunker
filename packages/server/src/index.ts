@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { GameRoom } from "./GameRoom";
 import { addLegacy, getLegacy, hasSave, listSaves } from "./persistence";
 import { tgSession } from "./telegram";
+import { gameSession, makeGameToken, startTelegramBot } from "./tgbot";
 
 const BUILD_ID = process.env.BUILD_ID ?? "dev";
 
@@ -42,6 +43,27 @@ const server = defineServer({
       }
       res.json(s);
     });
+
+    // Telegram Games: «Играть» in a chat → a signed link with ?tg=token → the same chat bunker
+    app.post("/api/tg/game", async (req, res) => {
+      const s = gameSession(String(req.body?.token ?? ""));
+      if ("error" in s) return res.status(403).json(s);
+      try {
+        const found = await matchMaker.query({ roomId: s.code } as any);
+        if (!found.length) await matchMaker.createRoom("game", { code: s.code, restore: hasSave(s.code), private: true });
+      } catch (e) {
+        console.error(e);
+        return res.status(500).json({ error: "Не удалось поднять бункер чата" });
+      }
+      res.json(s);
+    });
+
+    // development only: a game link as the bot would hand out (for e2e and trying without Telegram)
+    if (process.env.NODE_ENV !== "production")
+      app.get("/api/tg/dev-token", (req, res) => {
+        const q = req.query as Record<string, string>;
+        res.json({ token: makeGameToken({ c: String(q.chat ?? "dev-chat"), u: Number(q.user ?? 1), n: String(q.name ?? "Тестер"), t: Math.floor(Date.now() / 1000), title: q.title }) });
+      });
 
     // Ensure a room with this code is running (restoring it from SQLite if needed).
     app.get("/api/room/:code", async (req, res) => {
@@ -101,5 +123,6 @@ const server = defineServer({
 });
 
 server.listen(port).then(() => {
+  startTelegramBot();
   console.log(`[ГЛУБЖЕ] server listening on http://localhost:${port}`);
 });

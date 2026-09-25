@@ -219,30 +219,6 @@ html.mobile .prompt .opt {min-height:42px;font-size:13px}
 .touch-btn.down {transform:scale(.92);background:#c8553d}
 html.mobile .touch-stick:not(.hidden) {display:block}
 html.mobile .touch-pad {display:flex}
-/* the character card steps up out of the thumb's way, the action menu out of the buttons' way */
-html.mobile .hud-me {left:calc(160px + env(safe-area-inset-left));bottom:8px;width:200px;min-height:0;padding:8px}
-html.mobile .hud-me .survivor-portrait, html.mobile .hud-me>div.dim {display:none}
-html.mobile .action-dock, html.mobile .prologue-actions {right:calc(104px + env(safe-area-inset-right));bottom:8px}
-html.mobile .game-dock {bottom:auto;top:calc(70px + env(safe-area-inset-top));right:8px;flex-direction:row}
-html.mobile .game-dock span {display:none}
-html.mobile .hud-top {padding-left:calc(8px + env(safe-area-inset-left))}
-@media (max-height:430px){html.mobile .hud-me .need{margin:1px 0;font-size:10px}html.mobile .objectives{max-height:120px;overflow:auto}html.mobile .game-dock{top:66px;gap:2px;padding:2px}html.mobile .game-dock button{min-height:34px;padding:3px 6px;font-size:16px}html.mobile .touch-stick{width:112px;height:112px}html.mobile .touch-knob{left:31px;top:31px}}
-html.mobile .tip-card {top:calc(66px + env(safe-area-inset-top));bottom:auto;width:min(400px,50vw);padding:8px 10px}html.mobile .tip-card p {font-size:11.5px;line-height:1.35;margin:3px 0}html.mobile .tip-card .tip-foot button {min-height:32px}
-html.mobile body[data-phase=prologue] .hud-me {display:none}
-html.mobile .prologue-hud {left:calc(160px + env(safe-area-inset-left));top:auto;bottom:8px;width:190px;padding:8px 10px}
-html.mobile .prologue-hud>div:nth-child(3), html.mobile .prologue-hud .mission-saved .dim {display:none}
-html.mobile .prologue-timer {font-size:28px;margin:2px 0}
-@media (max-height:430px){html.mobile .hud-me{width:176px;padding:6px 8px}html.mobile .hud-me .level-line,html.mobile .hud-me .row>.dim,html.mobile .hud-me .perk-btn+*{display:none}html.mobile .hud-me .name{font-size:12px}html.mobile .action-dock{max-height:200px;width:240px}}
-/* a sortie on a phone: the site bar goes up, the menu sits left of the buttons */
-html.mobile body.mode-site .hud-me {display:none}
-html.mobile .exp-hud {top:calc(64px + env(safe-area-inset-top));right:8px;width:220px;padding:8px 10px}
-html.mobile .exp-hud h3 {font-size:14px;margin:2px 0 6px}
-html.mobile .exp-journal {display:none}
-html.mobile .exp-dock {top:calc(64px + env(safe-area-inset-top));bottom:auto;left:calc(50% - 60px);padding:4px;gap:3px}
-html.mobile .exp-dock button {font-size:11px;min-height:34px;padding:4px 8px}
-html.mobile .exp-dock-hint {display:none}
-html.mobile .exp-context.prompt {right:calc(100px + env(safe-area-inset-right));bottom:8px;width:250px;max-height:calc(100vh - 190px);overflow:auto}
-/* the game owns every gesture on a phone (pinch = camera); scrolling panels still scroll */
 html.mobile body {touch-action:none}
 html.mobile .modal, html.mobile .action-dock, html.mobile .exp-context, html.mobile .objectives, html.mobile .lobby, html.mobile .menu {touch-action:pan-x pan-y}
 html.mobile .prompt .key, html.mobile .exp-action .key {display:none}

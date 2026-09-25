@@ -1,12 +1,14 @@
 import { SERVER, net } from "../net";
 import { h, ui } from "./dom";
+import { icon } from "./icons";
 
 export function showMenu(onJoined: () => void) {
-  const name = h("input", { placeholder: "Ваше имя", maxLength: 16, value: localStorage.getItem("bunker.name") ?? "" }) as HTMLInputElement;
-  const code = h("input", { placeholder: "КОД", maxLength: 5, style: { width: "110px", textTransform: "uppercase", letterSpacing: "4px" } }) as HTMLInputElement;
+  document.querySelector(".menu")?.remove();
+  const name = h("input", { placeholder: "Ваше имя", maxLength: 16, value: localStorage.getItem("bunker.name") ?? "", "aria-label": "Ваше имя" }) as HTMLInputElement;
+  const code = h("input", { placeholder: "КОД", maxLength: 5, "aria-label": "Код бункера" }) as HTMLInputElement;
   const priv = h("input", { type: "checkbox" }) as HTMLInputElement;
-  const err = h("div.bad", { style: { minHeight: "18px" } });
-  const rooms = h("div.rooms", null, h("div.dim", null, "Загрузка…"));
+  const err = h("div.menu-err");
+  const rooms = h("div.rooms-list", null, h("div.dim", null, "Загрузка…"));
   const last = localStorage.getItem("bunker.lastCode");
 
   const go = async (fn: () => Promise<void>) => {
@@ -20,70 +22,81 @@ export function showMenu(onJoined: () => void) {
       err.textContent = e?.message ?? String(e);
     }
   };
+  const join = (c: string) => go(() => net.join(c, name.value));
 
   const root = h(
     "div.menu",
     null,
     h(
-      "div.panel.box",
+      "div.menu-col",
       null,
-      h("h1", null, "ГЛУБЖЕ"),
-      h("div.sub", null, "Кооперативное выживание в бункере на 1–6 человек. Копайте вглубь. Держитесь вместе."),
-      h("div.col", null, name),
-      h("div", { style: { height: "12px" } }),
+      h("div.logo", null, "ГЛУБЖЕ"),
+      h("div.tagline", null, "Кооперативное выживание в бункере на 1–6 человек.", h("br"), "Копайте вглубь. Держитесь вместе."),
       h(
-        "div.row",
+        "div.panel.menu-card",
         null,
-        h("button.primary", { onclick: () => go(() => net.create(name.value, { private: priv.checked })) }, "Создать бункер"),
-        h("label.row.dim", null, priv, "приватный"),
+        h("label.field", null, icon("user"), name),
+        h(
+          "div.menu-row",
+          null,
+          h("button.primary.big", { onclick: () => go(() => net.create(name.value, { private: priv.checked })) }, icon("hatch"), "Создать бункер"),
+          h("label.check", { title: "Приватный бункер не видно в списке — вход только по коду" }, priv, "приватный"),
+        ),
+        h(
+          "div.menu-row",
+          null,
+          h("label.field.code-field", null, icon("key"), code),
+          h("button", { onclick: () => join(code.value) }, icon("enter"), "Войти по коду"),
+          last ? h("button", { onclick: () => join(last) }, icon("users"), `Вернуться в ${last}`) : null,
+        ),
+        err,
       ),
-      h("div", { style: { height: "12px" } }),
-      h("div.row", null, code, h("button", { onclick: () => go(() => net.join(code.value, name.value)) }, "Войти по коду"), last ? h("button", { onclick: () => go(() => net.join(last, name.value)) }, `Вернуться в ${last}`) : null),
-      h("div", { style: { height: "12px" } }),
-      h("div.dim", null, "Открытые бункеры:"),
-      rooms,
-      err,
-      h("div.dim", { style: { fontSize: "11px", marginTop: "8px" } }, "A/D — ходьба · W/S — лестницы · E — действие · Q — бросить · B — стройка · H — «Аквариум» · F — камера к себе"),
+      h(
+        "div.panel.rooms-card",
+        null,
+        h("div.sect-h", null, h("span", null, icon("users"), " Открытые бункеры"), h("button.small.ghost.icon-btn", { title: "Обновить", onclick: () => refresh() }, icon("refresh"))),
+        rooms,
+      ),
+      h("div.menu-foot", null, h("span", null, icon("users"), "до 6 игроков"), h("span", null, icon("bot"), "боты занимают пустые места"), h("span", null, icon("phone"), "играется и с телефона")),
     ),
   );
   code.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") go(() => net.join(code.value, name.value));
+    if (e.key === "Enter") join(code.value);
   });
+  code.addEventListener("input", () => (code.value = code.value.toUpperCase()));
   ui().appendChild(root);
-  name.focus();
+  if (!matchMedia("(pointer: coarse)").matches) name.focus();
 
-  const refresh = async () => {
+  const row = (c: string, day: number | string, phase: string, who: string, n: string | null, saved = false) =>
+    h(
+      "div.room-row",
+      { onclick: () => join(c), role: "button", tabindex: 0 },
+      icon(saved ? "box" : "hatch"),
+      h("b", null, c),
+      h("span.dim", null, day ? `${phase} ${day}` : phase),
+      h("span.who", null, who || "пусто"),
+      n ? h("span.cnt", null, icon("user"), n) : h("span"),
+    );
+
+  async function refresh() {
     try {
       const [list, saves] = await Promise.all([fetch(`${SERVER}/api/rooms`).then((r) => r.json()), fetch(`${SERVER}/api/saves`).then((r) => r.json())]);
       rooms.innerHTML = "";
       if (!list.length && !saves.length) rooms.appendChild(h("div.dim", null, "Пока никого. Создайте свой!"));
       for (const r of list) {
-        rooms.appendChild(
-          h(
-            "div.roomrow",
-            { onclick: () => go(() => net.join(r.code, name.value)) },
-            h("span", null, `${r.code} · ${phaseName(r.meta?.phase)} ${r.meta?.day ? "· день " + r.meta.day : ""}`),
-            h("span.dim", null, (r.meta?.players ?? []).join(", ") || "пусто"),
-          ),
-        );
+        const players = r.meta?.players ?? [];
+        rooms.appendChild(row(r.code, r.meta?.day ?? "", r.meta?.day ? "день" : phaseName(r.meta?.phase), players.join(", "), `${players.length}/6`));
       }
       const live = new Set(list.map((r: any) => r.code));
       for (const s of saves) {
         if (live.has(s.code)) continue;
-        rooms.appendChild(
-          h(
-            "div.roomrow",
-            { onclick: () => go(() => net.join(s.code, name.value)) },
-            h("span", null, `💾 ${s.code} · день ${s.day}`),
-            h("span.dim", null, JSON.parse(s.players).join(", ")),
-          ),
-        );
+        rooms.appendChild(row(s.code, s.day, "день", JSON.parse(s.players).join(", "), null, true));
       }
     } catch {
       rooms.innerHTML = "";
       rooms.appendChild(h("div.bad", null, "Сервер недоступен"));
     }
-  };
+  }
   refresh();
   const iv = setInterval(() => (document.body.contains(root) ? refresh() : clearInterval(iv)), 4000);
 }

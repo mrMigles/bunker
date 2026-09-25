@@ -1,4 +1,5 @@
 // Tiny DOM helper: h("div.cls#id", {attrs|on*}, ...children)
+import { icon } from "./icons";
 
 type Child = Node | string | number | null | undefined | false | Child[];
 
@@ -65,13 +66,43 @@ export function floatText(x: number, y: number, text: string, color = "#ffe08a")
 }
 
 let modalEl: HTMLElement | null = null;
-export function modal(title: string, body: Node | Node[], opts: { onClose?: () => void; wide?: boolean; cls?: string } = {}): HTMLElement {
+/** Window titles written with a leading emoji get a line icon instead (same meaning, the game's style). */
+const TITLE_IC: [string, string][] = [
+  ["⚙", "gear"],
+  ["🍲", "pot"],
+  ["🔨", "hammer"],
+  ["📦", "box"],
+  ["📻", "radio"],
+  ["📖", "book"],
+  ["📚", "book"],
+  ["📰", "news"],
+  ["🗺", "map"],
+  ["🎒", "backpack"],
+  ["⭐", "star"],
+  ["🔭", "eye"],
+  ["🎨", "sparkles"],
+  ["💬", "chat"],
+  ["🔔", "bell"],
+  ["📞", "bell"],
+  ["🧪", "sparkles"],
+  ["🏆", "trophy"],
+];
+
+export function modal(title: string, body: Node | Node[], opts: { onClose?: () => void; wide?: boolean; cls?: string; icon?: string } = {}): HTMLElement {
   closeModal();
+  let ic = opts.icon;
+  let text = title;
+  for (const [emoji, name] of TITLE_IC)
+    if (text.startsWith(emoji)) {
+      ic ??= name;
+      text = text.slice(emoji.length).replace(/^️/, "").trim();
+      break;
+    }
   const box = h(
     "div.panel.modal" + (opts.cls ? "." + opts.cls : ""),
     { style: opts.wide ? { width: "min(1180px, calc(100vw - 24px))" } : {} },
-    h("button.small.close", { onclick: () => closeModal() }, "✕"),
-    h("h2", null, title),
+    h("button.small.close", { onclick: () => closeModal(), "aria-label": "Закрыть" }, icon("x")),
+    h("h2", null, ic ? icon(ic) : null, text),
     body,
   );
   const back = h("div.modal-back", { onmousedown: (e: MouseEvent) => e.target === back && closeModal() }, box);

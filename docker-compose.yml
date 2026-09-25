@@ -22,6 +22,9 @@ services:
       EMPTY_UNLOAD_SEC: 300
       # Telegram game (optional): the bot token from @BotFather checks who opened the game and from which chat
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      # the game's short name from @BotFather /newgame and the public https address players open
+      TELEGRAM_GAME: ${TELEGRAM_GAME:-glubzhe}
+      PUBLIC_URL: ${PUBLIC_URL:-}
       # signs players' Telegram identities; keep it stable so players keep their characters across restarts
       SESSION_SECRET: ${SESSION_SECRET:-}
     volumes:

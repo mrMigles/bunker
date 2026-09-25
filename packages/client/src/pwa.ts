@@ -5,6 +5,7 @@
 //    same bunker after the reload) instead of cutting a fight in half;
 //  - without a service worker (plain browser tab, some webviews) /version is polled for the same banner.
 import { h, ui } from "./ui/dom";
+import { icon } from "./ui/icons";
 
 declare const __BUILD_ID__: string;
 export const BUILD_ID: string = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "dev";
@@ -49,6 +50,7 @@ function offerUpdate() {
 }
 
 export function installPwa() {
+  installOffer();
   if (import.meta.env.DEV) return;
   // the manifest and icons are linked in index.html; here: the worker and the update checks
   if ("serviceWorker" in navigator) {
@@ -88,4 +90,81 @@ export function installPwa() {
   setTimeout(probe, 15000);
   setInterval(probe, 5 * 60 * 1000);
   document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && probe());
+}
+
+// ---------------------------------------------------------------- «install on the phone» offer
+// On a phone the game is best as an installed app (full screen, no address bar eating a third of the
+// height). From the second game day the player is offered to install it — once, and again only if they
+// said «later» three game days ago. Android/Chrome gets the real install prompt; iPhone gets the two
+// taps to do in Safari. Not shown inside Telegram or when already installed.
+let deferredPrompt: any = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+});
+
+function standalone() {
+  return matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || (navigator as any).standalone === true;
+}
+
+export function installOffer() {
+  const phone = document.documentElement.classList.contains("mobile");
+  if (!phone || standalone() || (window as any).Telegram?.WebApp?.initData) return;
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  let shown = false;
+  const check = () => {
+    if (shown || document.querySelector(".install-offer")) return;
+    const v = (window as any).__net?.pub;
+    if (!v || v.phase !== "day" || v.day < 2 || document.querySelector(".modal-back")) return;
+    let st: { never?: boolean; laterDay?: number } = {};
+    try {
+      st = JSON.parse(localStorage.getItem("bunker.install") ?? "{}");
+    } catch {}
+    if (st.never || (st.laterDay !== undefined && v.day < st.laterDay + 3)) return;
+    if (!deferredPrompt && !ios) return; // the browser cannot install it (yet): nothing to offer
+    shown = true;
+    const save = (x: typeof st) => {
+      try {
+        localStorage.setItem("bunker.install", JSON.stringify(x));
+      } catch {}
+    };
+    const close = () => box.remove();
+    const box = h(
+      "div.install-offer.panel",
+      null,
+      h("div.install-icon", null, icon("phone")),
+      h(
+        "div.install-text",
+        null,
+        h("b", null, "Установите «ГЛУБЖЕ» на телефон"),
+        h("span", null, ios ? "В Safari: «Поделиться» → «На экран «Домой»». Игра откроется на весь экран, без адресной строки." : "Игра откроется на весь экран, без адресной строки, и запустится с рабочего стола."),
+      ),
+      h(
+        "div.install-btns",
+        null,
+        !ios
+          ? h(
+              "button.primary",
+              {
+                onclick: async () => {
+                  close();
+                  try {
+                    deferredPrompt.prompt();
+                    const r = await deferredPrompt.userChoice;
+                    save(r?.outcome === "accepted" ? { never: true } : { laterDay: v.day });
+                  } catch {}
+                  deferredPrompt = null;
+                },
+              },
+              icon("download"),
+              "Установить",
+            )
+          : null,
+        h("button", { onclick: () => (save({ laterDay: v.day }), close()) }, "Позже"),
+        h("button.ghost", { onclick: () => (save({ never: true }), close()) }, "Не предлагать"),
+      ),
+    );
+    ui().appendChild(box);
+  };
+  setInterval(check, 5000);
 }

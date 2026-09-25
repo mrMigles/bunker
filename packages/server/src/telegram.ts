@@ -69,9 +69,10 @@ export function tgSession(initData: string): TgSession | { error: string } {
     return { error: "Неверные данные Telegram" };
   }
   if (!user.id) return { error: "Нет пользователя Telegram" };
-  // a group/channel chat when Telegram tells us; otherwise the chat instance (the chat the app was opened in);
-  // a start parameter (t.me/bot/app?startapp=…) wins so a link can point at one bunker
-  const chatKey = p.get("start_param") || (chat?.id ? String(chat.id) : "") || p.get("chat_instance") || "u" + user.id;
+  // the chat the app was opened in (its chat_instance — the same key the game button uses), else the chat
+  // id, else a start parameter, else the user's own bunker
+  const ci = p.get("chat_instance");
+  const chatKey = (ci ? "ci" + ci : "") || (chat?.id ? String(chat.id) : "") || p.get("start_param") || "u" + user.id;
   const pid = "tg_" + user.id;
   const name = [user.first_name, user.last_name ? user.last_name[0] + "." : ""].filter(Boolean).join(" ").slice(0, 16) || user.username || "Выживший";
   return { code: codeForChat(chatKey), pid, sig: signPid(pid, codeForChat(chatKey)), name, chat: chatKey, chatTitle: chat?.title, verified: !!BOT_TOKEN };

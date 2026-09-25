@@ -6,6 +6,7 @@ import { PAL, box, mat, vhash } from "./palette";
 import { DEPTH, TerrainLayer } from "./terrain";
 import { SceneryBatch, batchStaticBoxes, buildSiteProp, sceneSign } from "./scenery";
 import { buildLoot } from "./loot";
+import { postfx } from "./postfx";
 
 export const CHAR_Z = -0.45;
 
@@ -481,7 +482,7 @@ export class WorldRenderer {
       this.flash = Math.max(0, this.flash - dt * 0.8);
       this.ambient.intensity = 1.1 + this.flash * 8;
     }
-    this.renderer.render(this.scene, this.camera);
+    postfx(this.renderer).render(this.scene, this.camera);
   }
 
   updateLamps(v: View | null) {

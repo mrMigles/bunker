@@ -58,6 +58,21 @@ export function firstName(c: Char) {
   return c.card.name.split(" ")[0];
 }
 
+/** A first name in the instrumental case: «поговорить с Василием / Анной / Петром». */
+export function nameWith(name: string, female?: boolean): string {
+  const irregular: Record<string, string> = { Пётр: "Петром", Лев: "Львом", Павел: "Павлом", Любовь: "Любовью", Илья: "Ильёй", Никита: "Никитой" };
+  if (irregular[name]) return irregular[name];
+  const stem = name.slice(0, -1);
+  const last = name.slice(-1);
+  const hush = /[жшчщц]$/;
+  if (/ий$|ей$|ай$|ой$/.test(name)) return stem + (name.endsWith("ий") ? "ем" : "ем");
+  if (last === "а") return stem + (hush.test(stem) ? "ей" : "ой");
+  if (last === "я") return stem + "ей";
+  if (last === "ь") return female ? name + "ю" : stem + "ем";
+  if (female) return name; // foreign female names ending in a consonant do not change
+  return name + (hush.test(name) ? "ем" : "ом");
+}
+
 /** Card traits and learned perks share one namespace. */
 export function hasTrait(c: Char, t: string) {
   return c.card.plus === t || c.card.minus === t || !!c.perks?.includes(t);

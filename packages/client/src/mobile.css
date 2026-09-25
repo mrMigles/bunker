@@ -1,0 +1,466 @@
+/* Phones (html.mobile, landscape). Built for the worst case — a phone browser with its address bar,
+   ~760×300 CSS px — and still fine up to tablets. The scene stays visible: one slim top bar, small
+   collapsible cards in the corners, the stick bottom-left, context buttons bottom-right. */
+html.mobile {
+  --top: 38px;
+  --gap: 6px;
+  --sl: env(safe-area-inset-left, 0px);
+  --sr: env(safe-area-inset-right, 0px);
+}
+html.mobile body {
+  font-size: 12px;
+}
+html.mobile button {
+  min-height: 32px;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+html.mobile button.small {
+  min-height: 28px;
+}
+
+/* ---------------------------------------------------------------- top bar: day, time, resources, menu */
+html.mobile .hud-top {
+  left: calc(var(--gap) + var(--sl));
+  right: calc(150px + var(--sr));
+  top: 0;
+  min-height: var(--top);
+  height: var(--top);
+  padding: 3px 8px;
+  gap: 2px;
+  border-radius: 0 0 10px 10px;
+}
+html.mobile .hud-clock,
+html.mobile .hud-time {
+  padding: 0 7px 0 0;
+  margin-right: 5px;
+}
+html.mobile .hud-clock strong,
+html.mobile .hud-time strong {
+  font-size: 14px;
+}
+html.mobile .hud-clock small,
+html.mobile .hud-time small,
+html.mobile .resource-meter small {
+  display: none;
+}
+html.mobile .resource-meter {
+  min-width: 0;
+  grid-template-columns: 20px auto;
+  grid-template-rows: 26px;
+  gap: 0 3px;
+  padding: 0 2px;
+}
+html.mobile .resource-meter .atlas-art {
+  width: 20px;
+  height: 20px;
+}
+html.mobile .resource-meter b {
+  font-size: 13px;
+}
+html.mobile .air-alert {
+  top: calc(var(--top) + 4px);
+  left: auto;
+  right: 0;
+  font-size: 11px;
+  padding: 3px 8px;
+}
+html.mobile .game-toolbar {
+  top: 3px;
+  right: calc(var(--gap) + var(--sr));
+  gap: 4px;
+}
+html.mobile .game-toolbar button {
+  width: 44px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+}
+html.mobile .game-toolbar small {
+  display: none;
+}
+html.mobile .game-toolbar button .ic {
+  width: 19px;
+  height: 19px;
+}
+
+/* the dock: a column of icons down the right edge, under the toolbar */
+html.mobile .game-dock {
+  top: calc(var(--top) + 6px);
+  bottom: auto;
+  right: calc(var(--gap) + var(--sr));
+  flex-direction: column;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+}
+html.mobile .game-dock button {
+  width: 36px;
+  min-height: 34px;
+  height: 34px;
+  padding: 0;
+}
+html.mobile .game-dock span {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- left: tasks and my survivor */
+html.mobile .objectives {
+  top: calc(var(--top) + 6px);
+  left: calc(var(--gap) + var(--sl));
+  width: min(250px, 34vw);
+  max-height: calc(100vh - var(--top) - 150px);
+  overflow: auto;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+html.mobile .objective {
+  padding: 4px 0;
+}
+html.mobile .objective-hint {
+  display: none;
+}
+html.mobile .objectives-head {
+  min-height: 26px;
+  padding: 0 2px;
+}
+html.mobile .hud-feed,
+html.mobile .help {
+  display: none !important;
+}
+/* my survivor: a small card above the stick; tap opens «Персонаж» */
+html.mobile .hud-me {
+  left: calc(150px + var(--sl));
+  bottom: var(--gap);
+  top: auto;
+  width: 164px;
+  min-height: 0;
+  padding: 5px 8px 6px 8px;
+  font-size: 10px;
+  cursor: pointer;
+}
+html.mobile .hud-me .survivor-portrait,
+html.mobile .hud-me .level-line,
+html.mobile .hud-me > div.dim,
+html.mobile .hud-me .row > .dim {
+  display: none;
+}
+html.mobile .hud-me .row {
+  margin-bottom: 3px;
+}
+html.mobile .hud-me .name {
+  font-size: 11.5px;
+  line-height: 14px;
+}
+html.mobile .need {
+  grid-template-columns: 16px 1fr 22px;
+  gap: 4px;
+  margin: 1px 0;
+  font-size: 10px;
+}
+html.mobile .need > span:first-child {
+  font-size: 0;
+}
+html.mobile .need .ic {
+  width: 13px;
+  height: 13px;
+}
+html.mobile .bar {
+  height: 5px;
+}
+html.mobile .perk-btn {
+  font-size: 10px;
+  min-height: 24px;
+}
+
+/* ---------------------------------------------------------------- right: what is near, above the buttons */
+html.mobile .action-dock {
+  right: calc(96px + var(--sr));
+  left: auto !important;
+  bottom: var(--gap);
+  top: auto !important;
+  width: min(250px, 34vw);
+  max-height: calc(100vh - var(--top) - 60px);
+  padding: 6px;
+  font-size: 11px;
+}
+html.mobile .dock-heading {
+  font-size: 11.5px;
+  padding-bottom: 4px;
+  margin-bottom: 3px;
+}
+html.mobile .prompt .opt {
+  min-height: 32px;
+  font-size: 11.5px;
+  padding: 4px 8px;
+  margin-top: 3px;
+}
+
+/* ---------------------------------------------------------------- thumb controls */
+html.mobile .touch-stick {
+  left: calc(14px + var(--sl));
+  bottom: 12px;
+  width: 118px;
+  height: 118px;
+}
+html.mobile .touch-knob {
+  left: 34px;
+  top: 34px;
+  width: 46px;
+  height: 46px;
+}
+html.mobile .touch-pad {
+  right: calc(12px + var(--sr));
+  bottom: 12px;
+  gap: 6px;
+}
+.touch-btn {
+  width: 50px;
+  height: 50px;
+  background: var(--glass);
+  border: 1px solid var(--frame);
+  color: var(--amber-hi);
+}
+.touch-btn.big {
+  width: 72px;
+  height: 72px;
+  background: radial-gradient(circle at 50% 35%, #f2a650, #b95e1c);
+  border: 2px solid #ffd49a;
+  color: #fff8ec;
+  box-shadow: 0 0 18px rgba(239, 150, 60, 0.45);
+}
+.touch-btn small {
+  color: inherit;
+  font-weight: 700;
+}
+.touch-btn.big small {
+  color: #fff3e0;
+}
+
+/* ---------------------------------------------------------------- tips, toasts, windows */
+html.mobile .tip-card {
+  top: calc(var(--top) + 6px);
+  bottom: auto;
+  width: min(380px, 48vw);
+  padding: 7px 10px;
+}
+html.mobile .tip-card p {
+  font-size: 11px;
+  line-height: 1.35;
+  margin: 2px 0;
+}
+html.mobile .tip-foot button {
+  min-height: 26px;
+}
+html.mobile .toast {
+  top: calc(var(--top) + 8px);
+  font-size: 12px;
+  padding: 6px 12px;
+}
+/* windows take the whole screen: no floating box with its own scroll inside a scroll */
+html.mobile .modal-back {
+  align-items: stretch;
+  justify-content: stretch;
+}
+html.mobile .modal {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
+  padding: 8px calc(10px + var(--sr)) 10px calc(10px + var(--sl));
+  overflow: auto;
+}
+html.mobile .modal h2 {
+  font-size: 15px;
+  padding: 2px 40px 6px 0;
+  margin-bottom: 8px;
+}
+html.mobile .modal .close {
+  top: 4px;
+  right: calc(6px + var(--sr));
+}
+html.mobile .sect {
+  padding: 8px 10px;
+}
+html.mobile .sect-h {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+/* ---------------------------------------------------------------- prologue */
+html.mobile body[data-phase="prologue"] .hud-me {
+  display: none;
+}
+html.mobile .prologue-hud {
+  left: calc(142px + var(--sl));
+  top: auto;
+  bottom: var(--gap);
+  width: 170px;
+  padding: 6px 9px;
+  font-size: 10px;
+}
+html.mobile .prologue-hud > div:nth-child(3),
+html.mobile .prologue-hud .mission-saved .dim {
+  display: none;
+}
+html.mobile .prologue-timer {
+  font-size: 24px;
+  margin: 0;
+}
+html.mobile .prologue-actions {
+  right: calc(96px + var(--sr));
+  left: auto !important;
+  bottom: var(--gap);
+  top: auto !important;
+  width: min(240px, 34vw);
+}
+
+/* ---------------------------------------------------------------- sortie */
+html.mobile body.mode-site .hud-me {
+  display: none;
+}
+html.mobile .exp-hud {
+  top: calc(var(--top) + 6px);
+  right: calc(52px + var(--sr));
+  width: 200px;
+  padding: 6px 9px;
+}
+html.mobile .exp-hud h3 {
+  font-size: 12.5px;
+  margin: 2px 0 4px;
+}
+html.mobile .exp-journal,
+html.mobile .exp-dock-hint {
+  display: none;
+}
+html.mobile .exp-dock {
+  top: calc(var(--top) + 6px);
+  bottom: auto;
+  left: calc(var(--gap) + var(--sl));
+  transform: none;
+  padding: 3px;
+  gap: 3px;
+  flex-direction: column;
+  align-items: stretch;
+}
+html.mobile .exp-dock button {
+  font-size: 11px;
+  min-height: 30px;
+  padding: 3px 8px;
+  justify-content: flex-start;
+}
+html.mobile .exp-context.prompt {
+  right: calc(96px + var(--sr));
+  bottom: var(--gap);
+  width: min(250px, 34vw);
+  max-height: calc(100vh - var(--top) - 110px);
+  overflow: auto;
+}
+
+/* ---------------------------------------------------------------- very short screens (browser bars) */
+@media (max-height: 340px) {
+  html.mobile {
+    --top: 34px;
+  }
+  html.mobile .touch-stick {
+    width: 100px;
+    height: 100px;
+    bottom: 8px;
+  }
+  html.mobile .touch-knob {
+    left: 27px;
+    top: 27px;
+    width: 42px;
+    height: 42px;
+  }
+  html.mobile .hud-me {
+    left: calc(122px + var(--sl));
+    width: 150px;
+  }
+  html.mobile .touch-btn {
+    width: 44px;
+    height: 44px;
+  }
+  html.mobile .touch-btn.big {
+    width: 62px;
+    height: 62px;
+  }
+  html.mobile .game-dock button {
+    height: 30px;
+    min-height: 30px;
+  }
+  html.mobile .objectives {
+    max-height: calc(100vh - var(--top) - 118px);
+  }
+}
+html.mobile .hud-me .level-line,
+html.mobile .hud-me .survivor-portrait {
+  display: none !important;
+}
+html.mobile .hud-time {
+  display: block !important;
+}
+/* the context buttons sit left of the icon column, the menu of what is near left of them */
+html.mobile .touch-pad {
+  right: calc(50px + var(--sr));
+}
+html.mobile .action-dock,
+html.mobile .prologue-actions,
+html.mobile .exp-context.prompt {
+  right: calc(128px + var(--sr)) !important;
+}
+@media (max-height: 340px) {
+  html.mobile .action-dock,
+  html.mobile .prologue-actions,
+  html.mobile .exp-context.prompt {
+    right: calc(116px + var(--sr)) !important;
+  }
+}
+.touch-btn {
+  border-radius: 50% !important;
+  padding: 0 !important;
+  flex-direction: column;
+  gap: 0;
+}
+/* sortie prep on a phone: one scrolling page, squad | pack side by side, the «go» bar pinned at the bottom */
+html.mobile .exp-prep-modal {
+  overflow: auto !important;
+  max-height: 100vh !important;
+}
+html.mobile .exp-prep-modal .prep-cols {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+  gap: 10px;
+  max-height: none;
+}
+html.mobile .exp-prep-modal .prep-col {
+  overflow: visible;
+}
+html.mobile .exp-prep-modal .exp-gear-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+html.mobile .exp-prep-modal .exp-prep-foot {
+  position: sticky;
+  bottom: -10px;
+  margin: 8px -10px -10px;
+  padding: 6px 10px;
+  background: #15110ef7;
+  border-top: 1px solid var(--frame-soft);
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+html.mobile .exp-prep-modal .exp-eyebrow,
+html.mobile .exp-prep-modal .prep-left > p {
+  display: none;
+}
+html.mobile .exp-member {
+  padding: 3px 8px;
+}
+html.mobile body[data-phase="night"] .game-dock,
+html.mobile body[data-phase="ending"] .game-dock {
+  display: none;
+}

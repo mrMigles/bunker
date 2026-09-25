@@ -1,3 +1,6 @@
+import { art, portraitTile } from "./art";
+import { postfx, type FxQuality } from "../render/postfx";
+import { NEED_IC, SKILL_IC, STAT_IC, cic, icon } from "./icons";
 import {
   BOOKS,
   CANVAS_H,
@@ -186,40 +189,41 @@ export function openArchive() {
 
 export function openBoard(tab: "store" | "chores" | "gazette" | "recipes" = "store") {
   const v = net.pub!;
-  const body = h("div", { style: { minWidth: "620px" } });
+  const body = h("div.board", { style: { minWidth: "min(620px, 100%)" } });
+  const tabBtn = (id: typeof tab, ic: string, label: string) => h("button" + (tab === id ? ".primary" : ""), { onclick: () => openBoard(id) }, icon(ic), label);
   const tabs = h(
-    "div.row",
-    { style: { marginBottom: "10px" } },
-    h("button.small" + (tab === "store" ? ".primary" : ""), { onclick: () => openBoard("store") }, "📦 Склад"),
-    h("button.small" + (tab === "chores" ? ".primary" : ""), { onclick: () => openBoard("chores") }, "📋 Доска дел"),
-    h("button.small" + (tab === "gazette" ? ".primary" : ""), { onclick: () => openBoard("gazette") }, "🗞 «Вестник Бункера»"),
-    h("button.small" + (tab === "recipes" ? ".primary" : ""), { onclick: () => openBoard("recipes") }, "📖 Рецепты"),
-    h("button.small", { onclick: () => openArchive() }, "📚 Архив газет"),
+    "div.tabs",
+    null,
+    tabBtn("store", "box", "Склад"),
+    tabBtn("chores", "board", "Доска дел"),
+    tabBtn("gazette", "news", "«Вестник Бункера»"),
+    tabBtn("recipes", "book", "Рецепты"),
+    h("button", { onclick: () => openArchive() }, icon("journal"), "Архив газет"),
   );
   body.appendChild(tabs);
   if (tab === "store") {
     // everything the bunker owns, by kind: weapons and games used to be invisible
-    const groups: [string, string[]][] = [
-      ["🥫 Еда и вода", ["food", "water", "dish"]],
-      ["⚔ Оружие и защита", ["weapon"]],
-      ["💊 Медицина", ["med"]],
-      ["🛠 Инструменты", ["tool"]],
-      ["⚙ Материалы", ["mat"]],
-      ["🌱 Семена", ["seed"]],
-      ["🎸 Досуг", ["fun", "misc", "lore"]],
+    const groups: [string, string[], string, string][] = [
+      ["Еда и вода", ["food", "water", "dish"], "fork", "#e8a45a"],
+      ["Оружие и защита", ["weapon"], "swords", "#ef6a4c"],
+      ["Медицина", ["med"], "meds", "#e45a4a"],
+      ["Инструменты", ["tool"], "wrench", "#e0a458"],
+      ["Материалы", ["mat"], "parts", "#c9b48a"],
+      ["Семена", ["seed"], "sparkles", "#7fd18b"],
+      ["Досуг", ["fun", "misc", "lore"], "music", "#a88cf0"],
     ];
     const res = v.res as Record<string, number>;
     const catOf = (k: string) => (k.startsWith("dish_") ? "dish" : ITEMS[k]?.cat ?? "misc");
     const grid = h("div.store-grid");
-    for (const [name, cats] of groups) {
+    for (const [name, cats, ic, col] of groups) {
       const rows = Object.keys(res).filter((k) => res[k] >= 1 && cats.includes(catOf(k))).sort((a, b) => res[b] - res[a]);
-      if (!rows.length && name.startsWith("⚔")) rows.push("__none");
+      if (!rows.length && cats[0] === "weapon") rows.push("__none");
       if (!rows.length) continue;
       grid.appendChild(
         h(
-          "section.store-group",
+          "section.store-group.sect",
           null,
-          h("h4", null, name),
+          h("div.sect-h", null, icon(ic, { color: col }), name),
           ...rows.map((k) =>
             k === "__none"
               ? h("div.dim", null, "Пусто. Оружие находят на вылазках: в шкафчиках, у тел, в ящиках с инструментами.")
@@ -229,7 +233,7 @@ export function openBoard(tab: "store" | "chores" | "gazette" | "recipes" = "sto
       );
     }
     const games = (v.games as string[]) ?? [];
-    grid.appendChild(h("section.store-group", null, h("h4", null, "🎲 Настольные игры"), ...(games.length ? games.map((g) => h("div.store-row", null, h("span", null, "🎲"), h("span.grow", null, BOX_NAMES[g] ?? g))) : [h("div.dim", null, "Пока только колода. Настолки лежат в полках с играми, книжных шкафах и тайниках.")])));
+    grid.appendChild(h("section.store-group.sect", null, h("div.sect-h", null, icon("dice", { color: "#f2b53c" }), "Настольные игры"), ...(games.length ? games.map((g) => h("div.store-row", null, h("span", null, "🎲"), h("span.grow", null, BOX_NAMES[g] ?? g))) : [h("div.dim", null, "Пока только колода. Настолки лежат в полках с играми, книжных шкафах и тайниках.")])));
     body.appendChild(grid);
   } else if (tab === "chores") {
     const chores = Object.values(v.chores as Record<string, any>).sort((a, b) => b.urgency - a.urgency);
@@ -581,38 +585,89 @@ export function openCharacter(id: string) {
     .filter(([oid]) => v.chars[oid] && v.chars[oid].status !== "dead")
     .sort((a, b) => b[1] - a[1]);
   const free = !c.ctrl && c.status !== "dead" && c.status !== "away";
+  const relWord = (r: number) => (r > 40 ? "друзья" : r > 10 ? "приятели" : r < -20 ? "не ладят" : "нейтрально");
+  const relIcon = (r: number) => (r > 10 ? icon("heart", { color: "#6fd07a" }) : r < -20 ? icon("alert", { color: "#ef6b5a" }) : icon("user", { color: "#b2a693" }));
   modal(
-    `${pd?.icon ?? ""} ${c.card.name}`,
+    c.card.name,
     h(
-      "div.row",
-      { style: { alignItems: "flex-start", gap: "18px", minWidth: "640px" } },
+      "div.dossier",
+      null,
       h(
-        "div.col",
-        { style: { width: "280px" } },
-        h("div", null, `${pd?.name ?? ""}, ${c.card.age} лет`, player ? h("span.warn", null, ` · игрок ${player.name}`) : h("span.dim", null, " · бот-жилец")),
-        h("div.dim", null, "💭 ", c.thought ?? ""),
-        ...(["food", "water", "energy", "sanity", "health"] as const).map((k) => h("div.need", null, h("span", null, NEED_NAMES[k]), bar(c.needs[k]), h("span", null, c.needs[k]))),
-        c.needs.rad ? h("div.warn", null, `☢ Радиация: ${c.needs.rad}`) : null,
-        c.injury ? h("div.bad", null, "Травма: " + injuryName(c.injury)) : null,
-        c.sick > 10 ? h("div.bad", null, `Болеет: ${c.sick}%`) : null,
-        h("div", null, "➕ ", TRAITS_PLUS[c.card.plus]?.name, h("span.dim", null, " — " + (TRAITS_PLUS[c.card.plus]?.desc ?? ""))),
-        h("div", null, "➖ ", TRAITS_MINUS[c.card.minus]?.name, h("span.dim", null, " — " + (TRAITS_MINUS[c.card.minus]?.desc ?? ""))),
-        h("div", null, `⭐ Уровень ${c.level ?? 1}`, h("span.dim", null, ` · опыт ${Math.floor(c.xp ?? 0)}`)),
-        ...(c.perks ?? []).map((p: string) => h("div", null, `${PERKS[p]?.icon ?? "★"} `, PERKS[p]?.name ?? p, h("span.dim", null, " — " + (PERKS[p]?.desc ?? "")))),
-        h("div.dim", null, `😨 ${c.card.phobia} · 🧳 ${c.card.baggage} · 🎂 день ${c.card.birthday}`),
-        isMe && net.priv?.goal ? h("div.warn", null, "🔒 ", GOALS[net.priv.goal]?.name, ": ", GOALS[net.priv.goal]?.desc) : null,
-        free ? h("button.primary", { onclick: () => (net.send({ k: "take", char: id }), closeModal()) }, "🎮 Играть за этого жильца") : null,
+        "div.dossier-left",
+        null,
+        h(
+          "div.dossier-head",
+          null,
+          art(portraitTile(c.card.prof, c.card.gender), "dossier-portrait"),
+          h(
+            "div",
+            null,
+            h("div.dossier-name", null, h("span", null, pd?.icon ?? ""), c.card.name),
+            h("div.dossier-sub", null, `${pd?.name ?? ""}, ${c.card.age} лет`, h("span.dim", null, player ? ` · игрок ${player.name}` : " · бот-жилец")),
+            h("div.dossier-thought", null, icon("chat"), c.thought ?? "Бездельничаю"),
+          ),
+        ),
+        h(
+          "div.dossier-needs",
+          null,
+          ...(["food", "water", "energy", "sanity", "health"] as const).map((k) =>
+            h("div.need", null, h("span", null, cic(NEED_IC, k), NEED_NAMES[k]), bar(c.needs[k], c.needs[k] < 30 ? "#e0503a" : undefined), h("span", null, c.needs[k])),
+          ),
+          c.needs.rad ? h("div.need", null, h("span", null, cic(NEED_IC, "rad"), "Радиация"), bar(c.needs.rad, "#b0e040"), h("span", null, c.needs.rad)) : null,
+        ),
+        c.injury ? h("div.bad", null, icon("alert"), " Травма: " + injuryName(c.injury)) : null,
+        c.sick > 10 ? h("div.bad", null, icon("alert"), ` Болеет: ${c.sick}%`) : null,
+        h(
+          "div.dossier-traits",
+          null,
+          h("div.trait", null, icon("plus", { color: "#a88cf0" }), h("span", null, h("b", null, TRAITS_PLUS[c.card.plus]?.name), " — " + (TRAITS_PLUS[c.card.plus]?.desc ?? ""))),
+          h("div.trait", null, icon("minus", { color: "#a88cf0" }), h("span", null, h("b", null, TRAITS_MINUS[c.card.minus]?.name), " — " + (TRAITS_MINUS[c.card.minus]?.desc ?? ""))),
+          ...(c.perks ?? []).map((p: string) => h("div.trait", null, icon("star", { color: "#f2c14e" }), h("span", null, h("b", null, PERKS[p]?.name ?? p), " — " + (PERKS[p]?.desc ?? "")))),
+        ),
+        h(
+          "div.dossier-facts",
+          null,
+          h("span", null, icon("star", { color: "#f2c14e" }), `Уровень ${c.level ?? 1} · опыт ${Math.floor(c.xp ?? 0)}`),
+          h("span", null, icon("alert", { color: "#f2b53c" }), c.card.phobia),
+          h("span", null, icon("backpack", { color: "#5fa0f0" }), c.card.baggage),
+          h("span", null, icon("sparkles", { color: "#e58fb5" }), `день рождения — ${c.card.birthday}`),
+        ),
+        isMe && net.priv?.goal ? h("div.goal", null, icon("lock"), h("span", null, h("b", null, GOALS[net.priv.goal]?.name), ": ", GOALS[net.priv.goal]?.desc)) : null,
+        free ? h("button.primary.big", { onclick: () => (net.send({ k: "take", char: id }), closeModal()) }, icon("gamepad"), "Играть за этого жильца") : null,
       ),
       h(
-        "div.col",
-        { style: { flex: "1" } },
-        h("div", null, "Статы: ", (Object.keys(STAT_NAMES) as (keyof typeof STAT_NAMES)[]).map((k) => h("span.tag", null, `${STAT_NAMES[k]} ${c.card.stats[k]}`))),
-        h("div", null, "Навыки:"),
-        h("div.row", { style: { flexWrap: "wrap" } }, (Object.keys(SKILL_NAMES) as (keyof typeof SKILL_NAMES)[]).map((k) => h("span.tag", null, `${SKILL_NAMES[k]} ${skillLevel(c as any, k)}`))),
-        h("div", { style: { marginTop: "6px" } }, "Отношения:"),
-        rels.length ? rels.map(([oid, r]) => h("div.row", null, h("span", { style: { width: "150px" } }, v.chars[oid].card.name), bar(r + 50, r >= 0 ? "#8fcf6a" : "#e0503a"), h("span.dim", null, r > 40 ? "друзья" : r > 10 ? "приятели" : r < -20 ? "не ладят" : "нейтрально"))) : h("div.dim", null, "—"),
+        "div.dossier-right",
+        null,
+        h(
+          "div.sect",
+          null,
+          h("div.sect-h", null, icon("muscle", { color: "#ef6a4c" }), "Характеристики"),
+          h("div.stat-row", null, (Object.keys(STAT_NAMES) as (keyof typeof STAT_NAMES)[]).map((k) => h("div.stat-tile", null, cic(STAT_IC, k), h("b", null, c.card.stats[k]), h("small", null, STAT_NAMES[k])))),
+        ),
+        h(
+          "div.sect",
+          null,
+          h("div.sect-h", null, icon("wrench", { color: "#e0a458" }), "Навыки"),
+          h("div.skill-chips", null, (Object.keys(SKILL_NAMES) as (keyof typeof SKILL_NAMES)[]).map((k) => h("span.chip", null, cic(SKILL_IC, k), `${SKILL_NAMES[k]} ${skillLevel(c as any, k)}`))),
+        ),
+        h(
+          "div.sect",
+          null,
+          h("div.sect-h", null, icon("users", { color: "#a88cf0" }), "Отношения"),
+          rels.length
+            ? h(
+                "div.rel-list",
+                null,
+                rels.map(([oid, r]) => {
+                  const o = v.chars[oid];
+                  return h("div.rel-row", null, art(portraitTile(o.card.prof, o.card.gender), "rel-portrait"), h("span.rel-name", null, o.card.name), relIcon(r), h("span.dim", null, relWord(r)));
+                }),
+              )
+            : h("div.dim", null, "Пока ни с кем не знаком."),
+        ),
       ),
     ),
+    { cls: "dossier-modal", wide: true, icon: "user" },
   );
 }
 
@@ -634,22 +689,58 @@ export function openSettings(r: { shadows: boolean }) {
     r.shadows = shadows.checked;
     localStorage.setItem("bunker.shadows", shadows.checked ? "1" : "0");
   });
-  const fx = h("input", { type: "checkbox", checked: localStorage.getItem("bunker.post") !== "0" }) as HTMLInputElement;
-  fx.addEventListener("change", () => localStorage.setItem("bunker.post", fx.checked ? "1" : "0"));
+  const pf = postfx((r as any).renderer);
+  const quality = h(
+    "select",
+    { onchange: (e: Event) => pf.setQuality((e.target as HTMLSelectElement).value as FxQuality) },
+    ([["full", "Кино: свечение, зерно, аберрация"], ["light", "Лёгкая: цвет и виньетка"], ["off", "Выкл. (слабые устройства)"]] as const).map(([v, t]) => h("option", { value: v, selected: pf.quality === v }, t)),
+  );
+  const inTg = !!(window as any).Telegram?.WebApp?.initData;
+  // opened with the game button: Telegram's own ✕ closes the game, there is no other bunker to go to
+  const tgGame = !inTg && document.body.classList.contains("tg");
   modal(
-    "⚙ Настройки",
+    "Меню",
     h(
-      "div.col",
-      { style: { minWidth: "380px" } },
-      slider("master", "Общая"),
-      slider("sfx", "Эффекты"),
-      slider("music", "Музыка"),
-      slider("radio", "Радио"),
-      slider("ambient", "Фон"),
-      h("label.row", null, speech, "Озвучивать радио голосом (Web Speech)"),
-      h("label.row", null, shadows, "Тени от ламп"),
-      h("label.row", null, fx, "Постэффекты (виньетка, аберрация)"),
-      h("button.small", { onclick: () => ((window as any).__tips?.reset(), closeModal()) }, "↺ Показать подсказки заново"),
+      "div.settings",
+      null,
+      h(
+        "div.sect",
+        null,
+        h("div.sect-h", null, icon("volume"), "Звук"),
+        slider("master", "Общая"),
+        slider("sfx", "Эффекты"),
+        slider("music", "Музыка"),
+        slider("radio", "Радио"),
+        slider("ambient", "Фон"),
+        h("label.row", null, speech, "Озвучивать радио голосом"),
+      ),
+      h(
+        "div.sect",
+        null,
+        h("div.sect-h", null, icon("sparkles"), "Картинка"),
+        h("label.row", null, h("span", { style: { width: "120px" } }, "Эффекты"), quality),
+        h("label.row", null, shadows, "Тени от ламп"),
+        h("button.small", { onclick: () => ((window as any).__tips?.reset(), closeModal()) }, icon("refresh"), "Показать подсказки заново"),
+      ),
+      h(
+        "div.settings-foot",
+        null,
+        h("button", { onclick: () => closeModal() }, icon("play"), "Продолжить"),
+        tgGame
+          ? h("span.dim", null, "Закрыть игру — крестиком Telegram. Бункер чата сохранится.")
+          : h(
+          "button.primary",
+          {
+            onclick: () => {
+              closeModal();
+              net.leaveToMenu();
+            },
+            title: "Ваш жилец останется в бункере — его подхватит бот. Вернуться можно из меню.",
+          },
+          icon("logout"),
+          inTg ? "Закрыть игру" : "Выйти в меню",
+        ),
+      ),
     ),
   );
 }

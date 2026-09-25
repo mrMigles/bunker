@@ -47,6 +47,27 @@ export class Net {
   onFx = new Set<(f: Fx) => void>();
   onError = new Set<(text: string) => void>();
   onLeave = new Set<(code: number) => void>();
+  /** set while the player leaves on purpose (no auto-rejoin) */
+  leaving = false;
+
+  /** Leaves the bunker for the main menu: the character stays in the colony (a bot takes over). */
+  async leaveToMenu() {
+    this.leaving = true;
+    try {
+      sessionStorage.removeItem("bunker.session");
+    } catch {}
+    try {
+      await this.room?.leave(true);
+    } catch {}
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg?.initData) {
+      tg.close?.();
+      return;
+    }
+    const u = new URL(location.href);
+    u.searchParams.delete("code");
+    location.replace(u.toString());
+  }
   latency = 0;
   // prediction
   seq = 1;

@@ -3,8 +3,8 @@
     {
       "name": "lobby cards readable (light text on dark card)",
       "ok": true,
-      "text": "🔧\nЛев Сиренин\nИнженер, 45 лет\nЧинит быстрее всех, строит турели.\n2\nСИЛ\n2\nЛОВ\n2\n",
-      "lum": 224.33333333333334
+      "text": "Валентина Люкова\n⚕️\nВрач, 55 лет\nЛечит раны, болезни, радиацию.\n1\nСИЛ\n1\nЛОВ\n5\nИН",
+      "lum": 241.66666666666666
     },
     {
       "name": "prologue: 60 s, 6 houses, wide street",
@@ -23,14 +23,14 @@
         "hands": 0
       },
       "after": {
-        "x": 30.7,
+        "x": 35.57,
         "hands": [
-          "newspaper"
+          "plant_pot"
         ]
       },
       "target": {
-        "id": "pi37",
-        "x": 30.8
+        "id": "pi35",
+        "x": 35.9
       }
     },
     {
@@ -43,7 +43,7 @@
       "ok": true,
       "rad": 0,
       "injury": null,
-      "waited": 59
+      "waited": 56
     },
     {
       "name": "day 1: «Задачи» panel shows priorities and the first tutorial step",
@@ -57,7 +57,7 @@
       "name": "day 1: no keepsake junk piled at the airlock",
       "ok": true,
       "floor": [],
-      "clutter": 6
+      "clutter": 5
     },
     {
       "name": "objective click walks to its target",
@@ -90,14 +90,10 @@
     },
     {
       "name": "no page errors",
-      "ok": false,
-      "errors": [
-        "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
-      ]
+      "ok": true,
+      "errors": []
     }
   ],
-  "errors": [
-    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
-  ],
+  "errors": [],
   "ok": false
 }

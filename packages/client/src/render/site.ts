@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { box, cyl, mat, vhash } from "./palette";
 import { SceneryBatch, addRoomKit, buildSiteProp, roomWall, sceneSign } from "./scenery";
+import { postfx } from "./postfx";
 
 /** Low-poly enemy figures, origin at the feet. */
 export function buildEnemy(etype: string, color: number): THREE.Group {
@@ -269,7 +270,7 @@ export class SiteRenderer {
     this.camera.position.set(this.camX + 3.6, this.camY + 2.6, 30);
     this.camera.lookAt(this.camX, this.camY, 0);
     this.panorama.quaternion.copy(this.camera.quaternion);
-    renderer.render(this.scene, this.camera);
+    postfx(renderer).render(this.scene, this.camera);
   }
 
   toScreen(x: number, y: number): [number, number] {

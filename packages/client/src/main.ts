@@ -9,6 +9,8 @@ import { showMenu } from "./ui/menu";
 import { GameUI } from "./ui/game";
 import { installExtras } from "./ui/extras";
 import "./polish.css";
+import "./theme.css";
+import "./mobile.css";
 import { installPwa } from "./pwa";
 import { isTelegram, startTelegram } from "./telegram";
 
@@ -55,7 +57,7 @@ net.onChange.add(() => {
 let rejoining = false;
 net.onLeave.add(async (code) => {
   if (code === 4001) return toast("Вы зашли в этот бункер из другой вкладки");
-  if (code === 1000 || rejoining) return; // left on purpose
+  if (code === 1000 || rejoining || net.leaving) return; // left on purpose
   const room = net.code;
   if (!room) return;
   rejoining = true;

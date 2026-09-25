@@ -3,6 +3,7 @@ import { net } from "../net";
 import { menuArrows } from "../input";
 import type { WorldRenderer } from "../render/world";
 import { clear, h, modal, closeModal, ui } from "./dom";
+import { icon } from "./icons";
 
 /** Actions that open a client-side screen instead of (or before) a server action. */
 export const CLIENT_SCREENS: Record<string, (a: AvailableAction) => boolean> = {};
@@ -75,7 +76,7 @@ export class Prompt {
     this.key = key;
     clear(this.el);
     const focusedHere = this.title !== "Рядом с вами";
-    this.el.append(h("div.dock-heading", null, this.title, focusedHere ? h("button.small.dock-all", { onclick: () => { this.focused = null; this.title = "Рядом с вами"; this.key = ""; } }, "всё рядом") : null, this.list.length > 1 ? h("span.dock-keys", null, "↑↓ выбор · E действие") : this.list.length ? h("span.dock-keys", null, "E действие") : null));
+    this.el.append(h("div.dock-heading", null, h("span", null, icon(focusedHere ? "target" : "hand"), " ", this.title), focusedHere ? h("button.small.dock-all", { onclick: () => { this.focused = null; this.title = "Рядом с вами"; this.key = ""; } }, "всё рядом") : null, this.list.length > 1 ? h("span.dock-keys", null, "↑↓ выбор · E действие") : this.list.length ? h("span.dock-keys", null, "E действие") : null));
     if (taskLine) this.el.appendChild(h("div.dim", null, taskLine));
     this.list.forEach((a, i) => {
       this.el.appendChild(

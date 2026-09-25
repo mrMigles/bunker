@@ -3,6 +3,7 @@ import { net } from "../net";
 import type { WorldRenderer } from "../render/world";
 import { add, bar, clear, closeModal, esc, floatText, h, isModalOpen, modal, needColor, toast, ui } from "./dom";
 import { art, portraitTile } from "./art";
+import { NEED_IC, cic, icon } from "./icons";
 
 const FOOD_KEYS = Object.keys(ITEMS).filter((k) => ITEMS[k].cat === "food");
 
@@ -32,6 +33,10 @@ export class Hud {
 
   constructor(private r: WorldRenderer) {
     this.root.append(this.labels, this.top, this.me, this.feed, this.help);
+    // on a phone the small survivor card opens «Персонаж»
+    this.me.addEventListener("click", (e) => {
+      if (document.documentElement.classList.contains("mobile") && !(e.target as HTMLElement).closest("button")) (window as any).__openCharacter?.();
+    });
     ui().appendChild(this.root);
     this.help.innerHTML = "<b>МЫШЬ</b> идти / выбрать предмет <span>·</span> <b>WASD</b> движение <span>·</span> <b>Esc</b> отмена";
     net.onFx.add((f) => this.onFx(f));
@@ -98,8 +103,8 @@ export class Hud {
     const mode = v.mods.combat?.active ? "БОЙ" : v.phase === "prologue" ? "СБОР" : net.myChar()?.status === "away" ? "ВЫЛАЗКА" : `ДЕНЬ ${v.day}`;
     const resource = (tile: number, value: string | number, label: string, title: string) => h("div.resource-meter", { title }, art(tile), h("b", null, value), h("small", null, label));
     add(this.top,
-      h("div.hud-clock", null, h("strong", null, mode), h("small", { title: "Угроза растёт с уровнями жильцов и днями: враги крепче и метче, в зданиях их больше" }, v.phase === "prologue" ? "До закрытия убежища" : v.phase === "night" ? "Ночной совет" : `☢ Угроза ${threatLevel(v)} · выжить вместе`)),
-      h("div.hud-time", null, h("strong",null,`☀ ${fmtHour(v.hour)}`), h("small",null,`Бункер № ${net.code}`)),
+      h("div.hud-clock", null, h("strong", null, mode), h("small", { title: "Угроза растёт с уровнями жильцов и днями: враги крепче и метче, в зданиях их больше" }, v.phase === "prologue" ? "До закрытия убежища" : v.phase === "night" ? "Ночной совет" : [icon("rad"), ` Угроза ${threatLevel(v)} · выжить вместе`])),
+      h("div.hud-time", null, h("strong",null,icon(v.phase === "night" || v.hour >= 20 ? "moon" : "sun"),` ${fmtHour(v.hour)}`), h("small",null,`Бункер № ${net.code}`)),
       resource(0,Math.floor(food),"Еда",`Пайков. Нужно ${people} в день`),
       resource(1,Math.floor(water),(res.water_dirty??0)>=1?`Вода · гр. ${Math.floor(res.water_dirty)}`:"Вода",`Чистой: ${Math.floor(water)}, нужно ${people*2} в день.
 Грязной: ${Math.floor(res.water_dirty??0)} — её качает насос, водоочистка делает из неё чистую (нужен ток). Грязная годится для полива грядок и тушения огня, пить её нельзя.`),
@@ -136,9 +141,9 @@ export class Hud {
       c.perkOffer?.length ? h("button.small.primary.perk-btn", { onclick: () => openPerkChoice() }, "⭐ Новый уровень — выберите умение") : null,
       c.status !== "ok" ? h("div.bad", null, c.status === "down" ? `Без сознания! ${c.downT} с` : c.status === "breakdown" ? "Нервный срыв!" : c.status === "dead" ? "Погиб" : "") : null,
       ...(["health", "food", "water", "energy", "sanity"] as const).map((k) =>
-        h("div.need", null, h("span", null, NEED_NAMES[k]), bar(c.needs[k]), h("span", { style: { color: needColor(c.needs[k]) } }, c.needs[k])),
+        h("div.need", null, h("span", null, cic(NEED_IC, k), NEED_NAMES[k]), bar(c.needs[k]), h("span", { style: { color: needColor(c.needs[k]) } }, c.needs[k])),
       ),
-      c.needs.rad > 0 ? h("div.need", null, h("span", null, "Радиация"), bar(c.needs.rad, "#b0e040"), h("span.warn", null, c.needs.rad)) : null,
+      c.needs.rad > 0 ? h("div.need", null, h("span", null, cic(NEED_IC, "rad"), "Радиация"), bar(c.needs.rad, "#b0e040"), h("span.warn", null, c.needs.rad)) : null,
       c.injury ? h("div.bad", null, "Травма: " + injuryName(c.injury)) : null,
       c.sick > 10 ? h("div.bad", null, "Болезнь: " + c.sick + "%") : null,
       h("div.dim", { style: { marginTop: "4px" } }, "В руках: ", c.hands.length ? c.hands.map((x: any) => `${ITEMS[x.item]?.icon ?? ""}${itemName(x.item)}${x.n > 1 ? "×" + x.n : ""}`).join(", ") : "пусто"),
@@ -152,7 +157,7 @@ export class Hud {
     if (key === (this.feed as any)._k) return;
     (this.feed as any)._k = key;
     clear(this.feed);
-    this.feed.append(h("div.feed-heading",null,"Журнал событий"));
+    this.feed.append(h("div.feed-heading",null,icon("journal"),"Журнал событий"));
     for (const e of log.slice(-4)) this.feed.append(h("div.msg." + e.kind, { html: (e.who ? `<b>${esc(e.who)}:</b> ` : "") + esc(e.text) }));
   }
 
