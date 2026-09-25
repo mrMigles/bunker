@@ -139,6 +139,8 @@ describe("expedition (stage 7 acceptance)", () => {
       const unlock = acts.find((a) => a.id === ct.id && (a.a === "unlock" || a.a === "pick"));
       if (unlock) for (let k = 0; k < 4 && ct.locked; k++) doSite(w, "p0", unlock.a, ct.id);
       if (ct.locked) continue;
+      // a careful search still rustles: a sneaking squad waits for the noise to settle between containers
+      for (let k = 0; k < 60 && s.noise > 25; k++) tick(w, 1);
       if (ct.coop) applyCmd(w, "p1", { k: "sdo", a: "search", id: ct.id });
       doSite(w, "p0", "search", ct.id);
     }

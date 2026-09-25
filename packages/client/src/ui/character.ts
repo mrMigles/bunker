@@ -20,7 +20,26 @@ export function openCharacterScreen(tab: Tab = "gear") {
     const me = net.myChar();
     if (!v || !me) return;
     const mates = Object.values(v.chars as Record<string, any>).filter((c) => c.id !== me.id && !c.ctrl && c.status !== "dead");
-    const k = JSON.stringify([cur, me, mates.map((c) => [c.id, c.hands, c.equip, c.x, c.lv, c.status]), v.res]);
+    // an open dropdown must survive: never rebuild under it, and only rebuild when something shown changed
+    // (the whole character — needs, position — changes every tick and used to close the lists)
+    if (document.activeElement?.tagName === "SELECT" && body.contains(document.activeElement)) return;
+    const gearRes = Object.keys(v.res).map((r) => [r, Math.floor(v.res[r])]);
+    const k = JSON.stringify([
+      cur,
+      me.equip,
+      me.hands,
+      me.xp,
+      me.level,
+      me.perks,
+      me.perkOffer,
+      me.skills,
+      me.status,
+      me.lv,
+      Math.round(me.x / 2),
+      mates.map((c) => [c.id, c.hands, c.equip, Math.round(c.x / 3), c.lv, c.status]),
+      gearRes,
+      cur === "card" ? me.needs : 0,
+    ]);
     if (k === key) return;
     key = k;
     clear(body);

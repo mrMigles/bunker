@@ -12,6 +12,7 @@ import { REST_ACTIONS } from "./leisure";
 import { stepMove } from "./move";
 import { onTick } from "./tick";
 import { clamp, firstName, hasTrait, rng, skillLevel } from "./util";
+import { timeMult } from "./time";
 
 const BARKS = barksJson as Record<string, string[]>;
 import { BAL } from "../data/balance";
@@ -381,7 +382,8 @@ function execPlan(w: World, c: Char, p: Plan) {
   m.chore = p.chore;
   m.thought = p.thought;
   m.plan = "go";
-  if (p.leisure) m.until = w.phaseT + p.leisure;
+  // leisure lengths are real seconds at normal speed: a fast-forwarded day must not stretch them
+  if (p.leisure) m.until = w.phaseT + p.leisure / Math.max(1, timeMult(w));
   const pos = targetPos(w, p.tt, p.t);
   const t: Target = { type: p.tt, id: p.t };
   if (inReach(w, c, t)) {

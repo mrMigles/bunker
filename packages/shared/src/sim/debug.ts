@@ -24,6 +24,9 @@ export const debugOps: Record<string, (w: World, arg: any, pid: string) => strin
   heal: (w) => {
     for (const c of Object.values(w.chars)) if (c.status !== "dead") Object.assign(c.needs, { food: 100, water: 100, energy: 100, sanity: 100, health: 100, rad: 0 });
   },
+  tired: (w) => {
+    for (const c of Object.values(w.chars)) if (c.status !== "dead") c.needs.energy = 30;
+  },
   tech: (w, t) => {
     if (t && !w.tech.includes(t)) w.tech.push(String(t));
   },

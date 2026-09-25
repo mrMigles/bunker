@@ -1,7 +1,7 @@
 import { ITEMS } from "../data/items";
 import type { Chore, World } from "../types";
 import { walkable, unnode, slotAccess } from "../world/grid";
-import { ROOMS, roomCost } from "../world/rooms";
+import { ROOMS, roomAt, roomCost } from "../world/rooms";
 import { CHORE_DEFS, completeChore } from "./actions";
 import { registerCmd } from "./commands";
 import { CROPS, seedItem } from "./hydro";
@@ -134,14 +134,20 @@ export function refreshChores(w: World) {
   for (const id in w.items) {
     const it = w.items[id];
     const d = ITEMS[it.item];
-    if (it.item === "dirt" || it.item === "trash") add({ kind: "haul", item: id, urgency: 0.42 });
+    // soil lying in a room under construction blocks the work: carry it out first
+    if (it.item === "dirt") add({ kind: "haul", item: id, urgency: roomAt(w, it.x, it.lv)?.state === "dig" || roomAt(w, it.x, it.lv)?.state === "frame" ? 0.52 : 0.42 });
+    else if (it.item === "trash") add({ kind: "haul", item: id, urgency: 0.42 });
     else if (isStorable(it.item)) add({ kind: "haul", item: id, urgency: d?.cat === "food" ? 0.6 : 0.45 });
   }
   for (const key in w.marks) {
     const [x, lv] = unnode(w, Number(key));
     if (walkable(w, x, lv)) continue;
     if (!slotAccess(w, x, lv)) continue;
-    add({ kind: "dig", cell: Number(key), urgency: 0.55 });
+    // a room already half dug comes first: the colony finishes what it started (a pit with a heap of
+    // soil in it helps nobody), like the frame below
+    const rid = w.marks[key];
+    const started = !!rid && w.rooms[rid] && Array.from({ length: w.rooms[rid].w }, (_, i) => walkable(w, w.rooms[rid].x + i, w.rooms[rid].lv)).some(Boolean);
+    add({ kind: "dig", cell: Number(key), urgency: started ? 0.64 : 0.55 });
   }
   // power: somebody should pedal when the battery is low
   const p = w.power;

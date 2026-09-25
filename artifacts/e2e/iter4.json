@@ -20,11 +20,9 @@
       "name": "prologue menu has the E / ↑↓ key chips like in the bunker",
       "ok": true,
       "keys": [
-        "E",
-        "2",
-        "3"
+        "E"
       ],
-      "heading": "↑↓ выбор · E действие",
+      "heading": "E действие",
       "help": "Мышь / A D идти · E взять · ↑↓ выбор · Пробел к люку · Q бросить соседу"
     },
     {

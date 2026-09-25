@@ -357,7 +357,11 @@ export function openCook(a: { a: string; t: { type: string; id: string } }) {
     h(
       "div.col",
       { style: { minWidth: "520px" } },
-      h("div.dim", null, "Сложите продукты в кастрюлю. Совпадёт с рецептом — блюдо, нет — «что-то странное». Новые рецепты попадут на Доску."),
+      h("div.dim", null, "Сложите продукты в кастрюлю или выберите рецепт. Совпадёт с рецептом — блюдо, нет — «что-то странное» (тоже еда). Готовится ~18 с; блюдо ляжет на склад, а в журнале появится запись, что вышло. Блюда сытнее консервов и поднимают настроение."),
+      (() => {
+        const dishes = Object.keys(v.res).filter((k) => k.startsWith("dish_") && v.res[k] >= 1);
+        return h("div", null, "Готово на складе: ", dishes.length ? dishes.map((k) => `${ITEMS[k]?.icon ?? "🍲"} ${itemName(k)} ×${Math.floor(v.res[k])}`).join(", ") : h("span.dim", null, "пока ничего"));
+      })(),
       h(
         "div.row",
         { style: { flexWrap: "wrap" } },
@@ -376,7 +380,7 @@ export function openCook(a: { a: string; t: { type: string; id: string } }) {
       ),
       potEl,
       result,
-      known.length ? h("div", null, "Известные рецепты: ", known.map((id) => h("button.small", { onclick: () => (Object.keys(pot).forEach((k) => delete pot[k]), Object.assign(pot, RECIPES[id].in), renderPot()) }, `${RECIPES[id].icon} ${RECIPES[id].name}`))) : null,
+      known.length ? h("div", null, "Известные рецепты: ", known.map((id) => { const r = RECIPES[id]; const ok = Object.keys(r.in).every((k) => (v.res[k] ?? 0) >= r.in[k]); return h("button.small" + (ok ? "" : ".dis"), { title: ok ? "Положить в кастрюлю" : "Не хватает продуктов", onclick: () => (Object.keys(pot).forEach((k) => delete pot[k]), Object.assign(pot, r.in), renderPot()) }, `${r.icon} ${r.name}`, h("small.dim", null, ` (${Object.keys(r.in).map((k) => `${itemName(k)}×${r.in[k]}`).join(", ")})`)); })) : null,
       h(
         "div.row",
         null,

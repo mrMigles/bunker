@@ -53,6 +53,7 @@ export class CombatUI {
   qT = 0;
   playedRound = 0;
   hoverCell: { col: number; floor: number } | null = null;
+  hoverUnit: string | null = null;
   private key = "";
   private mouse = { x: 0, y: 0 };
   private attached: THREE.Scene | null = null;
@@ -116,6 +117,37 @@ export class CombatUI {
     const floor = lvAbs - (this.where === "bunker" ? s.field.originLv : 0);
     if (col < 0 || col >= s.field.cols || floor < 0 || floor >= s.field.floors) return null;
     return { col, floor };
+  }
+
+  /**
+   * The unit under the pointer: the nearest body on screen (enemies first), so a click on a figure, its
+   * head or a little beside it picks it even when units stand shoulder to shoulder or across cell borders.
+   */
+  unitNearMouse(): Unit | null {
+    const s = this.cs;
+    if (!s) return null;
+    const toScreen = (x: number, y: number) => (this.where === "bunker" ? this.r.toScreen(x, y) : this.site.toScreen(x, y));
+    // pixels per world unit at the current zoom
+    const [ax] = toScreen(0, 0);
+    const [bx] = toScreen(1, 0);
+    const unit = Math.abs(bx - ax) || 40;
+    let best: Unit | null = null;
+    let bestD = Infinity;
+    for (const x of Object.values(s.units) as Unit[]) {
+      if (x.dead || x.fled) continue;
+      const vw = this.views.get(x.id);
+      if (!vw) continue;
+      const [sx, sy] = toScreen(vw.x, vw.y + 0.75);
+      const dx = (this.mouse.x - sx) / unit;
+      const dy = (this.mouse.y - sy) / unit;
+      // a figure is tall and narrow: count vertical distance at half weight
+      const d = Math.hypot(dx, dy * 0.5) - (x.side === "enemy" ? 0.08 : 0);
+      if (d < bestD) {
+        bestD = d;
+        best = x;
+      }
+    }
+    return bestD <= 0.6 ? best : null;
   }
 
   unitAtCell(c: { col: number; floor: number } | null): Unit | null {
@@ -186,9 +218,12 @@ export class CombatUI {
     const s = this.cs;
     const u = this.myUnit();
     if (!s || !u || s.phase !== "plan") return;
-    const cell = this.cellAtMouse();
+    // the nearest figure counts when it is what this click is for: an enemy to hit, an ally to heal
+    const cand = this.unitNearMouse();
+    const near = cand && (this.mode === "heal" ? cand.side === "ally" : this.mode === "ability" || cand.side === "enemy") ? cand : null;
+    const cell = near && this.mode !== "move" && this.mode !== "throw" && this.mode !== "door" ? { col: near.col, floor: near.floor } : this.cellAtMouse();
     if (!cell) return;
-    const target = this.unitAtCell(cell);
+    const target = near ?? this.unitAtCell(cell);
     switch (this.mode) {
       case "move":
         this.tryAdd({ t: "move", col: cell.col, floor: cell.floor });
@@ -544,7 +579,10 @@ export class CombatUI {
     // hover
     const cell = this.cellAtMouse();
     this.hoverCell = cell;
-    if (cell) addMark(cell.col, cell.floor, 0xffffff, 0.12);
+    const near = this.mode !== "move" ? this.unitNearMouse() : null;
+    this.hoverUnit = near?.id ?? null;
+    if (near) addMark(near.col, near.floor, near.side === "enemy" ? 0xff7a5a : 0x9fe07a, 0.28);
+    else if (cell) addMark(cell.col, cell.floor, 0xffffff, 0.12);
     // move reach preview
     if (this.mode === "move" && cell) {
       const path = pathTo(s as any, { ...u, col: p.col, floor: p.floor } as Unit, cell.col, cell.floor);
@@ -559,11 +597,12 @@ export class CombatUI {
     const s = this.cs!;
     const u = this.myUnit();
     const cell = this.hoverCell;
-    const target = this.unitAtCell(cell);
+    const target = (this.hoverUnit ? (s.units[this.hoverUnit] as Unit) : null) ?? this.unitAtCell(cell);
     const key = JSON.stringify([
       Object.values(s.units).map((x: any) => [x.id, x.hp, x.intentText, x.dead, x.down, x.fled]),
       [...this.views.values()].map((v) => [Math.round(v.x * 10), Math.round(v.y * 10)]),
       target?.id,
+      this.hoverUnit,
       this.selectedTarget,
       this.mode,
       this.plan.length,
@@ -575,13 +614,24 @@ export class CombatUI {
     if (key === this.labKey) return;
     this.labKey = key;
     clear(this.labels);
-    for (const x of Object.values(s.units) as Unit[]) {
-      if (x.dead || x.fled) continue;
-      const vw = this.views.get(x.id);
-      if (!vw) continue;
-      const [sx, sy] =
-        this.where === "bunker" ? this.r.toScreen(vw.x, vw.y + 1.75) : this.site.toScreen(vw.x, vw.y + 1.75);
-      const el = h("div.label.combat-unit-label" + (x.id === this.selectedTarget ? ".selected" : ""), {
+    // left to right; a label that would overlap its neighbour climbs one row up
+    const placed: { l: number; r: number; row: number; floorY: number }[] = [];
+    const LABEL_W = 108,
+      ROW_H = 40;
+    const units = (Object.values(s.units) as Unit[])
+      .filter((x) => !x.dead && !x.fled && this.views.get(x.id))
+      .map((x) => {
+        const vw = this.views.get(x.id)!;
+        const [sx, sy] = this.where === "bunker" ? this.r.toScreen(vw.x, vw.y + 1.75) : this.site.toScreen(vw.x, vw.y + 1.75);
+        return { x, vw, sx, sy };
+      })
+      .sort((a, b) => a.sx - b.sx);
+    for (const { x, vw, sx, sy: baseY } of units) {
+      let row = 0;
+      while (placed.some((p) => Math.abs(p.floorY - baseY) < 20 && p.row === row && sx - LABEL_W / 2 < p.r && sx + LABEL_W / 2 > p.l)) row++;
+      placed.push({ l: sx - LABEL_W / 2, r: sx + LABEL_W / 2, row, floorY: baseY });
+      const sy = baseY - row * ROW_H;
+      const el = h("div.label.combat-unit-label" + (x.id === this.selectedTarget ? ".selected" : "") + (x.id === this.hoverUnit ? ".hover" : "") + (row ? ".raised" : ""), {
         style: { left: sx + "px", top: sy + "px" },
         role: "button",
         tabindex: 0,

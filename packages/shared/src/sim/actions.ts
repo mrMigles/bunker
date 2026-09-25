@@ -6,6 +6,7 @@ import { roomAt } from "../world/rooms";
 import { registerCmd } from "./commands";
 import { onTick } from "./tick";
 import { addXp, clamp, fx, hasTrait, skillLevel } from "./util";
+import { timeMult } from "./time";
 
 export type TargetType = "obj" | "item" | "slot" | "room" | "char" | "self";
 
@@ -355,7 +356,10 @@ export function tickTasks(w: World, dt: number) {
     }
     // a player with the minigame open works by hand: the task barely moves on its own
     const sp = taskSpeed(w, c, a, t) * ((task as any).mini ? 0.25 : 1);
-    task.t += dt * sp;
+    // timed work follows the game clock: when time is skipped (everyone resting ×3, debug speed) the
+    // colony's work speeds up with it — before, needs ran 3× faster while work did not, and a
+    // fast-forwarded colony starved (open-ended ticks like digging scale by the clock themselves)
+    task.t += dt * sp * timeMult(w);
     c.anim = task.standing ? "sip" : (a.anim ?? "work");
     const fin = a.tick?.(ctx, dt * sp);
     if (!c.task) continue; // tick may stop it

@@ -101,10 +101,11 @@ export class Hud {
       h("div.hud-clock", null, h("strong", null, mode), h("small", { title: "Угроза растёт с уровнями жильцов и днями: враги крепче и метче, в зданиях их больше" }, v.phase === "prologue" ? "До закрытия убежища" : v.phase === "night" ? "Ночной совет" : `☢ Угроза ${threatLevel(v)} · выжить вместе`)),
       h("div.hud-time", null, h("strong",null,`☀ ${fmtHour(v.hour)}`), h("small",null,`Бункер № ${net.code}`)),
       resource(0,Math.floor(food),"Еда",`Пайков. Нужно ${people} в день`),
-      resource(1,Math.floor(water),"Вода",`Нужно ${people*2} в день`),
-      resource(7,p.battery.toFixed(1),"Энергия",`Баланс ${bal.toFixed(2)} кВт. Запас ${p.cap} кВт·ч`),
+      resource(1,Math.floor(water),(res.water_dirty??0)>=1?`Вода · гр. ${Math.floor(res.water_dirty)}`:"Вода",`Чистой: ${Math.floor(water)}, нужно ${people*2} в день.
+Грязной: ${Math.floor(res.water_dirty??0)} — её качает насос, водоочистка делает из неё чистую (нужен ток). Грязная годится для полива грядок и тушения огня, пить её нельзя.`),
+      resource(7,p.battery.toFixed(1),bal>=0.005?`Энергия ▲${bal.toFixed(1)}`:bal<=-0.005?`Энергия ▼${(-bal).toFixed(1)}`:"Энергия",`Аккумулятор ${p.battery.toFixed(1)} из ${p.cap} кВт·ч.\nВыработка ${p.gen.toFixed(2)} кВт, расход ${p.use.toFixed(2)} кВт (${bal>=0?"заряжается":"садится"}).\nТок берут фильтры, свет, лампы грядок и каждая комната с техникой — чем больше бункер, тем больше нужно. Один велосипед тянет только небольшой бункер: соберите второй в мастерской или поставьте генератор.`),
       resource(2,Math.floor(res.scrap??0),"Металл","Металлолом для строительства"),
-      resource(3,Math.floor(res.wood??0),"Дерево","Древесина"),
+      resource(3,Math.floor(res.wood??0),"Дерево","Древесина — для комнат, мебели и велосипедов. Где взять: «Штабель досок» и скамьи на вылазках — больше всего в амбаре на ферме, в гаражах, школе, подсобках, тоннелях метро; немного — в ящиках и шкафах."),
       resource(5,Math.floor(res.meds??0),"Лекарства","Медикаменты"),
       resource(6,Math.floor(res.parts??0),"Детали","Запчасти для ремонта"),
     );

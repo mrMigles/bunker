@@ -631,3 +631,9 @@
   .combat-intel h3 { font-size: 13px; margin: 0 0 4px; }
   .combat-journal { display: none; }
 }
+
+/* labels stay readable in a crowd: compact, stacked in rows, the hovered/picked one lit up */
+.combat-unit-label { max-width: 112px; padding: 4px 7px; }
+.combat-unit-label .intent { white-space: normal; line-height: 1.2; }
+.combat-unit-label.hover { border-color: #ff9a74; background: #2a1d19ee; z-index: 2; }
+.combat-unit-label.raised::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1px; height: 40px; background: #c9d2c455; }

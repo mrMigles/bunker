@@ -10,6 +10,7 @@ import { toolFor } from "./build";
 import { unnode } from "../world/grid";
 import { onTick } from "./tick";
 import { firstName } from "./util";
+import { maxGeneration } from "./foreman";
 
 export interface Objective {
   id: string;
@@ -74,6 +75,10 @@ export function computeObjectives(w: World): Objective[] {
   if (water < 1.5) out.push({ id: "water", kind: water < 0.7 ? "urgent" : "need", text: `Воды на ${water.toFixed(1)} дн.`, hint: "Качайте насос (грязная вода) и держите фильтр воды чистым и под током.", obj: objsOfKind(w, "hand_pump")[0]?.id });
   const cap = w.power.cap || 1;
   if (w.power.battery / cap < 0.25 && w.power.gen < w.power.demand) out.push({ id: "power", kind: w.power.battery <= 0.05 ? "urgent" : "need", text: w.power.battery <= 0.05 ? "Нет энергии — свет и фильтры отключаются" : "Аккумулятор садится", hint: "Крутите велогенератор (E). Ещё один велосипед можно собрать как мебель.", obj: objsOfKind(w, "bike_gen").find((o) => !o.broken && !o.st.rider)?.id });
+  // the bunker has outgrown its generators: even non-stop pedalling would not keep up
+  const bikes = objsOfKind(w, "bike_gen").filter((o) => !o.broken).length;
+  if ((w.flags._demAvg ?? 0) > maxGeneration(w) * 0.85 && w.power.battery / cap < 0.6)
+    out.push({ id: "power_more", kind: "need", text: bikes <= 1 ? "Одного велосипеда уже мало" : "Генераторов не хватает", hint: `Бункер берёт ${(w.flags._demAvg ?? 0).toFixed(1)} кВт — больше, чем дают генераторы. Соберите ещё велосипед на верстаке (🚲) или поставьте генератор в генераторной.`, obj: objsOfKind(w, "workbench")[0]?.id });
   if (w.air.co2 > 45) out.push({ id: "air", kind: w.air.co2 > 65 ? "urgent" : "need", text: "Душно: CO₂ растёт", hint: "Почистите фильтр воздуха и дайте ему энергию.", obj: objsOfKind(w, "air_filter")[0]?.id });
   for (const o of Object.values(w.objs))
     if (o.broken && OBJECTS[o.kind]) out.push({ id: "broken_" + o.id, kind: "need", text: `Сломан: ${OBJECTS[o.kind].name}`, hint: "Почините (E) — нужны детали или хлам.", obj: o.id });

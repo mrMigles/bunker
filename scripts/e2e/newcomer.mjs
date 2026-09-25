@@ -163,7 +163,11 @@ try {
   });
   await page.waitForFunction(() => window.__net.pub.mods.expedition?.stage === "map", null, { timeout: 60000 }).catch(() => {});
   await ev(() => window.__net.send({ k: "expHome" }));
-  await page.waitForFunction(() => !window.__net.pub.mods.expedition, null, { timeout: 120000 }).catch(() => {});
+  // the road home may cross a night: a solo council waits for the player's «Готов»
+  for (let i = 0; i < 60 && (await ev(() => !!window.__net.pub.mods.expedition)); i++) {
+    await ev(() => { const v = window.__net.pub; if (v.phase === "night" && v.council && !v.council.ready[window.__net.priv.pid]) window.__net.send({ k: "ready", v: true }); });
+    await wait(2000);
+  }
   await ev(() => window.__net.send({ k: "debug", op: "speed", arg: 1 }));
   const back = await ev(() => ({ home: !window.__net.pub.mods.expedition, me: window.__net.myChar().status, log: window.__net.pub.log.slice(-4).map((l) => l.text) }));
   step("squad returns home", back.home && back.me !== "dead", back);

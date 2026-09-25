@@ -178,6 +178,12 @@ defAction({
   },
 });
 
+/** This tray and the other beds in its room that want water (the tray itself first). */
+function thirstyBeds(w: World, o: Obj): Obj[] {
+  const others = Object.values(w.objs).filter((x) => x.id !== o.id && x.kind === "hydro_tray" && x.room === o.room && x.st.crop && x.st.water <= 80);
+  return [o, ...others];
+}
+
 defAction({
   id: "water_plants",
   type: "obj",
@@ -185,17 +191,25 @@ defAction({
   prio: 18,
   avail: ({ w, o }) => {
     if (!o!.st.crop || o!.st.water > 60) return null;
-    if ((w.res.water_dirty ?? 0) + (w.res.water ?? 0) < 0.35) return { label: "🚿 Полить", reason: "Нет воды" };
-    return `🚿 Полить (вода ${Math.round(o!.st.water)}%)`;
+    const beds = thirstyBeds(w, o!);
+    const need = 0.2 * beds.length;
+    if ((w.res.water_dirty ?? 0) + (w.res.water ?? 0) < need) return { label: "🚿 Полить", reason: "Нет воды" };
+    const dirty = (w.res.water_dirty ?? 0) >= need;
+    return `🚿 Полить ${beds.length > 1 ? `грядки (${beds.length})` : "грядку"} · вода ${Math.round(o!.st.water)}%${dirty ? " · грязной водой" : ""}`;
   },
   dur: () => 5,
   anim: "work",
   skill: "cooking",
   chore: "water_plants",
+  // one round of the can waters every thirsty bed of the room (the minigame's «грядка 1 из 3»)
   done: ({ w, o }) => {
-    const k = (w.res.water_dirty ?? 0) >= 0.35 ? "water_dirty" : "water";
-    w.res[k] = Math.max(0, (w.res[k] ?? 0) - 0.35);
-    o!.st.water = 100;
+    for (const b of thirstyBeds(w, o!)) {
+      // plants don't mind dirty water: it goes first and saves the clean water for people
+      const k = (w.res.water_dirty ?? 0) >= 0.2 ? "water_dirty" : "water";
+      if ((w.res[k] ?? 0) < 0.2) break;
+      w.res[k] = (w.res[k] ?? 0) - 0.2;
+      b.st.water = 100;
+    }
   },
 });
 

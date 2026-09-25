@@ -3,7 +3,7 @@
     {
       "name": "lobby cards readable (light text on dark card)",
       "ok": true,
-      "text": "⚗️\nФёдор Консервин\nХимик, 65 лет\nХимикаты, раствор, самогон.\n1\nСИЛ\n4\nЛОВ\n4\nИНТ\n1",
+      "text": "🔧\nЛев Сиренин\nИнженер, 45 лет\nЧинит быстрее всех, строит турели.\n2\nСИЛ\n2\nЛОВ\n2\n",
       "lum": 224.33333333333334
     },
     {
@@ -23,14 +23,14 @@
         "hands": 0
       },
       "after": {
-        "x": 22.71,
+        "x": 30.7,
         "hands": [
-          "gnome"
+          "newspaper"
         ]
       },
       "target": {
-        "id": "pi32",
-        "x": 22.8
+        "id": "pi37",
+        "x": 30.8
       }
     },
     {
@@ -67,13 +67,14 @@
       "name": "sortie prep: squad pre-filled (me + residents) and a base kit packed",
       "ok": true,
       "squad": 2,
-      "weight": 8,
+      "weight": 7.9,
       "gear": {
         "water": 4,
         "food_can": 2,
         "meds": 1,
+        "flashlight": 1,
         "pipe": 1,
-        "knife": 2
+        "knife": 1
       }
     },
     {
@@ -83,80 +84,20 @@
       "seconds": 1
     },
     {
-      "name": "site: squad survives the first exploration",
-      "ok": true,
-      "fights": 0,
-      "loot": {
-        "bg_random": 1,
-        "wood": 3,
-        "batteries": 2,
-        "meds": 1,
-        "guitar": 1,
-        "newspaper": 1,
-        "cloth": 3,
-        "food_can": 2
-      },
-      "log": [
-        "Фёдор обыскивает «Шкаф»: 🪵Дерево×3, 🔋Батарейки×2 (в темноте могли что-то упустить).",
-        "Фёдор обыскивает «Сейф»: 💊Медикаменты×1 (в темноте могли что-то упустить).",
-        "Фёдор обыскивает «Полка с настолками»: 🎸Гитара×1 (в темноте могли что-то упустить).",
-        "Фёдор обыскивает «Стеллаж»: 📰Старая газета×1 (в темноте могли что-то упустить).",
-        "Фёдор обыскивает «Прилавок»: 🧵Ткань×3 (в темноте могли что-то упустить).",
-        "✦ Фёдор замечает: записку.",
-        "Фёдор обыскивает «Холодильник»: 🥫Консервы «Вечность»×2 (в темноте могли что-то упустить).",
-        "🔒 Дверь заперта: отмычка, лом или выбить (подойдите и нажмите E)."
-      ],
-      "squad": [
-        {
-          "hp": 100,
-          "status": "away"
-        },
-        {
-          "hp": 100,
-          "status": "away"
-        }
-      ]
-    },
-    {
-      "name": "site: searching finds loot",
-      "ok": true,
-      "loot": {
-        "bg_random": 1,
-        "wood": 3,
-        "batteries": 2,
-        "meds": 1,
-        "guitar": 1,
-        "newspaper": 1,
-        "cloth": 3,
-        "food_can": 2
-      },
-      "trace": [
-        "x4.7 lv0 conts3/3 rooms2/7",
-        "x7.6 lv0 conts7/4 rooms3/7",
-        "x14.7 lv0 conts7/0 rooms3/7",
-        "x14.7 lv0 conts7/0 rooms3/7",
-        "x14.7 lv0 conts7/0 rooms3/7",
-        "x14.7 lv0 conts7/0 rooms3/7"
-      ]
-    },
-    {
-      "name": "squad returns home",
-      "ok": true,
-      "home": true,
-      "me": "ok",
-      "log": [
-        "[debug] Новичок: speed 8",
-        "🎲 На полке у стола новая игра: Мафия!",
-        "🏠 Памятные вещи расставлены по бункеру: Гитара. Стало уютнее.",
-        "🏠 Отряд вернулся: 🥫Консервы «Вечность»×2, 💊Медикаменты×1, bg_random×1, 🪵Дерево×3, 🔋Батарейки×2, 🎸Гитара×1, 📰Старая газета×1, 🧵Ткань×3. Разберите добычу у шлюза!"
-      ]
+      "name": "script error",
+      "ok": false,
+      "error": "Error: page.evaluate: Target crashed "
     },
     {
       "name": "no page errors",
-      "ok": true,
-      "errors": []
+      "ok": false,
+      "errors": [
+        "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+      ]
     }
   ],
-  "errors": [],
-  "ok": true
+  "errors": [
+    "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+  ],
+  "ok": false
 }

@@ -2,6 +2,10 @@ import enemiesJson from "../data/enemies.json";
 import { BAL, type WeaponDef } from "../data/balance";
 import { Rng, seedState, type RngState } from "../rng";
 
+// Fights were too easy (iteration 7): enemies a fifth tougher, the squad hits a tenth softer.
+const ENEMY_HP = 1.2;
+const SQUAD_DMG = 0.9;
+
 // ================================================================ data
 
 export interface EnemyDef {
@@ -306,8 +310,8 @@ export function makeUnit(init: UnitInit): Unit {
       etype: init.etype,
       col: init.col,
       floor: init.floor,
-      hp: d.hp + (init.hpBonus ?? 0),
-      maxHp: d.hp + (init.hpBonus ?? 0),
+      hp: Math.round(d.hp * ENEMY_HP) + (init.hpBonus ?? 0),
+      maxHp: Math.round(d.hp * ENEMY_HP) + (init.hpBonus ?? 0),
       armor: d.armor,
       weapon: d.weapon,
       aim: init.aimBonus ?? 0,
@@ -775,6 +779,7 @@ function attack(s: CombatState, a: Unit, t: Unit, aimed = false, part?: string, 
   const crit = R.chance(0.08 + (w.range > 1 ? a.skills.shooting : a.skills.melee) * 0.02);
   if (crit) dmg = Math.round(dmg * 1.5);
   if (part === "head") dmg = Math.round(dmg * 1.5);
+  if (a.side !== "enemy") dmg = Math.max(1, Math.round(dmg * SQUAD_DMG));
   const done = damage(s, t, dmg, a, { bleed: w.bleed });
   if (part === "legs") t.st.slowed = 1;
   if (part === "arms") t.st.aimDebuff = 1;

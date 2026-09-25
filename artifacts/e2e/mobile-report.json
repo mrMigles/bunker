@@ -3,7 +3,7 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "TU28B",
+      "code": "TVT3S",
       "head": "ГЛУБЖЕБункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
@@ -12,7 +12,7 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "TU28B",
+      "code": "TVT3S",
       "head": "ГЛУБЖЕБункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
@@ -26,7 +26,7 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "TU28B",
+      "code": "TVT3S",
       "head": "ГЛУБЖЕБункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
@@ -35,7 +35,7 @@
     {
       "name": "a second chat member joins the same bunker",
       "ok": true,
-      "code2": "TU28B",
+      "code2": "TVT3S",
       "players": [
         "Анна П.",
         "Борис"
@@ -66,7 +66,7 @@
       "name": "the stick walks the character",
       "ok": true,
       "x0": 25.5,
-      "x1": 30.53,
+      "x1": 29.53,
       "anim": "run"
     },
     {
@@ -175,7 +175,7 @@
     {
       "name": "the site bar's flashlight button works by touch",
       "ok": true,
-      "lightOff": true
+      "lightOff": false
     },
     {
       "name": "the backpack opens by touch",
@@ -195,7 +195,7 @@
       "name": "finger strokes work the pump",
       "ok": true,
       "dirty0": 0,
-      "dirty1": 1.2
+      "dirty1": 1.7
     },
     {
       "name": "the council fits (or scrolls) on the phone",
@@ -204,7 +204,7 @@
       "bottom": 378,
       "H": 390,
       "scrolls": true,
-      "ready": 641
+      "ready": 369
     },
     {
       "name": "fight: no stick or pad, «Конец хода» on screen, nothing off-screen",

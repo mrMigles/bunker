@@ -51,11 +51,15 @@ if (spot) {
   const planned = await ev(() => Object.values(window.__net.pub.rooms).filter((r) => r.state !== "done").map((r) => `${r.type}:${r.state}@${r.x},${r.lv}`));
   step("click plans the room", planned.length > 0, { planned, roomsBefore, log: await ev(() => window.__net.pub.log.slice(-3).map((l) => l.text)) });
   await page.keyboard.press("KeyB");
+  // hand my character to its bot («аквариум», H): an idle player body would only starve the colony
+  await page.keyboard.press("KeyH");
   // let the residents work (fast-forward)
   await ev(() => window.__net.send({ k: "debug", op: "speed", arg: 10 }));
   let last = "";
   for (let i = 0; i < 60; i++) { // 3 residents build slower than 5 did: allow up to ~2.5 game days
     await page.waitForTimeout(5000);
+    // a solo council waits for the player: say «ready» like a player would
+    await ev(() => { const v = window.__net.pub; if (v.phase === "night" && v.council && !v.council.ready[window.__net.priv.pid]) window.__net.send({ k: "ready", v: true }); });
     const st = await ev(() => {
       const r = Object.values(window.__net.pub.rooms).find((r) => r.type === "hydro" && r.state !== "done") ?? Object.values(window.__net.pub.rooms).filter((r) => r.type === "hydro").pop();
       const chores = Object.values(window.__net.pub.chores ?? {}).map((c) => c.kind);

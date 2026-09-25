@@ -58,6 +58,8 @@ function leisure(
       x.c.needs.sanity = clamp(x.c.needs.sanity + gain * sanityGainMult(x.c.needs.sanity) * h);
       if (opts.energy) x.c.needs.energy = clamp(x.c.needs.energy + opts.energy * h);
       opts.extra?.(x, h);
+      // a leisure with its own hours (the morning coffee) ends when its time is over, for bots and players alike
+      if (typeof label === "function" && !label(x)) return true;
       if (isBotDriven(x.w, x.c.id)) {
         const until = x.c.mind.until ?? 0;
         if (x.w.phaseT > until || x.c.needs.sanity >= 98) return true;

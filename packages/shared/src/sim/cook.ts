@@ -134,9 +134,14 @@ defAction({
   },
   done: ({ w, c, o }) => {
     const ing = o!.st._ing as Record<string, number>;
-    if (!ing || !canCook(w, ing)) return;
+    if (!ing || !canCook(w, ing)) {
+      log(w, `🍲 ${firstName(c)}: продуктов не хватило — блюдо не вышло.`, "bad");
+      return;
+    }
     const txt = cookResult(w, c, ing);
     emitWork(w, c, txt, "#ffe08a");
+    // say it where people read: what came out and where it went
+    log(w, `🍲 ${firstName(c)} готовит: ${txt}. Блюдо на складе (раздел «Еда»): его съедят за ужином на совете или когда проголодаются.`, "good");
     o!.wear = Math.max(0, o!.wear - 1);
   },
   stop: ({ o }) => {

@@ -108,7 +108,7 @@ function freeCell(w: World): { x: number; lv: number; room: string } | null {
   return null;
 }
 
-function maxGeneration(w: World) {
+export function maxGeneration(w: World) {
   let g = 0;
   for (const o of Object.values(w.objs)) {
     if (o.broken) continue;

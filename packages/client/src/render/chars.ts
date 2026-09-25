@@ -4,6 +4,9 @@ import { box, canvasTex, cyl, mat, PAL } from "./palette";
 import { buildLoot } from "./loot";
 import { SceneryBatch } from "./scenery";
 
+/** Sleeping pose relative to the character's spot on the bed (bed x + 0.5). */
+const SLEEP = { x: 1.3, y: 0.58, z: 0.1, knee: 0.25 };
+
 const SKIN = [0xe0b48f, 0xc99873, 0xa8764f, 0xf0c9a5, 0x8d5e3c];
 export const HAIR = [0x514535, 0x231c17, 0x8a5a2b, 0xc9a86a, 0x9a9a92, 0x7a2e1e];
 export const HATS = ["Кепка в цвет куртки", "Каска инженера", "Шапочка врача", "Армейская каска", "Поварской колпак", "Очки химика", "Кепка электрика", "Берет и очки", "Шахтёрская каска с фонарём", "Наушники радиста", "Соломенная шляпа", "Скуфья", "Фетровая шляпа", "Без головного убора"];
@@ -368,11 +371,18 @@ export class CharView {
         blendRate = 24;
         break;
       case "sleep":
+        // on the bunk: head on the pillow (the bed's left end), lying on the mattress rather than sunk into
+        // it, knees a little bent
+        b.rotation.set(0, 0, Math.PI / 2);
+        b.position.set(SLEEP.x, SLEEP.y + Math.sin(t * 1.5) * 0.01, SLEEP.z);
+        this.legL.rotation.z = SLEEP.knee;
+        this.legR.rotation.z = SLEEP.knee;
+        blendRate = 6;
+        break;
       case "down":
       case "dead":
         b.rotation.set(0, 0, (Math.PI / 2) * (this.dir > 0 ? 1 : -1));
-        b.position.set(0.5 * (this.dir > 0 ? 1 : -1), anim === "sleep" ? 0.42 : 0.16, 0);
-        if (anim === "sleep") b.position.y += Math.sin(t * 1.5) * 0.01;
+        b.position.set(0.5 * (this.dir > 0 ? 1 : -1), 0.16, 0);
         blendRate = 6;
         break;
       case "dance":

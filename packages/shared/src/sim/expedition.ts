@@ -1037,7 +1037,11 @@ function siteTick(w: World, e: Expedition, s: Site, dt: number) {
           elog(e, `💥 ${firstName(c)} роняет что-то с грохотом!`);
           fx(w, { k: "sound", id: "clang" });
         }
-      } else s.noise = clamp(s.noise + (t.room ? 1.6 : 0.3) * dt);
+      } else {
+        // even a careful search rustles: faster than the noise fades (3.5/s), so a long search adds up;
+        // a room search is per searcher, so the whole squad at once is louder still
+        s.noise = clamp(s.noise + (t.room ? 2.4 : 4.6) * dt);
+      }
       if (cont) cont.searched = Math.min(0.99, Math.max(cont.searched, (t.t + dt * rate) / t.dur));
     }
     t.t += dt * rate;

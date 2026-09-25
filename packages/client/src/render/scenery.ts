@@ -224,6 +224,11 @@ export function buildSiteProp(kind: string, depleted = false): THREE.Group {
       b(0.8, 0.055, 0.46, wood, 0, i * 0.43, 0);
       if (!depleted) for (let j = 0; j < 3; j++) b(0.16, 0.18 + vhash(i, j) * 0.13, 0.23, [0xb79761, 0x667e50, 0xa85842][j], -0.25 + j * 0.25, i * 0.43 + 0.06, 0.04);
     }
+  } else if (kind === "lumber") {
+    // a stack of planks on two bearers: where the wood comes from
+    for (const xx of [-0.3, 0.3]) b(0.1, 0.08, 0.5, 0x3d3226, xx, 0, 0);
+    // the same number of boxes either way (the batch keeps one layout per kind): a searched stack is just greyer
+    for (let i = 0; i < 5; i++) b(0.95 - (i % 2) * 0.08, 0.07, 0.42, depleted ? 0x4d4840 : [0xa27b48, 0x8e6b3d, 0xb58a52][i % 3], (i % 2) * 0.04, 0.08 + i * 0.075, 0);
   } else if (["locker", "fridge", "safe"].includes(kind)) {
     b(0.75, 1.35, 0.45, 0x414b44, 0, 0, 0);
     b(0.66, 1.23, 0.05, depleted ? 0x52564a : 0x7b8369, 0, 0.06, 0.25);
