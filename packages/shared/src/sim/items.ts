@@ -15,6 +15,15 @@ export function canHold(c: Char, item: string): boolean {
   return c.hands.length < 3;
 }
 
+/** Why the hands cannot take this item, in words a player understands (null when they can). */
+export function holdReason(c: Char, item: string): string | null {
+  if (canHold(c, item)) return null;
+  const big = c.hands.find((h) => isLarge(h.item));
+  if (big) return `в руках тяжёлое (${itemName(big.item)}) — сначала отнесите`;
+  if (isLarge(item)) return "тяжёлое: нужны пустые руки";
+  return "руки заняты: 3 из 3";
+}
+
 export function give(c: Char, item: string, n = 1): boolean {
   if (!canHold(c, item)) return false;
   const h = c.hands.find((x) => x.item === item);

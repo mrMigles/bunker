@@ -1560,3 +1560,89 @@ html.mobile body.mode-build :is(.game-dock, .touch-stick, .touch-pad, .objective
   .build-info { order: -1; flex-basis: 100%; padding: 0 2px 2px; }
   .build-strip .build-place { flex: 1; }
 }
+
+/* ---------------------------------------------------------------- prologue: the street stays playable (#32, #8)
+   timer top-left under the bar, the radio under it, the supplies sheet a short strip at the bottom
+   with the stick and the buttons standing on top of it, never under it */
+html.mobile body[data-phase="prologue"] .raid-radio {
+  top: calc(var(--top) + 6px);
+  max-width: min(46vw, 420px);
+  padding: 4px 10px;
+  font-size: 11px;
+  line-height: 1.3;
+}
+@media (orientation: portrait) and (max-width: 700px) {
+  html.mobile body[data-phase="prologue"] .prologue-hud {
+    left: calc(var(--gap) + var(--sl));
+    top: calc(var(--top) + 5px);
+    bottom: auto;
+    width: 150px;
+    padding: 5px 8px;
+    transform: none;
+  }
+  html.mobile body[data-phase="prologue"] .prologue-hud .mission-caption {
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+  html.mobile body[data-phase="prologue"] .raid-radio {
+    top: calc(var(--top) + 100px);
+    left: calc(var(--gap) + var(--sl));
+    right: calc(var(--gap) + var(--sr));
+    max-width: none;
+    transform: none;
+  }
+  html.mobile body[data-phase="prologue"] .prologue-actions {
+    max-height: 30dvh;
+    overflow-y: auto;
+    padding: 6px 8px;
+  }
+  html.mobile body[data-phase="prologue"] .prologue-actions .dock-heading {
+    margin: 0 0 2px;
+  }
+  html.mobile body[data-phase="prologue"] .prologue-actions .carry-slots {
+    min-height: 0;
+    padding: 0 0 5px;
+  }
+  html.mobile body[data-phase="prologue"] .prologue-actions .return-hatch {
+    min-height: 38px;
+  }
+  html.mobile body[data-phase="prologue"] .touch-stick {
+    bottom: calc(var(--pro-sheet, 150px) + var(--gap) + 8px + env(safe-area-inset-bottom));
+  }
+  html.mobile body[data-phase="prologue"] .touch-pad {
+    bottom: calc(var(--pro-sheet, 150px) + var(--gap) + 12px + env(safe-area-inset-bottom));
+  }
+}
+/* landscape: the timer top-left under the bar, the radio a thin line at the top, the sheet a low strip */
+@media (orientation: landscape) {
+  html.mobile body[data-phase="prologue"] .raid-radio {
+    max-width: min(40vw, 420px);
+  }
+  html.mobile body[data-phase="prologue"] .prologue-hud {
+    left: calc(var(--gap) + var(--sl));
+    top: calc(var(--top) + 5px);
+    bottom: auto;
+    width: 130px;
+    padding: 4px 8px;
+    transform: none;
+  }
+  html.mobile body[data-phase="prologue"] .prologue-hud .prologue-timer {
+    font-size: 18px;
+  }
+  html.mobile body[data-phase="prologue"] .prologue-hud .mission-caption {
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+  html.mobile body[data-phase="prologue"] .prologue-actions {
+    max-height: 36dvh;
+    overflow-y: auto;
+    padding: 5px 8px;
+  }
+  html.mobile body[data-phase="prologue"] .prologue-actions .carry-slots {
+    min-height: 0;
+    padding: 0 0 4px;
+  }
+  html.mobile body[data-phase="prologue"] .prologue-actions .return-hatch {
+    min-height: 34px;
+  }
+}

@@ -4,7 +4,7 @@ import { OBJECTS } from "../data/objects";
 import type { World } from "../types";
 import { ROOMS } from "../world/rooms";
 import { defAction, emitWork, stopTask } from "./actions";
-import { canHold, dropHands, foodUnits, give, isStorable, storeHands, takeFood } from "./items";
+import { canHold, dropHands, foodUnits, give, holdReason, isStorable, storeHands, takeFood } from "./items";
 import { timeMult } from "./time";
 import { clamp, firstName, fx, hoursPerSec, isBotDriven, log } from "./util";
 
@@ -277,7 +277,7 @@ defAction({
     const it = w.items[t.id];
     if (!it) return null;
     const label = `✋ Поднять: ${ITEMS[it.item]?.icon ?? ""}${itemName(it.item)}${it.n > 1 ? " ×" + it.n : ""}`;
-    if (!canHold(c, it.item)) return { label, reason: "Руки заняты (Q — бросить)" };
+    if (!canHold(c, it.item)) return { label, reason: `${holdReason(c, it.item)} (Q — бросить)` };
     return label;
   },
   dur: () => 0,

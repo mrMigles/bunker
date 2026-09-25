@@ -22,6 +22,7 @@ export class PrologueUI {
   hud = h("div.prologue-hud.hidden");
   prompt = h("div.prompt.action-dock.prologue-actions.hidden");
   flash = h("div.flash.hidden");
+  pointer = h("button.loot-pointer.hidden");
   hatchLabel = h("button.hatch-marker", { onclick: () => this.returnHome() }, "↓ УБЕЖИЩЕ", h("small", null, "Отнести припасы"));
   active = false;
   actions: PAction[] = [];
@@ -50,7 +51,7 @@ export class PrologueUI {
 
   constructor(private r: WorldRenderer) {
     this.site.scene.add(this.dyn);
-    this.markers.append(this.hatchLabel);
+    this.markers.append(this.hatchLabel, this.pointer);
     ui().append(this.hud, this.prompt, this.markers, this.flash, this.strikeFlash, this.radio);
   }
   get p(): any { return net.pub?.phase === "prologue" ? net.pub.mods?.prologue : null; }
@@ -271,8 +272,16 @@ export class PrologueUI {
     const me=net.myChar();
     if(me) {
       const x=net.pred?.x??me.x; this.site.follow=false;
-      this.site.viewH=window.innerWidth<800?9:8;
-      this.site.camX+=(x-this.site.camX)*Math.min(1,dt*4); this.site.camY=-1.0;
+      const aspect=window.innerWidth/window.innerHeight;
+      if(aspect<0.8||window.innerHeight<500) {
+        // a phone held upright: show ~7 cells of street and stand the survivor a little below the middle,
+        // so the controls and the supplies sheet at the bottom never cover them or the street
+        this.site.viewH=Math.max(9,7.2/aspect);
+        const [,streetY]=this.site.pos(0,1);
+        // (a short landscape phone: the street at ~55% height, the sheet at the bottom covers only the ground)
+        this.site.camY=streetY+this.site.viewH*(aspect<0.8?0.08:0.05);
+      } else { this.site.viewH=window.innerWidth<800?9:8; this.site.camY=-1.0; }
+      this.site.camX+=(x-this.site.camX)*Math.min(1,dt*4);
     }
     this.updateSky(p, dt);
     const shakeX = this.shake > 0 ? (Math.random() - 0.5) * this.shake * 0.25 : 0, shakeY = this.shake > 0 ? (Math.random() - 0.5) * this.shake * 0.2 : 0;
@@ -287,15 +296,33 @@ export class PrologueUI {
   updateMarkers(p:any,me:any) {
     const nearby=[...p.items].sort((a,b)=>Math.abs(a.x-(me?.x??0))-Math.abs(b.x-(me?.x??0))).slice(0,7);
     const seen=new Set<string>();
+    const top=Math.min(180,window.innerHeight*0.2), bottom=window.innerHeight-Math.min(120,window.innerHeight*0.15);
+    let offscreen:any=null;
     nearby.forEach((it:any,i:number)=>{
-      const [x,y]=this.site.pos(it.x-.5,it.lv),[sx,sy]=this.site.toScreen(x,y+.55);
-      if(sx<40||sx>window.innerWidth-40||sy<180||sy>window.innerHeight-120) return;
+      // a supply within reach carries its label above the survivor's head, not across it
+      const reach=me&&it.lv===me.lv&&Math.abs(it.x-me.x)<1.2;
+      const [x,y]=this.site.pos(it.x-.5,it.lv),[sx,sy]=this.site.toScreen(x,y+(reach?1.75:.55));
+      if(sx<40||sx>window.innerWidth-40||sy<top||sy>bottom) { if(!it.by&&!offscreen) offscreen={it,sx}; return; }
       if(nearby.slice(0,i).some((o:any)=>o.lv===it.lv&&Math.abs(o.x-it.x)<1.4)) return;
       seen.add(it.id); let el=this.labels.get(it.id);
       if(!el) {el=h("button.loot-marker",{onclick:()=>this.selectItem(it.id)},h("small",null,"ВЗЯТЬ"),itemName(it.item));this.labels.set(it.id,el);this.markers.append(el);}
-      el.style.left=sx+"px";el.style.top=sy+"px";
+      // keep the whole label on screen: a half-hidden name at the edge cannot be read or tapped
+      const half=(el.offsetWidth||120)/2;
+      el.style.left=Math.max(half+4,Math.min(window.innerWidth-half-4,sx))+"px";el.style.top=sy+"px";
     });
     for(const [id,el] of this.labels) if(!seen.has(id)) {el.remove();this.labels.delete(id);}
+    // nothing to take in the frame: an arrow at the edge says which way the nearest supply is
+    const hint=!seen.size&&offscreen&&me&&!p.done;
+    this.pointer.classList.toggle("hidden",!hint);
+    if(hint) {
+      const left=offscreen.sx<window.innerWidth/2, dist=Math.max(1,Math.round(Math.abs(offscreen.it.x-me.x)));
+      const text=`${left?"← ":""}${itemName(offscreen.it.item)} · ${dist} м${left?"":" →"}`;
+      if(this.pointer.textContent!==text) this.pointer.textContent=text;
+      this.pointer.classList.toggle("right",!left);
+      const [x,y]=this.site.pos(me.x-.5,1),[,sy]=this.site.toScreen(x,y+1.9);
+      this.pointer.style.top=Math.max(top,Math.min(bottom,sy))+"px";
+      this.pointer.onclick=()=>this.selectItem(offscreen.it.id);
+    }
   }
   updatePrompt() {
     const p=this.p,c=net.myChar();
@@ -303,7 +330,7 @@ export class PrologueUI {
     const me={...c,x:net.pred?.x??c.x,lv:net.pred?.lv??c.lv,climbing:net.pred?.climbing??c.climbing};
     this.actions=listPrologueActions(p,me).slice(0,6);
     const lk=this.actions.map(a=>a.a+a.id).join("|");
-    if(lk!==this.listKey){this.listKey=lk;this.sel=0;}
+    if(lk!==this.listKey){this.listKey=lk;this.sel=Math.max(0,this.actions.findIndex(a=>!a.reason));}
     if(this.sel>=this.actions.length)this.sel=0;
     menuArrows.on=this.actions.length>=2;
     const task=p.tasks?.[c.id], key=JSON.stringify([this.actions,c.hands,Math.round((task?.t??0)*3),this.sel]);
@@ -318,6 +345,8 @@ export class PrologueUI {
     if(this.actions.length)this.prompt.append(h("div.dock-heading",null,"Рядом с вами",h("span.dock-keys",null,this.actions.length>1?"↑↓ выбор · E действие":"E действие")));
     this.actions.forEach((a,i)=>this.prompt.append(h("button.opt"+(i===this.sel?".sel":"")+(a.reason?".dis":""),{disabled:!!a.reason,onclick:()=>{this.sel=i;this.trigger(i);}},h("span.key",null,i===this.sel?"E":String(i+1)),a.label.replace(" (держите E)",""),a.reason?h("small.dim",null," — "+a.reason):null)));
     if(c.hands.length)this.prompt.append(h("button.opt",{onclick:()=>net.send({k:"pthrow"})},h("span.key",null,"Q"),"Передать броском →"));
+    // on a phone the stick and the buttons stand on top of the sheet, never under it
+    requestAnimationFrame(()=>document.documentElement.style.setProperty("--pro-sheet",Math.ceil(this.prompt.getBoundingClientRect().height)+"px"));
   }
   trigger(i=this.sel) {
     const a=this.actions[i];if(!a||a.reason)return;

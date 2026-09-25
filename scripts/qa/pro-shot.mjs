@@ -1,0 +1,21 @@
+// enter prologue on a phone, run an expression, screenshot. node scripts/qa/pro-shot.mjs W H out.png "expr"
+import { chromium } from "@playwright/test";
+const [W, H, OUT, EXPR] = [Number(process.argv[2]), Number(process.argv[3]), process.argv[4], process.argv[5] ?? "0"];
+const touch = W < 1000;
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: W, height: H }, hasTouch: touch, isMobile: touch, userAgent: touch ? "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36" : undefined });
+const p = await ctx.newPage();
+await p.goto("http://localhost:5173/" + (touch ? "?mobile=1" : ""), { timeout: 90000 });
+await p.getByPlaceholder("Ваше имя").fill("Shot");
+await p.getByRole("button", { name: "Создать бункер", exact: true }).click();
+await p.locator(".card").first().waitFor({ timeout: 60000 });
+await p.locator(".card").first().click();
+await p.getByRole("button", { name: /Начать/ }).first().click();
+await p.waitForFunction(() => window.__net?.pub?.phase === "prologue" && window.__game?.pro?.active, null, { timeout: 60000 });
+await p.waitForTimeout(2500);
+const ok = p.getByRole("button", { name: "Понятно", exact: true });
+if (await ok.count()) await ok.first().click().catch(() => {});
+await p.waitForTimeout(500);
+console.log(JSON.stringify(await p.evaluate(EXPR)));
+await p.screenshot({ path: OUT });
+await b.close();

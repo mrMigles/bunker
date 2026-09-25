@@ -90,9 +90,9 @@ for (let k = 0; k < 7; k++) {
   });
   if (!target) {
     // walk like a player: joystick (touch) or A/D toward the nearest item, then look again
-    const dir = await p.evaluate(() => { const pr = window.__net.pub.mods.prologue, c = window.__net.myChar(); const it = pr.items.filter((i) => !i.by).sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))[0]; return it ? Math.sign(it.x - c.x) : 1; });
+    const dir = await p.evaluate(() => { const pr = window.__net.pub.mods.prologue, c = window.__net.myChar(); const it = (pr?.items ?? []).filter((i) => !i.by).sort((a, b) => Math.abs(a.x - c.x) - Math.abs(b.x - c.x))[0]; return it ? Math.sign(it.x - c.x) : 1; });
     if (M.touch) {
-      const j = await p.evaluate(() => { const e = document.querySelector('.joystick, .joy, [class*=joystick]'); const r = e?.getBoundingClientRect(); return r ? [r.left + r.width / 2, r.top + r.height / 2] : [70, innerHeight - 120]; });
+      const j = await p.evaluate(() => { const e = document.querySelector('.touch-stick, .joystick, [class*=joystick]'); const r = e?.getBoundingClientRect(); return r ? [r.left + r.width / 2, r.top + r.height / 2] : [70, innerHeight - 120]; });
       const cdp = await ctx.newCDPSession(p);
       const t = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], i) => ({ id: i + 1, x, y })) });
       await t('touchStart', [[j[0], j[1]]]); for (let i = 1; i <= 6; i++) { await t('touchMove', [[j[0] + dir * i * 9, j[1]]]); await p.waitForTimeout(30); }

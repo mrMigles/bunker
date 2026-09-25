@@ -7,7 +7,7 @@ import { followPath, goTo, resetMind } from "./bots";
 import { inputHooks, registerCmd } from "./commands";
 import { addNpc } from "./events";
 import { isKeepsake, settleKeepsakes } from "./cozy";
-import { canHold, give, spawnItem } from "./items";
+import { canHold, give, holdReason, spawnItem } from "./items";
 import { beginDay } from "./lobby";
 import { stepMove } from "./move";
 import { onTick } from "./tick";
@@ -191,7 +191,8 @@ export function listPrologueActions(p: Prologue, c: Char): PAction[] {
   for (const it of p.items) {
     if (it.lv !== c.lv || Math.abs(it.x - c.x) > 1) continue;
     const label = `✋ ${ITEMS[it.item]?.icon ?? ""} ${itemName(it.item)}${ITEMS[it.item]?.large ? " (тяжёлое)" : ""}`;
-    out.push(canHold(c, it.item) ? { a: "pick", id: it.id, label } : { a: "pick", id: it.id, label, reason: "Руки заняты" });
+    const why = holdReason(c, it.item);
+    out.push(why ? { a: "pick", id: it.id, label, reason: why } : { a: "pick", id: it.id, label });
   }
   for (const n of p.npcs) {
     if (n.state !== "panic" || n.lv !== c.lv || Math.abs(n.x - c.x) > 1.3) continue;
