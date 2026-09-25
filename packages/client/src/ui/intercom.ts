@@ -39,6 +39,7 @@ export function openIntercom() {
       ),
       h("p.intercom-text", null, c.text),
     );
+    if (c.forecast && !c.done) body.append(h("p.intercom-forecast", null, "📊 " + c.forecast));
     if (c.asked) body.append(h("p.intercom-asked", null, "🗣 " + c.asked));
     if (c.done) {
       body.append(h("p.intercom-done", null, c.done), h("button.primary", { onclick: () => closeModal() }, "Повесить трубку"));

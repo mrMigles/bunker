@@ -19,6 +19,7 @@ import { onTick } from "./tick";
 import { clamp, firstName, fx, homeChars, log, rng, skillLevel } from "./util";
 import { createChar, makeCard } from "../world/create";
 import { Rng } from "../rng";
+import { admitForecast, doorAllows } from "./colonyplan";
 
 export interface EventOption {
   label: string;
@@ -230,6 +231,7 @@ export function makeVote(w: World, e: EventDef, phaseT: number, dur: number): Vo
     }),
     votes: {},
     ends: phaseT + dur,
+    ...((e.options ?? []).some((o) => (o.effects ?? []).some((ef: any) => ef.addNpc)) ? { text: `${e.text}\n\n📊 ${admitForecast(w)}` } : {}),
     eventId: e.id,
     data: { def: e.id === "birthday" ? e : undefined },
   };
@@ -278,7 +280,14 @@ function moodOf(c: Char): string {
 export function resolveVote(w: World, v: Vote) {
   const e: EventDef | undefined = v.data?.def ?? EVENT_BY_ID[v.eventId ?? ""];
   if (!e?.options) return;
-  const i = v.result ?? voteWinner(w, v);
+  // nobody voted on a stranger at the door: the council's door policy decides, not a coin (#27)
+  const admits = e.options.map((o) => (o.effects ?? []).some((ef: any) => ef.addNpc));
+  let i = v.result ?? voteWinner(w, v);
+  if (v.result === undefined && !Object.keys(v.votes).length && admits.some(Boolean)) {
+    const want = doorAllows(w);
+    const fits = e.options.map((_, k) => k).filter((k) => admits[k] === want && !v.options[k]?.disabled);
+    if (fits.length) i = fits[0];
+  }
   const o = e.options[i];
   if (!o) return;
   w.flags["_ev_" + e.id] = w.day;

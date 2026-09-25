@@ -176,6 +176,9 @@ export function makeGazette(w: World) {
   if (cooked && cooked[1] > 0) lines.push(`🍲 Шеф дня: ${name(cooked[0])} (${cooked[1]} блюд).`);
   for (const id of w.stats.deaths) lines.push(`🕯 Помним: ${name(id)}.`);
   for (const e of w.stats.events.slice(-2)) lines.push(`📜 Совет решал: «${e}».`);
+  // goals of the day, milestones: whatever the day's systems asked to print
+  for (const l of ((w.mods as any)._newsLines ?? []) as string[]) lines.push(l);
+  delete (w.mods as any)._newsLines;
   if ((w.res.strawberry ?? 0) < (w.flags._strawYesterday ?? 0)) lines.push("🍓 Кто опять съел клубнику?!");
   w.flags._strawYesterday = w.res.strawberry ?? 0;
   const chores = top(w.stats.chores);

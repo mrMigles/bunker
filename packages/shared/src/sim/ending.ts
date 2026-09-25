@@ -49,6 +49,8 @@ export function endGame(w: World, kind: string) {
     fallen: Object.values(w.chars).filter((c) => c.status === "dead").map((c) => c.card.name),
     legacy,
     gazettes: w.gazette.length,
+    // the milestones taken, in order: what this colony achieved on its way (#31)
+    milestones: Object.entries(((w.mods as any).milestones ?? {}) as Record<string, number>).sort((a, b) => a[1] - b[1]).map(([id, day]) => ({ id, day })),
     chronicle: w.gazette.map((g) => ({ day: g.day, headline: g.headline, lines: g.lines })),
   };
   log(w, `🏁 ФИНАЛ: «${e.title}». ${e.text}`, "event");

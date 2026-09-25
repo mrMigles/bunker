@@ -24,6 +24,8 @@ const CLUMP_GAP = 0.8;
 const STILL_SEC = 45;
 const DAY_LEN = Number(arg("daylen", "360"));
 const INITIATIVE = arg("initiative", "1") !== "0";
+/** 1 = the council puts two residents on the generator whenever the daytime power balance is negative (#26) */
+const SHIFTS = arg("shifts", "0") === "1";
 const HUMAN = arg("human", "0") === "1"; // 1 = a player stays online (idle): the colony may build but never sorties on its own // 0 = residents never plan or sortie on their own
 
 const NEEDS = ["food", "water", "energy", "sanity", "health"] as const;
@@ -113,7 +115,7 @@ function runGame(seed: number) {
   let clumpSamples = 0;
   const still: Record<string, { x: number; lv: number; t: number; flagged: boolean }> = {};
   const away = new Set<string>();
-  let battleOn = false;
+  let lastRaid = 0;
   const tablePlaying = new Set<string>();
   const where = (x: number, lv: number) => roomAt(w, x, lv)?.type ?? "вне комнат";
   const flush = () => {
@@ -145,7 +147,18 @@ function runGame(seed: number) {
     rows.push(cur);
   };
   while (w.day < startDay + DAYS && w.phase !== "ending") {
-    if (w.phase === "night" && w.council) for (const pid in w.players) w.council.ready[pid] = true;
+    if (w.phase === "night" && w.council) {
+      if (SHIFTS && w.council.step === "plan" && w.flags._simShiftDay !== w.day) {
+        w.flags._simShiftDay = w.day;
+        const s = ((w.mods as any).shifts ??= { gen: [], pump: [] });
+        const short = (w.flags._demAvg ?? w.power.demand) > w.power.gen + 0.05;
+        if (short && s.gen.length < 2) {
+          const fit = Object.values(w.chars).filter((c) => c.status === "ok" && !s.gen.includes(c.id)).sort((a, b) => b.needs.energy - a.needs.energy);
+          for (const c of fit.slice(0, 2 - s.gen.length)) applyCmd(w, "p0", { k: "shift", char: c.id, job: "gen" } as any);
+        }
+      }
+      for (const pid in w.players) w.council.ready[pid] = true;
+    }
     if (!cur || cur.day !== w.day) {
       flush();
       cur = {
@@ -235,9 +248,11 @@ function runGame(seed: number) {
           cur.sorties++;
         } else if (c.status !== "away") away.delete(c.id);
       }
-      const b = w.mods.battle as { where?: string } | undefined;
-      if (b?.where === "bunker" && !battleOn) cur.raids++;
-      battleOn = b?.where === "bunker";
+      // a raid on an unattended bunker may start and end between two samples: count the director's record
+      if ((w.director.lastRaidDay ?? 0) > lastRaid) {
+        lastRaid = w.director.lastRaidDay;
+        cur.raids++;
+      }
       for (const [id, t] of Object.entries((w.mods.tables ?? {}) as Record<string, { status: string }>)) {
         if (t.status === "playing" && !tablePlaying.has(id)) {
           tablePlaying.add(id);

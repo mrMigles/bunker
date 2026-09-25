@@ -41,6 +41,11 @@ function scheduleRaid(w: World, kind: string, inDays = 1, entry?: string) {
   d.raidEntry = entry ?? (w.flags.metro && rng(w).chance(0.4) ? "metro" : kind === "bulldozer" ? "top" : "airlock");
   w.flags._raid_spotted = 0;
   w.flags._raid_hour = 10 + rng(w).int(0, 7);
+  if (!w.flags._firstRaid) {
+    // the first time, the scouts give themselves away: something to prepare for, not a bolt from the blue
+    w.flags._firstRaid = w.day;
+    log(w, "👣 У люка следы чужих сапог, ночью наверху мигал фонарь — бункер нашли. Укрепите шлюз, раздайте оружие, приготовьте аптечки.", "bad");
+  }
   log(w, `⚠ ${RAIDS[kind]?.warn ?? "Что-то не так."} Готовьтесь к налёту${inDays === 0 ? " — сегодня!" : " — завтра!"}`, "bad");
   fx(w, { k: "toast", text: "⚠ Готовьтесь к налёту!" });
 }
@@ -55,6 +60,9 @@ nightHooks.dayStart.push((w) => {
   if ((w.factions.order ?? 0) < -40) chance += 0.06;
   if (w.notice >= BAL.noticeRaidThreshold) chance += 0.15;
   if (w.day - d.lastRaidDay < 3) chance *= 0.3;
+  // the first raid comes within a window: the defence pillar must switch on in a normal game (#29)
+  const lastDay = w.settings.storyteller === "haven" ? 16 : w.settings.storyteller === "scorched" ? 9 : 12;
+  if (!w.flags._firstRaid && w.day >= lastDay) chance = 1;
   if (!rng(w).chance(chance)) return;
   const R = rng(w);
   const options = Object.keys(RAIDS).filter((k) => k !== "raiders_trap" && k !== "order_patrol" && RAIDS[k].minDay <= w.day);

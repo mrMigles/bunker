@@ -24,6 +24,7 @@ import {
   costText,
   itemName,
   matchRecipe,
+  MILESTONES,
   skillLevel,
   PERKS,
   BOX_NAMES,
@@ -190,7 +191,7 @@ export function openArchive() {
 
 // ---------------------------------------------------------------- notice board
 
-export function openBoard(tab: "store" | "chores" | "gazette" | "recipes" = "store") {
+export function openBoard(tab: "store" | "chores" | "gazette" | "recipes" | "milestones" = "store") {
   const v = net.pub!;
   const body = h("div.board", { style: { minWidth: "min(620px, 100%)" } });
   const tabBtn = (id: typeof tab, ic: string, label: string) => h("button" + (tab === id ? ".primary" : ""), { onclick: () => openBoard(id) }, icon(ic), label);
@@ -201,6 +202,7 @@ export function openBoard(tab: "store" | "chores" | "gazette" | "recipes" = "sto
     tabBtn("chores", "board", "Доска дел"),
     tabBtn("gazette", "news", "«Вестник Бункера»"),
     tabBtn("recipes", "book", "Рецепты"),
+    tabBtn("milestones", "flag", "Вехи"),
     h("button", { onclick: () => openArchive() }, icon("journal"), "Архив газет"),
   );
   body.appendChild(tabs);
@@ -260,6 +262,16 @@ export function openBoard(tab: "store" | "chores" | "gazette" | "recipes" = "sto
       );
     }
     if (!chores.length) body.appendChild(h("div.dim", null, "Дел нет. Бункер в порядке — можно отдохнуть."));
+  } else if (tab === "milestones") {
+    // the ladder of the long game (#31): what is done, and what leads to «Дом» and «Ковчег»
+    const got = (v.mods?.milestones ?? {}) as Record<string, number>;
+    const n = Object.keys(got).length;
+    body.appendChild(h("div.dim", { style: { margin: "6px 0 8px" } }, `Взято ${n} из ${MILESTONES.length}. Каждая веха — наследие всем игрокам и шаг к одному из финалов.`));
+    for (const path of ["Дом", "Ковчег", "Выживание"] as const) {
+      body.appendChild(h("div", { style: { margin: "10px 0 2px", color: "var(--warm)" } }, path === "Дом" ? "🏠 Путь к «Дому»" : path === "Ковчег" ? "📡 Путь к «Ковчегу»" : "🛡 Выживание"));
+      for (const m of MILESTONES.filter((x) => x.path === path))
+        body.appendChild(h("div.milestone" + (got[m.id] !== undefined ? ".got" : ""), null, h("span", null, got[m.id] !== undefined ? "🏅" : "○"), h("span", null, m.name), h("small.dim", null, got[m.id] !== undefined ? `день ${got[m.id]}` : `+${m.points} наследия`)));
+    }
   } else if (tab === "gazette") {
     const g = v.gazette[v.gazette.length - 1];
     if (!g) body.appendChild(h("div.dim", null, "Первый выпуск выйдет утром."));

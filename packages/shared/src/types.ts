@@ -16,6 +16,8 @@ export interface Settings {
   skipPrologue: boolean;
   /** residents plan rooms and send scavenging runs themselves when players don't */
   botInitiative: boolean;
+  /** whom the residents let in when no player decides (#27); default food3 */
+  doorPolicy?: "all" | "food3" | "none";
 }
 
 export type StatId = "sil" | "lov" | "int" | "vyn" | "har";

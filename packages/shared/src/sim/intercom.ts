@@ -14,6 +14,7 @@ import { EVENTS, addNpc, applyEffect, condOk, makeVote, resolveVote, rollCheck }
 import { debugOps } from "./debug";
 import { onTick } from "./tick";
 import { clamp, firstName, fx, isBotDriven, log, rng } from "./util";
+import { admitForecast, doorAllows } from "./colonyplan";
 
 export interface IntercomCall {
   id: string;
@@ -143,7 +144,7 @@ onTick("intercom", "day", (w) => {
 /** Residents answer on their own: they let people in while there is room and food. */
 function botAnswer(w: World, c: IntercomCall) {
   if (c.kind === "refugee") {
-    if (residents(w) < MAX_RESIDENTS - 2 && (w.res.food_can ?? 0) > residents(w) * 2) return answer(w, null, "in");
+    if (residents(w) < MAX_RESIDENTS - 2 && doorAllows(w)) return answer(w, null, "in");
     return hangUp(w, `📞 Жильцы не решились открыть: ${c.name.split(" ")[0]} ушёл(ла).`);
   }
   if (c.kind === "event") {
@@ -307,6 +308,7 @@ modViews.intercom = {
       stock: c.stock,
       priceMult: 1.3 - (w.factions.caravan ?? 0) / 250,
       prof: c.card ? PROFS[c.card.prof]?.name : undefined,
+      forecast: c.kind === "refugee" ? admitForecast(w) : undefined,
       options: v?.options,
       leftHours: Math.max(0, Math.round((c.until - w.hour) * 10) / 10),
     };

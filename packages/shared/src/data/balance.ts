@@ -93,7 +93,7 @@ export const BAL = {
 
   // --- raids
   firstRaidDay: 5,
-  noticeDecayPerDay: 6,
+  noticeDecayPerDay: 5,
   noticeRaidThreshold: 45,
 
   // --- skills
@@ -102,9 +102,11 @@ export const BAL = {
 
   // --- storyteller multipliers
   storyteller: {
-    haven: { needMult: 0.7, raidMult: 0.4, raidStrength: 0.6, breakMult: 0.6 },
-    classic: { needMult: 1, raidMult: 1, raidStrength: 1, breakMult: 1 },
-    scorched: { needMult: 1.25, raidMult: 1.6, raidStrength: 1.4, breakMult: 1.4 },
+    // the economy too, not only the events (#28): harvest yield, what unattended runs bring, and for the haven
+    // a caravan at the hatch when food runs out (every giftDays at most)
+    haven: { needMult: 0.7, raidMult: 0.4, raidStrength: 0.6, breakMult: 0.6, yieldMult: 1.3, lootMult: 1.4, giftDays: 4, noticeMult: 0.7, blurb: "еды хватает дольше, урожаи и вылазки щедрее, налёты редкие и слабые, в голод приходит караван" },
+    classic: { needMult: 1, raidMult: 1, raidStrength: 1, breakMult: 1, yieldMult: 1, lootMult: 1, giftDays: 0, noticeMult: 1, blurb: "ровная игра: нужды, находки и налёты как задумано" },
+    scorched: { needMult: 1.25, raidMult: 1.6, raidStrength: 1.4, breakMult: 1.4, yieldMult: 0.8, lootMult: 0.75, giftDays: 0, noticeMult: 1.3, blurb: "голод и жажда быстрее, урожаи и находки скуднее, налёты чаще и злее, техника ломается" },
   },
 
   // --- weapons (§14)

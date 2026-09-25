@@ -64,4 +64,7 @@ export * from "./sim/minigames";
 export * from "./sim/ambience";
 export * from "./sim/gear";
 export * from "./sim/objectives";
+export * from "./sim/colonyplan";
+export * from "./sim/daygoal";
+export * from "./sim/milestones";
 export * from "./sim/debug";

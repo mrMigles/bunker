@@ -1,4 +1,5 @@
 import cropsJson from "../data/crops.json";
+import { BAL } from "../data/balance";
 import { ITEMS, itemName } from "../data/items";
 import type { Obj, World } from "../types";
 import { objsInRoom } from "../world/rooms";
@@ -294,7 +295,8 @@ defAction({
     const R = rng(w);
     const techMul = (w.tech.includes("tech_hydro2") ? 1.2 : 1) * (w.tech.includes("tech_hydro3") ? 1.25 : 1);
     const q = (o!.st.health / 100) * (cd.prune && (o!.st.pruned ?? 1) < 0.3 ? 0.6 : 1) * (1 + (skillLevel(c, "cooking") - 1) * 0.04) * techMul;
-    const n = Math.max(1, Math.round(R.int(cd.yield[0], cd.yield[1]) * q));
+    const st = BAL.storyteller[w.settings.storyteller] ?? BAL.storyteller.classic;
+    const n = Math.max(1, Math.round(R.int(cd.yield[0], cd.yield[1]) * q * st.yieldMult));
     const seeds = Math.max(w.tech.includes("tech_seedbank") ? 1 : 0, R.int(cd.seeds[0], cd.seeds[1]));
     spawnItem(w, cd.item, n, o!.x + 0.3, o!.lv);
     if (seeds > 0) spawnItem(w, seedItem(o!.st.crop), seeds, o!.x + 0.7, o!.lv);

@@ -3,7 +3,7 @@
 // room itself and sends small scavenging runs when food runs low.
 // Toggle: settings.botInitiative. Everything it does is logged and can be cancelled by players.
 import { LOC, mapPath } from "../expedition/map";
-import { rollLoot } from "../expedition/site";
+import { rollPlaceLoot } from "../expedition/site";
 import type { Char, World } from "../types";
 import { BAL } from "../data/balance";
 import { ROOMS, addObj, canPlaceRoom, objsInRoom, objsOfKind, placeRoom, roomCost } from "../world/rooms";
@@ -265,8 +265,9 @@ arriveHooks.push((w, e: Expedition, n) => {
     const outcome: "clean" | "rough" | "rout" = margin > 2 ? "clean" : margin > -3 ? "rough" : "rout";
     const fresh = 1 - (n.looted ?? 0);
     const share = outcome === "clean" ? 1 : outcome === "rough" ? 0.6 : 0.2;
-    const rolls = Math.max(1, Math.round((2 + squad.length * 2) * fresh * share));
-    const loot = rollLoot(t.loot, R, rolls);
+    const st = BAL.storyteller[w.settings.storyteller] ?? BAL.storyteller.classic;
+    const rolls = Math.max(1, Math.round((2 + squad.length * 2) * fresh * share * st.lootMult));
+    const loot = rollPlaceLoot(n.type, R, rolls);
     const cap = capacity(w, e.squad);
     let weight = 0;
     for (const k in loot) {
@@ -333,6 +334,18 @@ registerCmd("expSendBots", (w, p, cmd) => {
 
 // ---------------------------------------------------------------- the tick
 
+/** «Тихая гавань»: when the food is gone, a caravan leaves something at the hatch (#28). */
+function crisisGift(w: World) {
+  const st = BAL.storyteller[w.settings.storyteller] ?? BAL.storyteller.classic;
+  if (!st.giftDays || foodDays(w) >= 1 || w.hour < 7 || w.hour > 18) return;
+  if ((w.flags._giftDay ?? -99) > w.day - st.giftDays) return;
+  w.flags._giftDay = w.day;
+  const n = alive(w).length;
+  w.res.food_can = (w.res.food_can ?? 0) + n * 2;
+  w.res.water = (w.res.water ?? 0) + n * 2;
+  log(w, `🐫 У люка оставили свёрток: ${n * 2} банок консервов и ${n * 2} л воды. Кто-то наверху помнит о вас.`, "good");
+}
+
 /** Unpaid marked rooms that cannot afford their frame: remember since when, say once a day what is missing. */
 function watchStalls(w: World) {
   for (const r of Object.values(w.rooms)) {
@@ -374,4 +387,13 @@ onTick("foreman", "day", (w, dt) => {
   // the need shows up in «Задачи» and the players decide
   const want = shortage(w);
   if (want && !planners.length && noSortie && w.hour > 7 && w.hour < 11 && (w.flags._autoSortieDay ?? -9) < w.day - 1) autoSortie(w, want);
+});
+
+// the caravan comes whatever the bots are allowed to do on their own
+onTick("storyGift", "day", (w, dt) => {
+  if (w.phase !== "day") return;
+  w.flags._giftT = (w.flags._giftT ?? 0) + dt;
+  if (w.flags._giftT < 15) return;
+  w.flags._giftT = 0;
+  crisisGift(w);
 });

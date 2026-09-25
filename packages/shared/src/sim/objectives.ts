@@ -14,7 +14,7 @@ import { maxGeneration } from "./foreman";
 
 export interface Objective {
   id: string;
-  kind: "urgent" | "need" | "quest" | "tutorial";
+  kind: "urgent" | "goal" | "need" | "quest" | "tutorial";
   text: string;
   hint?: string;
   done?: boolean;
@@ -117,7 +117,11 @@ export function computeObjectives(w: World): Objective[] {
       if (!done) break;
     }
   }
-  const order = { urgent: 0, need: 1, quest: 2, tutorial: 3 };
+  // the goal of the day leads the list unless people are dying or burning (#30)
+  const g = (w.mods as any).dayGoal as { day: number; text: string; hint: string; done?: boolean; failed?: boolean; progress?: string; obj?: string } | undefined;
+  if (g && g.day === w.day && !g.failed)
+    out.push({ id: "daygoal", kind: "goal", text: `🎯 Цель дня: ${g.text}`, hint: g.done ? "Выполнено! Всем +8 опыта." : [g.progress, g.hint].filter(Boolean).join(" · "), done: !!g.done, obj: g.obj });
+  const order = { urgent: 0, goal: 1, need: 2, quest: 3, tutorial: 4 };
   return out.sort((a, b) => order[a.kind] - order[b.kind]).slice(0, 7);
 }
 

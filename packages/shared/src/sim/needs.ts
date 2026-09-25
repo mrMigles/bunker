@@ -170,6 +170,7 @@ export function knockDown(w: World, c: Char, why: string) {
   if (c.status === "dead") return;
   if (why === "здоровье") why = healthCause(w, c);
   c.downCause = why;
+  w.flags._downDay = w.day;
   c.status = "down";
   c.downT = BAL.downSeconds;
   c.task = null;
@@ -206,6 +207,7 @@ export function killChar(w: World, c: Char, cause: string) {
   if (c.status === "dead") return;
   c.status = "dead";
   c.deathCause = cause;
+  w.flags._deathDay = w.day;
   c.task = null;
   c.anim = "dead";
   c.hands = [];

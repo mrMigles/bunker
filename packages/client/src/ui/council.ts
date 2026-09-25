@@ -41,7 +41,7 @@ export class CouncilUI {
     const left = Math.max(0, Math.ceil(cn.stepEnds - v.phaseT));
     // the countdown ticks in place: rebuilding the panel every second made buttons slip from under the cursor
     for (const t of this.el.querySelectorAll(".council-left")) t.textContent = String(left);
-    const key = JSON.stringify([cn, this.minimized, v.res.water, foodTotal(v.res)]);
+    const key = JSON.stringify([cn, this.minimized, v.res.water, foodTotal(v.res), v.mods?.shifts, v.settings?.doorPolicy]);
     if (key === this.key) return;
     this.key = key;
     const focused = document.activeElement === this.noteInput;
@@ -81,7 +81,7 @@ export class CouncilUI {
       ],
       plan: [
         "Шаг 3 из 3 — план на завтра и сон",
-        "Запишите на доску, кто идёт на вылазку и что строим — заметку увидят все утром. Кому не хватило коек, спят на полу: отдых хуже, завтра они первые на койку.",
+        "Поставьте людей на смены: генератор и насос работают весь рабочий день, прогноз — сразу здесь. Политика двери решает, кого жильцы впустят без вас. Заметку на доске увидят все утром.",
       ],
     };
     const [what, how] = WHAT[cn.step] ?? ["", ""];
@@ -212,12 +212,63 @@ export class CouncilUI {
     const sleepers = Object.entries(cn.sleepers as Record<string, string>);
     const chars = Object.values(v.chars).filter((c: any) => c.status !== "dead" && c.status !== "away") as any[];
     const floor = chars.filter((c) => !cn.sleepers[c.id]);
+    this.renderShifts(v, chars);
     this.el.append(
       h("div", { style: { margin: "10px 0 4px", color: "var(--warm)" } }, "📌 Доска планов на завтра"),
       h("div.col", { style: { gap: "3px" } }, cn.notes.length ? cn.notes.map((n: any) => h("div", null, h("b", null, n.by + ": "), n.text)) : h("div.dim", null, "Пусто. Запишите, кто идёт в вылазку и что строим.")),
       h("div.row", { style: { marginTop: "6px" } }, this.noteInput),
+      h("div", { style: { margin: "12px 0 4px", color: "var(--warm)" } }, "🚪 Политика двери — когда решают жильцы без вас"),
+      h(
+        "div.row.door-policy",
+        { style: { gap: "6px", flexWrap: "wrap" } },
+        ...(
+          [
+            ["all", "Впускать всех"],
+            ["food3", "Если еды > 3 дней"],
+            ["none", "Никого"],
+          ] as const
+        ).map(([k, label]) => h("button.small" + ((v.settings?.doorPolicy ?? "food3") === k ? ".primary" : ""), { onclick: () => net.send({ k: "doorPolicy", v: k }) }, label)),
+      ),
       h("div", { style: { margin: "12px 0 4px", color: "var(--warm)" } }, "💤 Кто где спит"),
       h("div.dim", null, sleepers.map(([cid]) => v.chars[cid]?.card.name.split(" ")[0]).join(", ") + (sleepers.length ? " — на койках. " : "") + (floor.length ? floor.map((c) => c.card.name.split(" ")[0]).join(", ") + " — на полу (сон хуже, завтра у них приоритет)." : "Коек хватает всем.")),
+    );
+  }
+
+  /** «Смены на завтра» (#26): tap a resident to put them on the generator or the pump; the forecast follows. */
+  renderShifts(v: any, chars: any[]) {
+    const s = v.mods?.shifts ?? { gen: [], pump: [] };
+    const p = v.power ?? {};
+    // a work day is ~9 game hours; a rider gives BAL.bikeKw while pedalling most of it
+    const bikes = Object.values(v.objs).filter((o: any) => o.kind === "bike_gen" && !o.broken).length;
+    const riders = Math.min(s.gen.length, bikes);
+    const kwh = riders * BAL.bikeKw * 9 * 0.8;
+    const balance = (p.gen ?? 0) + riders * BAL.bikeKw * 0.8 - (p.demand ?? 0);
+    const people = chars.length;
+    const water = v.res.water ?? 0,
+      dirty = v.res.water_dirty ?? 0;
+    const waterDays = (water + dirty * 0.8 + s.pump.length * BAL.pumpDirtyPerAction * 30 * 0.8) / Math.max(1, people * BAL.rationWater);
+    const row = (job: "gen" | "pump", title: string, note: string) =>
+      h(
+        "div.shift-row",
+        null,
+        h("div", null, h("b", null, title), h("span.dim", null, " " + note)),
+        h(
+          "div.row",
+          { style: { gap: "4px", flexWrap: "wrap", marginTop: "3px" } },
+          ...chars.map((c: any) =>
+            h(
+              "button.small" + (s[job].includes(c.id) ? ".primary" : ""),
+              { title: s[job].includes(c.id) ? "Снять со смены" : "Поставить на смену", onclick: () => net.send({ k: "shift", char: c.id, job }) },
+              c.card.name.split(" ")[0],
+            ),
+          ),
+        ),
+      );
+    this.el.append(
+      h("div", { style: { margin: "10px 0 4px", color: "var(--warm)" } }, "🔧 Смены на завтра (до двух человек)"),
+      row("gen", "🚲 Генератор", s.gen.length ? `— +${kwh.toFixed(1)} кВт·ч за день, баланс днём ${balance >= 0 ? "▲" : "▼"}${Math.abs(balance).toFixed(2)} кВт` : bikes ? `— сейчас выработка ${(p.gen ?? 0).toFixed(2)} при потреблении ${(p.demand ?? 0).toFixed(2)} кВт` : "— нет исправного велогенератора"),
+      row("pump", "⛲ Насос", `— воды хватит на ~${waterDays.toFixed(1)} дн.${s.pump.length ? "" : " (без смены — как получится)"}`),
+      h("div.dim", { style: { fontSize: "11px" } }, "На смене жилец работает весь рабочий день вместо досуга: +опыт, −3 рассудка за смену. Без назначения — жильцы решают сами."),
     );
   }
 }

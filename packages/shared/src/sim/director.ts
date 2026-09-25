@@ -43,7 +43,11 @@ nightHooks.dayStart.push((w) => {
   const opts = w.day < 4 ? ["ash", "clear", "ash"] : ["ash", "clear", "radrain", "storm", "ash", "cold"];
   while (w.weather.forecast.length < 2) w.weather.forecast.push(R.pick(opts));
   // noticeability decays; quiet days tick down
-  w.notice = clamp(w.notice - BAL.noticeDecayPerDay);
+  // …but a living colony is found sooner or later: smoke, light, noise grow with days lived and mouths (#29)
+  const st = BAL.storyteller[w.settings.storyteller] ?? BAL.storyteller.classic;
+  const people = Object.values(w.chars).filter((c) => c.status !== "dead" && c.status !== "away").length;
+  const growth = (1.5 + people * 0.8 + Math.min(w.day, 20) * 0.25) * (st.noticeMult ?? 1);
+  w.notice = clamp(w.notice - BAL.noticeDecayPerDay + growth);
   w.director.tension = clamp(w.director.tension - 12);
   if (w.director.quiet > 0) w.director.quiet--;
   if (w.weather.today !== "ash") log(w, `Погода: ${WEATHER[w.weather.today]?.icon} ${WEATHER[w.weather.today]?.name} — ${WEATHER[w.weather.today]?.outside}.`, "info");

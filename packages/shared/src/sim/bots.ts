@@ -12,6 +12,7 @@ import { REST_ACTIONS } from "./leisure";
 import { stepMove } from "./move";
 import { onTick } from "./tick";
 import { clamp, firstName, hasTrait, isBotDriven, rng, skillLevel } from "./util";
+import { onShift } from "./colonyplan";
 import { timeMult } from "./time";
 
 const BARKS = barksJson as Record<string, string[]>;
@@ -344,6 +345,11 @@ export function decide(w: World, c: Char): Plan | null {
   if (c.hands.length) {
     // finish carrying whatever is in hands
     const h = c.hands[0];
+    if (h.item === "trash") {
+      // rubbish goes to the workbench first: scrap, boards and rags for the builders (#25)
+      const s = bestObj(w, c, "salvage_trash", ["workbench"]);
+      if (s) return { ...s, thought: "Разбираю хлам на материалы" };
+    }
     if (h.item === "dirt" || h.item === "trash") {
       const p = bestObj(w, c, "dump", ["hatch_ladder", "dirt_chute"]);
       if (p) return { ...p, thought: "Несу грунт к сбросу" };
@@ -366,6 +372,18 @@ export function decide(w: World, c: Char): Plan | null {
     }
     const p = leisurePlan(w, c);
     if (p && (block !== "wake" || rng(w).chance(0.5))) return p;
+  }
+  if (block === "work") {
+    // the council put them on a shift: the post comes before other chores and before leisure (#26)
+    const frac = w.power.cap ? w.power.battery / w.power.cap : 1;
+    if (onShift(w, c, "gen") && frac < 0.95) {
+      const p = bestObj(w, c, "pedal", ["bike_gen"]);
+      if (p) return { ...p, thought: "Смена: генератор" };
+    }
+    if (onShift(w, c, "pump") && (w.res.water_dirty ?? 0) < 30) {
+      const p = bestObj(w, c, "pump", ["hand_pump"]);
+      if (p) return { ...p, thought: "Смена: насос" };
+    }
   }
   if (block === "work" || block === "wake" || block === "meal") {
     const p = pickChore(w, c);
@@ -429,6 +447,8 @@ function shouldStop(w: World, c: Char): boolean {
   const t = c.task!;
   if (t.action === "pedal") {
     const frac = w.power.cap ? w.power.battery / w.power.cap : 1;
+    // on shift: pedal through the work hours until the battery is full or the body says stop
+    if (onShift(w, c, "gen") && scheduleBlock(w, c) === "work") return c.needs.energy < 22 || frac > 0.98 || c.needs.water < 25 || c.needs.food < 20;
     if (c.needs.energy < 30 || frac > 0.97) return true;
     if (w.hour < 15 && frac > 0.7 && w.power.gen - BAL_BIKE > w.power.demand) return true;
     if (c.needs.water < 30 || c.needs.food < 25) return true;

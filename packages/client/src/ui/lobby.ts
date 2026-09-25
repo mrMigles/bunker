@@ -1,6 +1,6 @@
 import { avatar } from "./avatar";
 import { portrait } from "../render/portrait";
-import { GOALS, PROFS, STAT_NAMES, TRAITS_MINUS, TRAITS_PLUS, type Card } from "@bunker/shared";
+import { BAL, GOALS, PROFS, STAT_NAMES, TRAITS_MINUS, TRAITS_PLUS, type Card } from "@bunker/shared";
 import { net } from "../net";
 import { clear, h, toast, ui } from "./dom";
 import { openCharEditor } from "./charedit";
@@ -129,6 +129,8 @@ export class LobbyUI {
           chk("traitor", s.traitor, "Засланец"),
           chk("skipPrologue", s.skipPrologue, "Без пролога"),
         ),
+        // what the storyteller changes, in one line (#28)
+        h("div.dim.storyteller-blurb", { style: { fontSize: "12px", margin: "2px 0 6px" } }, `${s.storyteller === "haven" ? "Тихая гавань" : s.storyteller === "scorched" ? "Выжженная земля" : "Классика"}: ${(BAL.storyteller as any)[s.storyteller]?.blurb ?? ""}.`),
       ),
     );
   }

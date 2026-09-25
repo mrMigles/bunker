@@ -1,4 +1,4 @@
-import { CRAFTS, TECH, costText, craftOpen, techAvailable } from "@bunker/shared";
+import { CRAFTS, MILESTONES, TECH, costText, craftOpen, techAvailable } from "@bunker/shared";
 import { SERVER, net } from "../net";
 import { add, clear, closeModal, h, modal, ui } from "./dom";
 
@@ -88,6 +88,9 @@ export class EndingUI {
         h("div.ending-text", null, info.text),
         h("div", null, `День ${info.day}. Выжили: `, h("b", null, info.survivors.join(", ") || "никто")),
         info.fallen.length ? h("div.dim", null, `🕯 Помним: ${info.fallen.join(", ")}`) : null,
+        info.milestones?.length
+          ? h("div", { style: { marginTop: "8px" } }, h("b", null, `🏅 Вехи (${info.milestones.length}/${MILESTONES.length}): `), info.milestones.map((m: any) => MILESTONES.find((x) => x.id === m.id)?.name ?? m.id).join(" · "))
+          : null,
         h(
           "div.col",
           { style: { marginTop: "10px", gap: "3px" } },

@@ -4,7 +4,7 @@ import { add, clear, h, ui } from "./dom";
 import type { GameUI } from "./game";
 import { icon } from "./icons";
 
-const ICON: Record<string, string> = { urgent: "⚠", need: "●", quest: "💬", tutorial: "☐" };
+const ICON: Record<string, string> = { urgent: "⚠", goal: "🎯", need: "●", quest: "💬", tutorial: "☐" };
 
 /** «Задачи» panel: the colony's current priorities and the first-days tutorial. Click = go there. */
 export class ObjectivesUI {
@@ -21,6 +21,18 @@ export class ObjectivesUI {
     } catch {
       /* private mode */
     }
+  }
+
+  /** «Что делать?» from the morning card: unfold the list. */
+  expand() {
+    this.collapsed = false;
+    try {
+      localStorage.setItem("bunker.objectives.collapsed", "0");
+    } catch {
+      /* ignore */
+    }
+    this.key = "";
+    this.update();
   }
 
   private busy() {
@@ -69,7 +81,7 @@ export class ObjectivesUI {
           "div.objective." + o.kind + (o.done ? ".done" : "") + (target ? ".go" : ""),
           { title: o.hint ?? "", onclick: () => target && this.go(o) },
           h("span.objective-icon", null, o.done ? "☑" : ICON[o.kind] ?? "●"),
-          h("div", null, h("div.objective-text", null, o.text), o.hint && !o.done ? h("div.objective-hint", null, o.hint) : null),
+          h("div", null, h("div.objective-text", null, o.kind === "goal" ? o.text.replace(/^🎯 /, "") : o.text), o.hint && !o.done ? h("div.objective-hint", null, o.hint) : null),
           target && !o.done ? h("span.objective-go", null, "→") : null,
         ),
       );

@@ -280,6 +280,28 @@ export function siteWorld(s: Site): any {
 }
 
 /** Rolls loot from a table. */
+/**
+ * What residents on their own bring from a place: half from the place's main table, half from what its
+ * rooms actually hold — a school gives boards and some scrap, a shop its crates (#25). Locked
+ * containers stay shut without a player.
+ */
+export function rollPlaceLoot(type: string, R: Rng, rolls: number): Record<string, number> {
+  const t = LOC.types[type];
+  const out = rollLoot(t?.loot ?? "base", R, Math.ceil(rolls / 2));
+  const conts: [string, number][] = [];
+  for (const room of t?.rooms ?? []) for (const k of LOC.rooms[room]?.conts ?? []) {
+    const cd = LOC.containers[k];
+    if (cd && !cd.locked) conts.push([cd.table, cd.size]);
+  }
+  for (let i = 0; i < Math.floor(rolls / 2); i++) {
+    const c = R.weighted(conts, (x) => x[1]);
+    if (!c) break;
+    const got = rollLoot(c[0], R, 1);
+    for (const k in got) out[k] = (out[k] ?? 0) + got[k];
+  }
+  return out;
+}
+
 export function rollLoot(table: string, R: Rng, rolls: number): Record<string, number> {
   const t: [string, number, [number, number]][] = LOC.loot[table] ?? LOC.loot.base;
   const out: Record<string, number> = {};

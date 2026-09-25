@@ -6,7 +6,7 @@ import { ROOMS } from "../world/rooms";
 import { defAction, emitWork, stopTask } from "./actions";
 import { canHold, dropHands, foodUnits, give, holdReason, isStorable, storeHands, takeFood } from "./items";
 import { timeMult } from "./time";
-import { clamp, firstName, fx, hoursPerSec, isBotDriven, log } from "./util";
+import { clamp, firstName, fx, hoursPerSec, isBotDriven, log, rng } from "./util";
 
 const hrs = (w: World, dt: number) => dt * hoursPerSec(w) * timeMult(w);
 
@@ -349,6 +349,31 @@ defAction({
       w.notice = clamp(w.notice + 0.15 * dirt);
     }
     c.needs.sanity = clamp(c.needs.sanity + 0.5);
+  },
+});
+
+/** «Разобрать хлам» (#25): a bag of rubbish on the workbench gives back a little scrap, wood or cloth. */
+defAction({
+  id: "salvage_trash",
+  type: "obj",
+  kinds: ["workbench"],
+  prio: 19,
+  avail: ({ c }) => (c.hands.some((h) => h.item === "trash") ? "🔨 Разобрать хлам на материалы" : null),
+  dur: () => 10,
+  anim: "repair",
+  skill: "repair",
+  xp: 2,
+  done: ({ w, c }) => {
+    const i = c.hands.findIndex((h) => h.item === "trash");
+    if (i < 0) return;
+    c.hands.splice(i, 1);
+    const R = rng(w);
+    const got: Record<string, number> = {};
+    // a slow but sure source: at least one piece of something from every bag
+    for (const [k, p] of [["scrap", 0.6], ["wood", 0.5], ["cloth", 0.35]] as const) if (R.chance(p)) got[k] = 1;
+    if (!Object.keys(got).length) got.scrap = 1;
+    for (const k in got) w.res[k] = (w.res[k] ?? 0) + got[k];
+    emitWork(w, c, "🔨 " + Object.keys(got).map((k) => `+${got[k]} ${itemName(k)}`).join(", "), "#8fcf6a");
   },
 });
 
