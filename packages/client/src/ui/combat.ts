@@ -59,6 +59,7 @@ export class CombatUI {
   private attached: THREE.Scene | null = null;
   private selectedTarget: string | null = null;
   private submenu: "attack" | "items" | "more" | null = null;
+  private mobileCollapsed = false;
   private markerMaterials = new Map<string, THREE.MeshBasicMaterial>();
   private markerGeometry = new THREE.PlaneGeometry(0.92, 1.9);
   intel = h("aside.combat-intel.panel.hidden");
@@ -319,6 +320,7 @@ export class CombatUI {
     this.intel.classList.add("hidden");
     this.selectedTarget = null;
     this.submenu = null;
+    this.mobileCollapsed = false;
     this.queue = [];
     this.active = false;
   }
@@ -605,10 +607,13 @@ export class CombatUI {
       this.hoverUnit,
       this.selectedTarget,
       this.mode,
+      this.submenu,
       this.plan.length,
       this.r.camX.toFixed(1),
       this.r.camY.toFixed(1),
       this.r.viewH,
+      innerWidth,
+      innerHeight,
       s.phase,
     ]);
     if (key === this.labKey) return;
@@ -616,6 +621,8 @@ export class CombatUI {
     clear(this.labels);
     // left to right; a label that would overlap its neighbour climbs one row up
     const placed: { l: number; r: number; row: number; floorY: number }[] = [];
+    const mobileRects: DOMRect[] = [];
+    const panels = [this.top, this.panel, this.intel].map(e => e.getBoundingClientRect()).filter(r => r.width && r.height);
     const small = document.documentElement.classList.contains("mobile");
     const LABEL_W = small ? 92 : 108,
       ROW_H = small ? 28 : 40;
@@ -671,10 +678,32 @@ export class CombatUI {
       ) {
         const pos = this.simPos();
         const me = { ...u, ...pos } as Unit;
-        const ch = hitChance(s as any, me, x, this.mode === "aim", this.mode === "aim" ? this.aimPart : undefined);
+        const ch = hitChance({ ...s, hitBonus: s.hitBonus ?? 0 } as any, me, x, this.mode === "aim", this.mode === "aim" ? this.aimPart : undefined);
         el.append(h("div.warn", null, `🎯 ${ch}%`));
       }
       this.labels.appendChild(el);
+      if (small) {
+        // Actual rectangles, across floors: wrapped names and edge clamping must
+        // not create overlapping touch targets. Intent lives in the target card.
+        el.style.left = Math.max(42, Math.min(innerWidth - 42, sx)) + "px";
+        el.style.top = baseY + "px";
+        const original = el.getBoundingClientRect();
+        const candidates = [];
+        for (let dy = -8; dy <= 8; dy++) for (let dx = -4; dx <= 4; dx++) candidates.push({ dx: dx * (original.width + 5), dy: dy * (original.height + 5) });
+        candidates.sort((a, b) => a.dx * a.dx + a.dy * a.dy - b.dx * b.dx - b.dy * b.dy);
+        const offset = candidates.find(({ dx, dy }) => {
+          const r = { left: original.left + dx, right: original.right + dx, top: original.top + dy, bottom: original.bottom + dy };
+          return r.left >= 4 && r.right <= innerWidth - 4 && r.top >= 4 && r.bottom <= innerHeight - 4 &&
+            ![...panels, ...mobileRects].some(p => r.left < p.right + 4 && r.right > p.left - 4 && r.top < p.bottom + 4 && r.bottom > p.top - 4);
+        });
+        if (offset) {
+          el.style.left = parseFloat(el.style.left) + offset.dx + "px";
+          el.style.top = baseY + offset.dy + "px";
+        }
+        const rect = el.getBoundingClientRect();
+        el.classList.toggle("raised", rect.bottom < baseY - 5);
+        mobileRects.push(rect);
+      }
     }
   }
 
@@ -698,6 +727,7 @@ export class CombatUI {
       s.result,
       s.log?.length,
       this.queue.length > 0,
+      this.mobileCollapsed,
       Object.values(s.units).map((x) => [x.id, x.hp, x.dead, x.fled]),
     ]);
     if (key === this.key) return;
@@ -717,11 +747,22 @@ export class CombatUI {
         h("span", null, s.phase === "plan" ? "сек. — ваш ход" : s.phase === "anim" ? "Идёт действие…" : "Бой завершён"),
       ),
       h("div.combat-forces", null, h("span", null, `Отряд ${allies}`), h("b", null, `Противники ${enemies}`)),
+      h("button.combat-panel-toggle", {
+        "aria-label": this.mobileCollapsed ? "Показать команды" : "Скрыть команды",
+        "aria-expanded": String(!this.mobileCollapsed),
+        onclick: () => {
+          this.mobileCollapsed = !this.mobileCollapsed;
+          this.key = "";
+          this.renderPanel();
+        },
+      }, this.mobileCollapsed ? "⌃" : "⌄"),
     );
+    this.panel.classList.toggle("mobile-collapsed", this.mobileCollapsed);
     const target = this.selectedTarget ? s.units[this.selectedTarget] : null;
+    this.intel.classList.toggle("has-target", !!target && !target.dead && !target.fled);
     if (target && !target.dead && !target.fled) {
       const chance = u
-        ? hitChance(s as any, { ...u, ...this.simPos() } as Unit, target, this.mode === "aim", this.aimPart)
+        ? hitChance({ ...s, hitBonus: s.hitBonus ?? 0 } as any, { ...u, ...this.simPos() } as Unit, target, this.mode === "aim", this.aimPart)
         : 0;
       add(
         this.intel,

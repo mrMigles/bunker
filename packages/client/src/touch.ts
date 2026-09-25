@@ -57,7 +57,7 @@ export function installTouch(game: GameLike) {
   const pad = document.createElement("div");
   pad.className = "touch-pad";
   root.append(stick, pad);
-  const R = 52;
+  let R = 52;
   let stickId: number | null = null;
   let cx = 0,
     cy = 0;
@@ -89,11 +89,15 @@ export function installTouch(game: GameLike) {
     setKnob(0, 0);
     stick.classList.remove("on", "sneak");
   };
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stickEnd();
+  });
   stick.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     stickId = e.pointerId;
     stick.setPointerCapture(e.pointerId);
     const r = stick.getBoundingClientRect();
+    R = (r.width - knob.offsetWidth) / 2;
     cx = r.left + r.width / 2;
     cy = r.top + r.height / 2;
     touchAxis.active = true;
@@ -103,6 +107,8 @@ export function installTouch(game: GameLike) {
   stick.addEventListener("pointermove", (e) => e.pointerId === stickId && stickMove(e.clientX, e.clientY));
   stick.addEventListener("pointerup", stickEnd);
   stick.addEventListener("pointercancel", stickEnd);
+  stick.addEventListener("lostpointercapture", stickEnd);
+  window.addEventListener("blur", stickEnd);
 
   // ---------------------------------------------------------------- context buttons
   let padKey = "";
@@ -190,7 +196,7 @@ export function installTouch(game: GameLike) {
   };
   // fingers on the scene (the canvas or the name tags over it), not on panels and buttons
   const onScene = (e: PointerEvent) =>
-    e.pointerType === "touch" && !(e.target as Element | null)?.closest?.("button, input, textarea, select, .modal, .touch-stick, .touch-pad, .action-dock, .prologue-actions, .hud-me, .hud-top, .objectives, .tip-card, .game-dock, .game-toolbar, .chat");
+    e.pointerType === "touch" && !(e.target as Element | null)?.closest?.("button, input, textarea, select, .modal, .touch-stick, .touch-pad, .action-dock, .prologue-actions, .hud-me, .hud-top, .objectives, .tip-card, .game-dock, .game-toolbar, .chat, .council-panel, .exp-map, .exp-hud, .exp-dock, .exp-context, .combat-panel, .combat-intel");
   // every finger on the screen, wherever it is: two at once is a gesture, never a tap
   const fingers = new Set<number>();
   window.addEventListener(

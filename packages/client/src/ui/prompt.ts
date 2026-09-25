@@ -107,7 +107,7 @@ export class Prompt {
     this.list.forEach((a, i) => {
       this.el.appendChild(
         h(
-          "button.opt" + (i === this.sel ? ".sel" : "") + (a.reason ? ".dis" : "") + (i > 0 ? ".mobile-extra-action" : ""),
+          "button.opt" + (i === this.sel ? ".sel" : ".mobile-extra-action") + (a.reason ? ".dis" : ""),
           {
             disabled: !!a.reason,
             // «hold» actions (pedalling, digging…) last while the finger or the mouse button is down

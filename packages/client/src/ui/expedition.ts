@@ -18,6 +18,7 @@ function siteHint(e: any, s: any, me: any): string {
 import { audio } from "../audio/audio";
 import { net } from "../net";
 import { menuArrows } from "../input";
+import { mobile } from "../touch";
 import { CharView } from "../render/chars";
 import { box, glyphTex, mat } from "../render/palette";
 import { SiteRenderer, buildEnemy } from "../render/site";
@@ -985,7 +986,7 @@ export class ExpeditionUI {
       const x = pred ? pred.x : me.x,
         y = pred ? pred.y : me.y;
       this.site.follow = false;
-      this.site.viewH = 9;
+      this.site.viewH = mobile ? Math.max(9, 10 / (innerWidth / innerHeight)) : 9;
       this.site.camX += (x - this.site.camX) * Math.min(1, dt * 4);
       this.site.camY += (-y + 1.5 - this.site.camY) * Math.min(1, dt * 4);
     }
@@ -1203,6 +1204,7 @@ export class ExpeditionUI {
     if (lk !== this.actionsKey) {
       this.actionsKey = lk;
       this.sel = 0;
+      this.mobileExpanded = false;
     }
     if (this.sel >= this.actions.length) this.sel = 0;
     const task = e.tasks[c.id];
@@ -1218,17 +1220,22 @@ export class ExpeditionUI {
         net.send({ k: "srush", on: true });
       }
     }
-    const key = JSON.stringify([this.selected?.id, near, this.actions, this.sel, task ? [Math.round((task.t / task.dur) * 30), task.rush] : -1]);
+    const key = JSON.stringify([this.selected?.id, near, this.actions, this.sel, this.mobileExpanded, task ? [Math.round((task.t / task.dur) * 30), task.rush] : -1]);
     const show = (!!this.selected || !!task || this.actions.length > 0) && !isModalOpen();
     this.prompt.classList.toggle("hidden", !show);
     if (key === this.promptKey) return;
     this.promptKey = key;
+    this.prompt.classList.toggle("mobile-expanded", this.mobileExpanded);
     clear(this.prompt);
     this.prompt.append(
       h(
         "div.exp-context-title",
         null,
         h("b", null, task ? "Действие" : this.selected && this.selected.id !== "near" ? this.selected.name : "Рядом с вами"),
+        !task && this.actions.length > 1 ? h("button.small.mobile-action-toggle", {
+          "aria-expanded": String(this.mobileExpanded),
+          onclick: () => { this.mobileExpanded = !this.mobileExpanded; this.updatePrompt(); },
+        }, this.mobileExpanded ? "Свернуть" : `Ещё ${this.actions.length - 1}`) : null,
         !task && this.actions.length ? h("span.dock-keys", null, this.actions.length > 1 ? "↑↓ выбор · E" : "E") : null,
         this.selected
           ? h(
@@ -1265,7 +1272,7 @@ export class ExpeditionUI {
     }
     this.actions.forEach((a, i) => {
       const btn = h(
-        "button.exp-action" + (i === this.sel ? ".sel" : ""),
+        "button.exp-action" + (i === this.sel ? ".sel" : ".mobile-extra-action"),
         { disabled: !!a.reason, title: a.reason ?? "" },
         h("span.key", null, i === this.sel ? "E" : String(i + 1)),
         h("span", null, a.label),
@@ -1282,6 +1289,7 @@ export class ExpeditionUI {
   }
 
   private actionsKey = "";
+  private mobileExpanded = false;
 
   /** E / mouse down on the selected option. */
   press(i = this.sel) {

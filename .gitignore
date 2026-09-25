@@ -4,5 +4,6 @@ dist
 .DS_Store
 data/*.sqlite*
 coverage
+artifacts/mobile-layout-*/
 
 **/data/*.sqlite*

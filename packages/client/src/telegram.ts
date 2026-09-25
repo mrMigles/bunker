@@ -35,6 +35,7 @@ export function isTelegram() {
 }
 
 function loadScript(src: string) {
+  if ((window as any).Telegram?.WebApp) return Promise.resolve();
   return new Promise<void>((res) => {
     const s = document.createElement("script");
     s.src = src;
@@ -49,6 +50,71 @@ export function tg(): any {
   return (window as any).Telegram?.WebApp;
 }
 
+let viewportBound = false;
+
+/** Ask Telegram for the largest usable game surface and mirror its safe area into our HUD. */
+async function prepareTelegramViewport() {
+  await loadScript("https://telegram.org/js/telegram-web-app.js");
+  const app = tg();
+  const root = document.documentElement;
+  const platform = String(app?.platform ?? "").toLowerCase();
+  const phone = /iphone|ipod|android.*mobile/i.test(navigator.userAgent) ||
+    ((platform === "ios" || platform === "android") && Math.min(screen.width, screen.height) <= 600);
+  root.classList.add("tg", phone ? "tg-phone" : "tg-desktop");
+  root.classList.remove(phone ? "tg-desktop" : "tg-phone");
+  document.body.classList.add("tg");
+
+  const syncViewport = () => {
+    const area = app?.contentSafeAreaInset ?? app?.safeAreaInset ?? {};
+    for (const side of ["top", "right", "bottom", "left"] as const)
+      root.style.setProperty(`--tg-safe-${side}`, `${Math.max(0, Number(area[side]) || 0)}px`);
+    const visibleHeight = Number(visualViewport?.height || innerHeight);
+    const reportedHeight = Number(app?.viewportStableHeight || app?.viewportHeight || visibleHeight);
+    const height = Math.min(reportedHeight, visibleHeight);
+    root.style.setProperty("--app-height", `${Math.max(1, Math.round(height))}px`);
+  };
+  syncViewport();
+  if (!viewportBound) {
+    viewportBound = true;
+    app?.onEvent?.("viewportChanged", syncViewport);
+    app?.onEvent?.("safeAreaChanged", syncViewport);
+    app?.onEvent?.("contentSafeAreaChanged", syncViewport);
+    app?.onEvent?.("fullscreenChanged", syncViewport);
+    visualViewport?.addEventListener("resize", syncViewport);
+    window.addEventListener("resize", syncViewport);
+  }
+
+  try {
+    app?.ready?.();
+    app?.expand?.();
+    app?.disableVerticalSwipes?.();
+    app?.setHeaderColor?.("#121719");
+    app?.setBackgroundColor?.("#121719");
+    app?.requestFullscreen?.();
+  } catch {
+    /* Older clients still get the responsive layout and maximum available height. */
+  }
+
+  if (phone) {
+    // Telegram can only lock the current orientation. The browser API can request
+    // portrait explicitly where supported; otherwise lock after a portrait launch.
+    try {
+      const portraitLock = (screen.orientation as any)?.lock?.("portrait-primary");
+      portraitLock?.catch?.(() => {});
+    } catch {}
+
+    const lockTelegramPortrait = () => {
+      if (!matchMedia("(orientation: portrait)").matches) return;
+      try { app?.lockOrientation?.(); } catch {}
+    };
+    lockTelegramPortrait();
+    screen.orientation?.addEventListener?.("change", lockTelegramPortrait, { once: true });
+  } else {
+    try { app?.unlockOrientation?.(); } catch {}
+  }
+  return app;
+}
+
 /** Light haptic feedback when Telegram offers it. */
 export function haptic(kind: "light" | "medium" | "heavy" | "success" | "error" = "light") {
   const hf = tg()?.HapticFeedback;
@@ -60,10 +126,10 @@ export function haptic(kind: "light" | "medium" | "heavy" | "success" | "error" 
 /** Joins the chat's bunker. Returns false when not in Telegram (the normal menu then shows). */
 export async function startTelegram(onJoined: () => void): Promise<boolean> {
   if (!isTelegram()) return false;
+  const app = await prepareTelegramViewport();
   const token = gameToken();
   if (token && !initDataFromUrl()) {
     // Telegram Games: the page runs in Telegram's browser, the chat and the player come signed in the link
-    document.body.classList.add("tg");
     const u = new URL(location.href);
     u.searchParams.delete("tg");
     history.replaceState(null, "", u.toString());
@@ -84,20 +150,6 @@ export async function startTelegram(onJoined: () => void): Promise<boolean> {
     onJoined();
     return true;
   }
-  await loadScript("https://telegram.org/js/telegram-web-app.js");
-  const app = tg();
-  try {
-    app?.ready?.();
-    app?.expand?.();
-    app?.disableVerticalSwipes?.();
-    app?.setHeaderColor?.("#121719");
-    app?.setBackgroundColor?.("#121719");
-    // a game wants the whole screen on phones (Bot API 8+)
-    if (/Android|iPhone|iPad/i.test(navigator.userAgent)) app?.requestFullscreen?.();
-  } catch {
-    /* older clients */
-  }
-  document.body.classList.add("tg");
   const initData = app?.initData || initDataFromUrl();
   const r = await fetch(`${SERVER}/api/tg/session`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ initData }) });
   const s = await r.json().catch(() => ({}));

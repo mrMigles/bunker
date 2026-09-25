@@ -148,9 +148,16 @@ export class WorldRenderer {
     window.addEventListener("resize", () => this.resize());
   }
 
+  private portraitScale = 1;
+
   resize() {
     const w = window.innerWidth,
       h = window.innerHeight;
+    // Preserve the player's zoom when rotating, but show several rooms on a phone,
+    // not a portrait crop of the landscape camera.
+    const scale = document.documentElement.classList.contains("mobile") ? Math.max(1, 1.1 * h / w) : 1;
+    this.viewH *= scale / this.portraitScale;
+    this.portraitScale = scale;
     this.renderer.setSize(w, h, false);
     this.updateCamera();
   }

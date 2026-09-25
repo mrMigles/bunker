@@ -37,6 +37,7 @@ export class CouncilUI {
       return;
     }
     this.el.classList.remove("hidden");
+    this.el.classList.toggle("is-minimized", this.minimized);
     const left = Math.max(0, Math.ceil(cn.stepEnds - v.phaseT));
     // the countdown ticks in place: rebuilding the panel every second made buttons slip from under the cursor
     for (const t of this.el.querySelectorAll(".council-left")) t.textContent = String(left);

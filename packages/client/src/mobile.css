@@ -2,11 +2,15 @@
    ~760×300 CSS px — and still fine up to tablets. The scene stays visible: one slim top bar, small
    collapsible cards in the corners, the stick bottom-left, context buttons bottom-right. */
 html.mobile {
-  --top: 38px;
+  --top: calc(38px + var(--st));
   --gap: 6px;
-  --sl: env(safe-area-inset-left, 0px);
-  --sr: env(safe-area-inset-right, 0px);
+  --sl: max(env(safe-area-inset-left, 0px), var(--tg-safe-left, 0px));
+  --sr: max(env(safe-area-inset-right, 0px), var(--tg-safe-right, 0px));
+  --st: max(env(safe-area-inset-top, 0px), var(--tg-safe-top, 0px));
+  --sb: max(env(safe-area-inset-bottom, 0px), var(--tg-safe-bottom, 0px));
 }
+html.tg, html.tg body { height: var(--app-height, 100dvh); }
+html.tg .modal-back, html.tg .modal { max-height: var(--app-height, 100dvh) !important; }
 html.mobile body {
   font-size: 12px;
 }
@@ -27,7 +31,7 @@ html.mobile .hud-top {
   top: 0;
   min-height: var(--top);
   height: var(--top);
-  padding: 3px 8px;
+  padding: calc(3px + var(--st)) 8px 3px;
   gap: 2px;
   border-radius: 0 0 10px 10px;
 }
@@ -46,6 +50,7 @@ html.mobile .resource-meter small {
   display: none;
 }
 html.mobile .resource-meter {
+  display: grid;
   min-width: 0;
   grid-template-columns: 20px auto;
   grid-template-rows: 26px;
@@ -94,6 +99,9 @@ html.mobile .game-dock {
   gap: 4px;
   padding: 3px;
   border-radius: 10px;
+  max-height: calc(100dvh - var(--top) - 18px - var(--sb));
+  overflow-y: auto;
+  touch-action: pan-y;
 }
 html.mobile .game-dock button {
   width: 36px;
@@ -655,7 +663,7 @@ html.mobile .dock-heading > span:first-child {
 html.mobile .hud-me {
   padding: 5px 7px;
 }
-html.mobile .hud-me:not(.mobile-expanded) > :not(.survivor-portrait):not(.hud-me-head):not(.hud-me-peek) {
+html.mobile .hud-me:not(.mobile-expanded) > :not(.survivor-portrait):not(.hud-me-head):not(.hud-me-peek):not(.bad):not(.perk-btn) {
   display: none !important;
 }
 html.mobile .hud-me .hud-me-head {
@@ -819,6 +827,7 @@ html.mobile .council-panel {
   box-sizing: border-box;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 html.mobile .council-head {
   position: sticky;
@@ -839,6 +848,7 @@ html.mobile .ration-row {
   align-items: center;
   gap: 6px;
 }
+html.mobile .ration-row > .grow { display: none; }
 html.mobile .ration-name,
 html.mobile .ration-need {
   min-width: 0;
@@ -860,7 +870,7 @@ html.mobile .council-ready-row {
 /* ---------------------------------------------------------------- portrait phone */
 @media (orientation: portrait) and (max-width: 700px) {
   html.mobile {
-    --top: 43px;
+    --top: calc(72px + var(--st));
     --gap: 6px;
   }
   html.mobile body[data-phase]:not([data-phase="lobby"])::before {
@@ -873,8 +883,12 @@ html.mobile .council-ready-row {
     top: 0;
     height: var(--top);
     min-height: var(--top);
-    padding: 3px 5px;
+    padding: calc(4px + var(--st)) 5px 5px;
     border-radius: 0 0 10px 10px;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-rows: 26px 30px;
+    gap: 3px 0;
   }
   html.mobile .hud-clock,
   html.mobile .hud-time {
@@ -883,20 +897,19 @@ html.mobile .council-ready-row {
   }
   html.mobile .hud-clock strong,
   html.mobile .hud-time strong {
-    font-size: 11.5px;
+    font-size: 14px;
     letter-spacing: .25px;
   }
   html.mobile .resource-meter {
-    display: none;
-    grid-template-columns: 17px auto;
-    grid-template-rows: 24px;
-    padding: 0 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 4px 0;
+    border-top: 1px solid var(--frame-soft);
   }
-  html.mobile .resource-meter:nth-of-type(3),
-  html.mobile .resource-meter:nth-of-type(4),
-  html.mobile .resource-meter:nth-of-type(5) {
-    display: grid;
-  }
+  html.mobile .hud-clock { grid-column: span 3; border: 0; }
+  html.mobile .hud-time { grid-column: span 4; border: 0; justify-self: end; }
   html.mobile .resource-meter .atlas-art {
     width: 17px;
     height: 17px;
@@ -959,10 +972,10 @@ html.mobile .council-ready-row {
   }
   html.mobile .hud-me,
   html.mobile .hud-me.mobile-expanded {
-    left: 50%;
+    left: calc(50% + 8px);
     right: auto;
     bottom: calc(105px + env(safe-area-inset-bottom));
-    width: min(150px, calc(100vw - 232px));
+    width: min(164px, calc(100vw - 208px));
     max-height: 230px;
     transform: translateX(-50%);
   }
@@ -985,7 +998,6 @@ html.mobile .council-ready-row {
     max-height: 42dvh;
     z-index: 24;
   }
-  html.mobile .action-dock .prompt.opt,
   html.mobile .prompt .opt {
     font-size: 10.5px;
     min-height: 34px;
@@ -1081,4 +1093,157 @@ html.mobile .council-ready-row {
   html.mobile .council-ready-row button {
     width: 100%;
   }
+}
+
+/* Shared touch scroll surfaces and warm, legible field controls. */
+html.mobile :is(.exp-map-inner, .exp-side, .combat-panel, .combat-intel, .hud-me, .tip-card) {
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+html.mobile :is(.exp-action, .combat-action, .combat-submenu button) {
+  border: 1px solid var(--frame-soft);
+  border-radius: 9px;
+  color: var(--text);
+  background: linear-gradient(160deg, #443427e8, #211a15f5);
+}
+html.mobile :is(.exp-action.sel, .combat-action.active) {
+  border-color: var(--amber-hi);
+  background: linear-gradient(135deg, #a46529cc, #4c301acc);
+  box-shadow: inset 0 1px #ffdda540, 0 0 12px #efa54c18;
+}
+html.mobile .combat-ready {
+  color: #fff7e8;
+  background: linear-gradient(180deg, #f9b256, #cf7226);
+  border-color: #ffd291;
+  box-shadow: inset 0 1px #fff1bf80, 0 3px 14px #d97a2a40;
+}
+html.mobile body.mode-combat .game-toolbar,
+html.mobile body.mode-map .game-toolbar {
+  display: none;
+}
+html.mobile .combat-intel:not(.has-target) { display: none; }
+html.mobile .combat-intel { top: 62px; max-height: 25dvh; }
+html.mobile .combat-panel {
+  bottom: calc(6px + var(--sb));
+  max-height: 47dvh;
+  overflow-y: auto;
+}
+html.mobile .combat-operative { display: block; gap: 3px; min-width: 0; }
+html.mobile .combat-commands { grid-column: 2; min-width: 0; }
+html.mobile .combat-finish { grid-column: 3; }
+html.mobile .combat-actions { gap: 4px; }
+html.mobile .combat-action { min-height: 44px; gap: 4px; }
+html.mobile .combat-action b { font-size: 10px; overflow-wrap: anywhere; }
+html.mobile .combat-top { top: calc(4px + var(--st)); }
+html.mobile .combat-panel-toggle {
+  display: grid; place-items: center; flex: none;
+  width: 34px; min-width: 34px; height: 34px; min-height: 34px;
+  padding: 0; font-size: 18px;
+}
+html.mobile .combat-panel.mobile-collapsed { display: none; }
+html.mobile .exp-dock { width: auto; }
+html.mobile .exp-side { min-height: 0; }
+html.mobile .exp-map-inner { min-height: 0; }
+html.mobile .exp-side .exp-journal { display: block; }
+html.mobile .exp-context-title { padding: 2px 3px 5px; font-size: 11px; }
+html.mobile .exp-context.prompt {
+  background: linear-gradient(145deg, #30251cf5, #17130ff7);
+  border-color: #a77a48;
+  border-radius: 14px;
+  box-shadow: inset 0 1px #f4c68c30, 0 8px 24px #0007;
+}
+html.mobile .exp-context:not(.mobile-expanded) .mobile-extra-action:not(.sel) { display: none; }
+html.mobile .exp-context .exp-action { min-height: 36px; font-size: 11px; padding: 5px 8px; }
+html.mobile .exp-context .exp-action > span { min-width: 0; }
+html.mobile .exp-context .exp-action small { white-space: normal; flex: 0 1 100px; }
+html.mobile .exp-context .mobile-action-toggle { font-size: 10px; min-height: 30px; }
+html.mobile .council-panel.is-minimized { bottom: auto; }
+html.mobile .combat-unit-label { width: 76px; max-width: 76px; min-height: 32px; }
+html.mobile .combat-unit-label .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.mobile .combat-unit-label .intent { display: none; }
+html.mobile .bubble { max-width: 130px; padding: 5px 7px; font-size: 10px; }
+html.mobile body:has(.action-dock.mobile-expanded:not(.hidden), .exp-context.mobile-expanded:not(.hidden)) :is(.touch-stick, .touch-pad, .hud-me) { display: none; }
+html.mobile :is(.action-dock, .exp-context).mobile-expanded > :first-child {
+  position: sticky; top: 0; z-index: 2; background: #251d16;
+}
+
+@media (orientation: portrait) and (max-width: 700px) {
+  html.mobile .exp-prep-modal .prep-cols { grid-template-columns: minmax(0, 1fr); }
+  html.mobile .exp-prep-modal .exp-gear-grid { grid-template-columns: minmax(0, 1fr); }
+  html.mobile .exp-prep-modal .exp-gear-row { gap: 8px; padding: 7px 0; flex-wrap: nowrap; }
+  html.mobile .exp-prep-modal .exp-item-icon { font-size: 23px; width: 28px; }
+  html.mobile .exp-prep-modal .exp-gear-row button { width: 38px; height: 38px; min-height: 38px; }
+  html.mobile .exp-prep-modal .exp-item-name b { font-size: 12px; }
+  html.mobile .exp-prep-modal .exp-prep-foot { bottom: calc(-22px - var(--sb)); padding-bottom: calc(12px + var(--sb)); }
+  html.mobile .exp-map { inset: calc(var(--top) + 4px) 0 0; }
+  html.mobile .exp-map-inner { display: flex; flex-direction: column; overflow-y: auto; }
+  html.mobile .exp-chart { flex: none; min-height: 0; height: min(42dvh, 350px); }
+  html.mobile .exp-chart svg { width: 100%; height: 100%; flex: 1; }
+  html.mobile .exp-side { flex: none; width: 100%; overflow: visible; padding: 12px; }
+  html.mobile .exp-side button { min-height: 40px; }
+  html.mobile .exp-map-inner { padding-bottom: calc(12px + var(--sb)); }
+
+  /* Field kit below the resources: location/status, then a single row of tools. */
+  html.mobile body.mode-site .game-toolbar { display: none; }
+  html.mobile .exp-hud {
+    top: calc(var(--top) + 5px); left: 6px; right: 6px; width: auto;
+    padding: 6px 10px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 100px; gap: 4px 8px; align-items: center;
+  }
+  html.mobile .exp-hud .exp-eyebrow { grid-column: 1 / -1; font-size: 8px; letter-spacing: .7px; }
+  html.mobile .exp-hud h3 { font-size: 11px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  html.mobile .exp-noise { gap: 4px; font-size: 9px; }
+  html.mobile .exp-noise > span { display: none; }
+  html.mobile .exp-dock {
+    top: calc(var(--top) + 61px); bottom: auto; left: 6px; right: 6px; width: auto;
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px;
+  }
+  html.mobile .exp-dock button { min-height: 40px; font-size: 10px; white-space: normal; padding: 4px; justify-content: center; }
+  html.mobile .exp-context.prompt { max-height: 38dvh; }
+  html.mobile .hud-me.mobile-expanded {
+    left: 6px; right: 56px; width: auto; transform: none;
+    bottom: calc(215px + var(--sb)); max-height: min(230px, 38dvh);
+  }
+
+  /* A real portrait combat grid: stats + end turn above six equally sized actions. */
+  html.mobile .combat-top {
+    left: 6px; right: 6px; width: auto; max-width: none; min-height: 46px;
+    justify-content: space-between;
+  }
+  html.mobile .combat-top .combat-forces { font-size: 10px; gap: 3px; }
+  html.mobile .combat-top { gap: 5px; padding: 5px 7px; }
+  html.mobile .combat-clock { padding: 0 5px; }
+  html.mobile .combat-clock span { display: none; }
+  html.mobile .combat-panel { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 8px; padding: 9px; }
+  html.mobile .combat-operative {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 6px;
+    grid-column: 1; grid-row: 1; padding: 0 8px 0 0;
+  }
+  html.mobile .combat-operative h3 { grid-column: 1 / -1; font-size: 12px; }
+  html.mobile .combat-health { min-width: 0; }
+  html.mobile .combat-weapon { grid-column: 1 / -1; }
+  html.mobile .combat-ap { grid-column: 2; grid-row: 2; display: block; }
+  html.mobile .combat-ap > span, html.mobile .combat-ap-pips { display: none; }
+  html.mobile .combat-ap > b { font-size: 11px; }
+  html.mobile .combat-finish { grid-column: 2; grid-row: 1; }
+  html.mobile .combat-ready { width: 100%; min-height: 54px; padding: 6px; }
+  html.mobile .combat-commands { grid-column: 1 / -1; min-width: 0; gap: 6px; }
+  html.mobile .combat-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  html.mobile .combat-action { min-height: 44px; flex-direction: row; gap: 5px; }
+  html.mobile .combat-submenu { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html.mobile .combat-submenu button { min-width: 0; min-height: 38px; font-size: 10px; padding: 5px; }
+  html.mobile .combat-intel { left: 6px; right: 6px; width: auto; top: calc(58px + var(--st)); max-height: 20dvh; }
+  html.mobile .combat-intel h3 { margin: 0 0 4px; }
+  html.mobile .combat-target-attack { min-height: 36px; margin-top: 5px; }
+  html.mobile body.mode-combat .tip-card { top: 58px; bottom: auto; }
+  html.mobile .council-head { gap: 5px; }
+  html.mobile .council-title { font-size: clamp(13px, 4vw, 17px); }
+  html.mobile .council-head .chip { font-size: 10px; padding: 4px 6px; }
+}
+.combat-panel-toggle { display: none; }
+@media (orientation: portrait) and (max-width: 360px) {
+  html.mobile .touch-stick { width: 88px; height: 88px; }
+  html.mobile .touch-knob { left: 24px; top: 24px; width: 36px; height: 36px; }
+  html.mobile .hud-me-peek { gap: 4px; }
 }

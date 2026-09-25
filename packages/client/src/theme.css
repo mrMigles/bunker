@@ -1449,3 +1449,7 @@ html.mobile .charscreen p.dim {
   width: 84px;
   height: 100px;
 }
+.ration-name { width: 210px; }
+.ration-need { width: 90px; }
+.ration-controls { display: flex; gap: 6px; }
+.mobile-action-toggle { display: none; }
