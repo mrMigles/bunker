@@ -32,7 +32,7 @@
     {
       "name": "talking to a resident shows today's story",
       "ok": true,
-      "story": "«Я сегодня смеялся впервые за неделю. Спасибо, что вы все рядом.»"
+      "story": "«Ты заметил, что генератор по утрам гудит тише? Или я привык.»"
     },
     {
       "name": "the intercom rings and opens a dialog with the visitor",
@@ -56,9 +56,9 @@
       "ok": true,
       "task": {
         "a": "search",
-        "id": "c32",
-        "t": 1.329,
-        "dur": 16.296,
+        "id": "c19",
+        "t": 1.2560000000000007,
+        "dur": 13.967999999999998,
         "rush": false
       }
     },
@@ -71,11 +71,11 @@
       "name": "companions stand apart",
       "ok": true,
       "xs": [
-        8.39,
-        8.73
+        5.28,
+        7.37
       ],
-      "minGap": 0.33999999999999986,
-      "bubbles": 1
+      "minGap": 2.09,
+      "bubbles": 0
     },
     {
       "name": "the map shows the drawn city of Новоград",

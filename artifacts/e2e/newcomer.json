@@ -3,7 +3,7 @@
     {
       "name": "lobby cards readable (light text on dark card)",
       "ok": true,
-      "text": "Валентина Люкова\n⚕️\nВрач, 55 лет\nЛечит раны, болезни, радиацию.\n1\nСИЛ\n1\nЛОВ\n5\nИН",
+      "text": "Пётр Гвоздев\n🌾\nФермер, 46 лет\nРастения растут лучше под его рукой.\n2\nСИЛ\n2\nЛОВ\n",
       "lum": 241.66666666666666
     },
     {
@@ -23,14 +23,14 @@
         "hands": 0
       },
       "after": {
-        "x": 35.57,
+        "x": 28.42,
         "hands": [
-          "plant_pot"
+          "batteries"
         ]
       },
       "target": {
-        "id": "pi35",
-        "x": 35.9
+        "id": "pi42",
+        "x": 28.5
       }
     },
     {
@@ -43,7 +43,7 @@
       "ok": true,
       "rad": 0,
       "injury": null,
-      "waited": 56
+      "waited": 61
     },
     {
       "name": "day 1: «Задачи» panel shows priorities and the first tutorial step",
@@ -56,8 +56,10 @@
     {
       "name": "day 1: no keepsake junk piled at the airlock",
       "ok": true,
-      "floor": [],
-      "clutter": 5
+      "floor": [
+        "ball"
+      ],
+      "clutter": 6
     },
     {
       "name": "objective click walks to its target",
@@ -67,14 +69,14 @@
       "name": "sortie prep: squad pre-filled (me + residents) and a base kit packed",
       "ok": true,
       "squad": 2,
-      "weight": 7.9,
+      "weight": 8.1,
       "gear": {
         "water": 4,
         "food_can": 2,
         "meds": 1,
-        "flashlight": 1,
+        "batteries": 1,
         "pipe": 1,
-        "knife": 1
+        "knife": 2
       }
     },
     {

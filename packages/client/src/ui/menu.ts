@@ -9,7 +9,8 @@ export function showMenu(onJoined: () => void) {
   const priv = h("input", { type: "checkbox" }) as HTMLInputElement;
   const err = h("div.menu-err");
   const rooms = h("div.rooms-list", null, h("div.dim", null, "Загрузка…"));
-  const last = localStorage.getItem("bunker.lastCode");
+  // a chat bunker (T…) opens only from Telegram: no «Вернуться» to it from the web menu
+  const last = localStorage.getItem("bunker.lastCode")?.replace(/^T.*/, "") || null;
 
   const go = async (fn: () => Promise<void>) => {
     err.textContent = "";

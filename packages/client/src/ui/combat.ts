@@ -616,8 +616,9 @@ export class CombatUI {
     clear(this.labels);
     // left to right; a label that would overlap its neighbour climbs one row up
     const placed: { l: number; r: number; row: number; floorY: number }[] = [];
-    const LABEL_W = 108,
-      ROW_H = 40;
+    const small = document.documentElement.classList.contains("mobile");
+    const LABEL_W = small ? 92 : 108,
+      ROW_H = small ? 28 : 40;
     const units = (Object.values(s.units) as Unit[])
       .filter((x) => !x.dead && !x.fled && this.views.get(x.id))
       .map((x) => {

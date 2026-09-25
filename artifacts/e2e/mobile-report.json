@@ -3,7 +3,7 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "T3E7M",
+      "code": "TWMPV",
       "head": "ГЛУБЖЕ Бункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
@@ -12,7 +12,7 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "T3E7M",
+      "code": "TWMPV",
       "head": "ГЛУБЖЕ Бункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
@@ -26,7 +26,7 @@
     {
       "name": "Анна П.",
       "ok": true,
-      "code": "T3E7M",
+      "code": "TWMPV",
       "head": "ГЛУБЖЕ Бункер чата «Соседи по подъезду»",
       "menu": false,
       "mobile": true,
@@ -35,7 +35,7 @@
     {
       "name": "a second chat member joins the same bunker",
       "ok": true,
-      "code2": "T3E7M",
+      "code2": "TWMPV",
       "players": [
         "Анна П.",
         "Борис"
@@ -66,23 +66,24 @@
       "name": "the stick walks the character",
       "ok": true,
       "x0": 25.5,
-      "x1": 30.31,
+      "x1": 29.95,
       "anim": "run"
     },
     {
       "name": "✋ does the highlighted thing (takes it)",
       "ok": true,
       "h0": 0,
-      "h1": 0,
+      "h1": 1,
       "sent": [
-        "pdo:persuade"
+        "pdo:pick"
       ]
     },
     {
       "name": "with things in hand a «Бросить» button appears",
       "ok": true,
-      "h1": 0,
+      "h1": 1,
       "pad2": [
+        "Бросить",
         "Взять"
       ]
     },
@@ -193,7 +194,7 @@
     {
       "name": "finger strokes work the pump",
       "ok": true,
-      "p0": 0.08,
+      "p0": 0.11,
       "p1": 1
     },
     {
@@ -231,7 +232,7 @@
       "name": "Вера Г.",
       "ok": true,
       "head": "ГЛУБЖЕ Бункер чата «Игровой чат»",
-      "code": "TRR3Q",
+      "code": "TE3Y5",
       "url": ""
     },
     {

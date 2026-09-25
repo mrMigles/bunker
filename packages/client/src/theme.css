@@ -1247,3 +1247,147 @@ html.mobile .charscreen p.dim {
   justify-content: flex-start;
   text-align: left;
 }
+
+/* ---------------------------------------------------------------- short landscape screens (phones) */
+@media (max-height: 480px) {
+  .menu {
+    grid-template-columns: 1fr;
+    padding: 8px calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left));
+    align-items: start;
+  }
+  .menu-col {
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 6px 14px;
+    align-items: start;
+  }
+  .menu-col > * {
+    grid-column: 1;
+  }
+  .menu .logo {
+    font-size: 40px;
+  }
+  .menu .tagline {
+    font-size: 11.5px;
+    margin: 0;
+  }
+  .menu-card {
+    padding: 8px;
+    gap: 7px;
+  }
+  .menu .rooms-card {
+    grid-column: 2;
+    grid-row: 1 / span 4;
+    padding: 8px 10px;
+  }
+  .menu .rooms-list {
+    max-height: calc(100vh - 70px);
+  }
+  .menu-foot {
+    display: none;
+  }
+  .menu .big {
+    min-height: 38px;
+    font-size: 14px;
+  }
+  .room-row {
+    grid-template-columns: 18px 58px 50px 1fr auto;
+    padding: 5px 7px;
+    font-size: 11.5px;
+  }
+  /* lobby */
+  .lobby {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  .lobby-head .logo {
+    font-size: 26px;
+  }
+  .lobby-code b {
+    font-size: 22px;
+  }
+  .lobby-hint {
+    display: none;
+  }
+  .pchip {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+  .lobby .cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .lobby .card {
+    padding: 7px;
+    gap: 5px;
+  }
+  .card-top {
+    grid-template-columns: 52px 1fr;
+    gap: 7px;
+  }
+  .card-top .atlas-art {
+    width: 52px;
+    height: 58px;
+  }
+  .card h3 {
+    font-size: 13px;
+  }
+  .card .prof,
+  .card .desc,
+  .card .trait,
+  .card .goal {
+    font-size: 10.5px;
+  }
+  .card .desc {
+    display: none;
+  }
+  .stat-tile {
+    padding: 3px 2px;
+  }
+  .stat-tile b {
+    font-size: 13px;
+  }
+  .stat-tile small {
+    font-size: 8.5px;
+  }
+  .stat-tile .ic {
+    width: 14px;
+    height: 14px;
+  }
+  .lobby-actions button {
+    min-height: 32px;
+    font-size: 12px;
+  }
+  .lobby-settings {
+    padding: 6px 10px;
+  }
+  .lobby-settings .row {
+    gap: 6px 12px;
+    font-size: 11.5px;
+  }
+}
+.lobby-actions {
+  position: sticky;
+  bottom: -16px;
+  z-index: 3;
+  padding: 8px 0;
+  background: linear-gradient(0deg, rgba(10, 8, 7, 0.96) 70%, rgba(10, 8, 7, 0));
+}
+@media (max-height: 480px) {
+  .lobby .card h3 {
+    font-size: 13px;
+  }
+  .lobby .card .prof,
+  .lobby .card .trait,
+  .lobby .card .goal {
+    font-size: 10.5px;
+  }
+  .lobby .card .desc {
+    display: none;
+  }
+  .lobby-actions {
+    bottom: -6px;
+    padding: 4px 0;
+  }
+}

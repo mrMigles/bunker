@@ -3,7 +3,7 @@
     {
       "name": "the friend joins by code and shows up in the host's lobby",
       "ok": true,
-      "code": "GQNXE",
+      "code": "YG3HJ",
       "names": [
         "Хозяин",
         "Гость"
@@ -21,15 +21,15 @@
       "name": "both players have characters in the prologue",
       "ok": true,
       "chars": [
-        "Макар Люков",
-        "Лидия Консервина"
+        "Лев Радиолов",
+        "Макар Радиолов"
       ]
     },
     {
       "name": "the host sees the guest walk",
       "ok": true,
       "x0": 26.7,
-      "x1": 29.12
+      "x1": 29.07
     },
     {
       "name": "chat reaches the other player",
@@ -59,7 +59,7 @@
     {
       "name": "a reload brings the player back into the same bunker and body",
       "ok": true,
-      "code": "GQNXE",
+      "code": "YG3HJ",
       "char": "c11"
     },
     {

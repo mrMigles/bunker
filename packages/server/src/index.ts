@@ -88,7 +88,8 @@ const server = defineServer({
       res.json(rooms.map((r) => ({ code: r.roomId, clients: r.clients, meta: r.metadata })));
     });
 
-    app.get("/api/saves", (_req, res) => res.json(listSaves(20)));
+    // chat bunkers (codes T…) belong to their Telegram chats and are never listed
+    app.get("/api/saves", (_req, res) => res.json(listSaves(40).filter((s: any) => !String(s.code).startsWith("T")).slice(0, 20)));
 
     app.get("/api/legacy/:name", (req, res) => res.json(getLegacy(String(req.params.name).slice(0, 16))));
     app.post("/api/legacy/:name", (req, res) => {

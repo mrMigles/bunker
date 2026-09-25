@@ -92,7 +92,12 @@ try {
     return o ? { id: o.id, x: o.x, lv: o.lv } : null;
   });
   await ev((t) => window.__game.navigation.go(t.x, t.lv, () => window.__net.send({ k: "do", a: "talk", tt: "char", t: t.id })), other);
-  const talk = await page.waitForSelector(".talk-modal", { timeout: 20000 }).then(() => true).catch(() => false);
+  let talk = await page.waitForSelector(".talk-modal", { timeout: 10000 }).then(() => true).catch(() => false);
+  // residents walk about: if the one we went to has moved on, talk to whoever the menu offers
+  if (!talk) {
+    await page.locator(".prompt .opt", { hasText: "Поговорить" }).first().click({ timeout: 5000 }).catch(() => {});
+    talk = await page.waitForSelector(".talk-modal", { timeout: 10000 }).then(() => true).catch(() => false);
+  }
   const story = talk ? await page.locator(".talk-text").innerText() : "";
   step("talking to a resident shows today's story", talk && story.length > 20, { story: story.slice(0, 80) });
   await shot("i3-04-talk");
