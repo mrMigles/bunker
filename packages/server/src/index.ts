@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { GameRoom } from "./GameRoom";
-import { addLegacy, getLegacy, hasSave, listSaves } from "./persistence";
+import { addLegacy, getLegacy, hasSave, lastGroup, listSaves, rememberLastGroup } from "./persistence";
 import { tgSession } from "./telegram";
 import { avatarOf, gameSession, knownUsers, makeGameToken, rememberPhoto, setRestartHandler, startTelegramBot } from "./tgbot";
 import { liveRooms } from "./GameRoom";
@@ -51,9 +51,10 @@ const server = defineServer({
 
     // Telegram Mini App: the bunker of this chat (created on first open, restored from its save later)
     app.post("/api/tg/session", async (req, res) => {
-      const s = tgSession(String(req.body?.initData ?? ""));
+      const s = tgSession(String(req.body?.initData ?? ""), lastGroup);
       if ("error" in s) return res.status(403).json(s);
       const uid = Number(s.pid.slice(3));
+      if (!s.personal) rememberLastGroup(String(uid), s.chat, s.chatTitle);
       rememberPhoto(uid, s.photo);
       // a signed link to the same bunker, for «Открыть в браузере»
       (s as any).token = makeGameToken({ c: s.chat, u: uid, n: s.name, t: Math.floor(Date.now() / 1000), title: s.chatTitle });
@@ -71,6 +72,7 @@ const server = defineServer({
     app.post("/api/tg/game", async (req, res) => {
       const s = gameSession(String(req.body?.token ?? ""));
       if ("error" in s) return res.status(403).json(s);
+      if (!s.chat.startsWith("u")) rememberLastGroup(s.pid.slice(3), s.chat, s.chatTitle);
       try {
         const found = await matchMaker.query({ roomId: s.code } as any);
         if (!found.length) await matchMaker.createRoom("game", { code: s.code, restore: hasSave(s.code), private: true });

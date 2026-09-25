@@ -135,6 +135,11 @@ export class GameUI {
       this.table.scene.zoomBy(1 / factor);
       return;
     }
+    // a fight zooms around its field and the own fighter, not around the middle of the screen
+    if (this.combat?.active && this.combat.where !== "bunker") {
+      this.combat.zoom(factor);
+      return;
+    }
     const s = this.cameraSurface();
     s.viewH = Math.max(6, Math.min(48, s.viewH * factor));
     if (s === this.r) this.r.updateCamera();

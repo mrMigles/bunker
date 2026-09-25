@@ -1,0 +1,34 @@
+import { chromium } from "@playwright/test";
+import { writeFileSync } from "node:fs";
+const out = "artifacts/onboarding-issue";
+const browser = await chromium.launch();
+const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+const page = await context.newPage();
+await page.goto("http://localhost:5173/", { timeout: 90000 });
+await page.getByPlaceholder("Ваше имя").fill(`Первый день ${Date.now()}`);
+await page.getByRole("button", { name: "Создать бункер", exact: true }).click();
+await page.locator(".card").first().waitFor({ timeout: 60000 });
+await page.getByLabel("Без пролога").check();
+await page.locator(".card").first().click();
+await page.getByRole("button", { name: "Начать", exact: true }).click();
+await page.waitForFunction(() => window.__net?.pub?.phase === "day", null, { timeout: 60000 });
+const tip = page.getByRole("button", { name: "Понятно", exact: true });
+if (await tip.count()) await tip.first().click().catch(() => {});
+await page.screenshot({ path: `${out}/09-day-clear.png` });
+const sortie = page.getByRole("button", { name: /Вылазка/ }).last();
+await sortie.click();
+await page.waitForTimeout(1000);
+await page.screenshot({ path: `${out}/10-sortie-prep.png` });
+const data = { sortie: (await page.locator("body").innerText()).slice(-3500) };
+const close = page.getByRole("button", { name: /Закрыть|Назад|Отмена/ }).last();
+if (await close.count()) await close.click().catch(() => {});
+const build = page.getByRole("button", { name: /Строить/ }).last();
+if (await build.count()) {
+  await build.click().catch(() => {});
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: `${out}/11-build.png` });
+  data.build = (await page.locator("body").innerText()).slice(-3500);
+}
+writeFileSync(`${out}/extra-observations.json`, JSON.stringify(data, null, 2));
+console.log(JSON.stringify(data));
+await browser.close();

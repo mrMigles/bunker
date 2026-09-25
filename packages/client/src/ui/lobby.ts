@@ -39,7 +39,15 @@ export class LobbyUI {
           "div.lobby-code",
           null,
           tgInfo
-            ? h("span", { title: "В Telegram у каждого чата свой бункер" }, icon("telegram"), " ", tgInfo.chatTitle ? `Бункер чата «${tgInfo.chatTitle}»` : "Ваш бункер в Telegram")
+            ? tgInfo.personal
+              ? h(
+                  "span.tg-personal",
+                  { title: "В Telegram у каждого чата свой бункер" },
+                  icon("telegram"),
+                  " Ваш личный бункер. ",
+                  h("small", null, "Чтобы играть с группой, откройте игру кнопкой «Играть» в группе."),
+                )
+              : h("span", { title: "В Telegram у каждого чата свой бункер" }, icon("telegram"), " ", tgInfo.chatTitle ? `Бункер чата «${tgInfo.chatTitle}»` : "Бункер вашей группы в Telegram")
             : [
                 h("span", null, "Код бункера:"),
                 h(

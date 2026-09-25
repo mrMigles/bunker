@@ -86,3 +86,25 @@ describe("game table", () => {
     expect(finished).toBe(true);
   }, 60000);
 });
+
+describe("a full table and a second player (#37)", () => {
+  it("a resident bot gives up its seat to a player; a running game can be watched", () => {
+    const w = startedWorld({ players: 2, residents: 6, seed: 12 });
+    const table = objsOfKind(w, "game_table")[0].id;
+    seatAt(w, "p0", table);
+    for (let i = 0; i < 3; i++) expect(applyCmd(w, "p0", { k: "tableInvite" })).toBeUndefined();
+    const t = w.mods.tables[table];
+    expect(t.seats.includes(null)).toBe(false);
+    // p0 is seated, so the bots do not start a game on their own
+    for (let i = 0; i < 200; i++) tickWorld(w, 0.05);
+    expect(t.status).toBe("idle");
+    // p1 walks up: sits down instead of a bot
+    seatAt(w, "p1", table);
+    const me = w.players.p1.char!;
+    expect(t.seats).toContain(me);
+    expect(t.seats).toContain(w.players.p0.char!);
+    // once a game runs, a third party can only watch
+    expect(applyCmd(w, "p0", { k: "tableStart", game: "durak" })).toBeUndefined();
+    expect(t.status).toBe("playing");
+  });
+});

@@ -1646,3 +1646,33 @@ html.mobile body[data-phase="prologue"] .raid-radio {
     min-height: 34px;
   }
 }
+
+/* ---------------------------------------------------------------- combat on phones (#2, #3, #4, #6) */
+html.mobile .combat-unit-label { width: 84px; max-width: 84px; min-height: 0; }
+html.mobile .combat-unit-label .nm { font-size: 11px; }
+html.mobile .combat-unit-label .intent {
+  display: block; font-size: 9.5px; line-height: 1.15; padding: 0 0 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+html.mobile .combat-unit-label.raised::after { height: var(--tail, 40px); }
+html.mobile .combat-unit-label .warn { font-size: 12px; }
+html.mobile .combat-intel-toggle {
+  display: grid; place-items: center; flex: none;
+  width: 34px; min-width: 34px; height: 34px; min-height: 34px; padding: 0; font-size: 16px;
+}
+html.mobile .combat-intel-toggle.active { border-color: #edc082; }
+html.mobile .combat-intel.open { display: block; }
+html.mobile .combat-intel.open .combat-journal { display: block; }
+html.mobile .combat-intel.open .combat-log { max-height: 22dvh; overflow-y: auto; }
+html.mobile body.mode-combat:has(.combat-intel.open) .camera-controls { top: calc(151px + var(--st)); }
+html.mobile .combat-ticker { top: calc(54px + var(--st)); font-size: 12px; padding: 5px 12px; max-width: calc(100vw - 16px); }
+@media (orientation: portrait) {
+  html.mobile .combat-ticker { top: calc(106px + var(--st)); }
+}
+/* landscape: an opened submenu is one scrolling row, not a wall over the field */
+@media (max-height: 480px) {
+  html.mobile .combat-submenu { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 4px; }
+  html.mobile .combat-submenu button { flex: none; min-height: 34px; font-size: 10.5px; padding: 4px 8px; }
+  html.mobile .combat-panel { max-height: 42dvh; }
+  html.mobile .combat-down-note { font-size: 10.5px; padding: 3px 6px; }
+}

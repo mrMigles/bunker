@@ -110,6 +110,18 @@ function say(t: TableState, who: string, text: string) {
 
 // ---------------------------------------------------------------- sitting down
 
+/**
+ * A seat a live player may take: an empty one, else one a resident bot holds while no game is running —
+ * the bot gets up for a person (#37). A bot playing a hand keeps it until the game is over.
+ */
+function seatFor(w: World, t: TableState, c: Char): { i: number; bot?: Char } | null {
+  const free = t.seats.indexOf(null);
+  if (free >= 0) return { i: free };
+  if (isBotDriven(w, c.id) || t.status === "playing") return null;
+  const i = t.seats.findIndex((id) => !!id && id !== c.id && isBotDriven(w, id) && !w.chars[id]?.ctrl);
+  return i >= 0 ? { i, bot: w.chars[t.seats[i]!] } : null;
+}
+
 defAction({
   id: "sit_table",
   type: "obj",
@@ -119,7 +131,9 @@ defAction({
   avail: ({ w, c, o }) => {
     const t = tableFor(w, o!.id);
     if (t.seats.includes(c.id)) return "🃏 За игровым столом";
-    if (!t.seats.includes(null)) return { label: "🃏 Сесть за стол", reason: "Все места заняты — можно смотреть" };
+    const seat = seatFor(w, t, c);
+    if (!seat) return { label: "🃏 Сесть за стол", reason: t.status === "playing" ? "идёт партия — можно смотреть" : "все места заняты — можно смотреть" };
+    if (seat.bot) return `🃏 Сесть вместо ${firstName(seat.bot)}`;
     return `🃏 Сесть за игровой стол (${seated(t).length}/${t.seats.length})`;
   },
   dur: () => 0,
@@ -127,9 +141,16 @@ defAction({
   start: ({ w, c, o }) => {
     const t = tableFor(w, o!.id);
     if (!t.seats.includes(c.id)) {
-      const i = t.seats.indexOf(null);
-      if (i < 0) return "Нет мест";
-      t.seats[i] = c.id;
+      const seat = seatFor(w, t, c);
+      if (!seat) return "Нет мест";
+      if (seat.bot) {
+        // the resident gets up for a person
+        if (seat.bot.task?.action === "sit_table") stopTask(w, seat.bot);
+        seat.bot.seat = undefined;
+        seat.bot.bark = { text: "Садись, уступаю", t: 3 };
+        say(t, "стол", `${firstName(seat.bot)} уступает место: ${firstName(c)}`);
+      }
+      t.seats[seat.i] = c.id;
     }
     c.seat = o!.id;
     t.paused = false;
@@ -158,6 +179,23 @@ defAction({
 });
 
 // ---------------------------------------------------------------- commands
+
+/** Everyone can watch a game in progress — on a phone too, not only with the G key (#37). */
+defAction({
+  id: "watch_table",
+  type: "obj",
+  kinds: ["game_table"],
+  prio: 16,
+  bot: false,
+  avail: ({ w, c, o }) => {
+    const t = tableFor(w, o!.id);
+    if (t.seats.includes(c.id) || t.status !== "playing") return null;
+    return "👀 Смотреть партию";
+  },
+  dur: () => 0,
+  // the client opens the table view itself (CLIENT_SCREENS.watch_table); nothing happens in the world
+  start: () => undefined,
+});
 
 registerCmd("tableStart", (w, p, cmd) => {
   const c = p.char ? w.chars[p.char] : undefined;
@@ -338,9 +376,10 @@ onTick("tables", "*", (w, dt) => {
       continue;
     }
     if (t.status === "idle") {
-      // bots start a game among themselves when no human is seated
+      // bots start a game among themselves when no person is seated — a player's own character counts as a
+      // person even while they are offline, so a table they sat down at waits for their «Начать» (#37)
       const s = seated(t);
-      const humans = s.filter((x) => !isBotDriven(w, x));
+      const humans = s.filter((x) => !isBotDriven(w, x) || !!w.chars[x]?.ctrl);
       const fits = availableGames(w).filter((gid) => s.length >= GAMES[gid].minPlayers && s.length <= GAMES[gid].maxPlayers && gid !== "chess");
       if (s.length >= 2 && humans.length === 0 && fits.length && !workHours(w)) {
         w.flags["_tbl_idle_" + id] = (w.flags["_tbl_idle_" + id] ?? 0) + dt;

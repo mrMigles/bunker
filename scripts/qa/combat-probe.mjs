@@ -31,8 +31,8 @@ const align = () => p.evaluate(() => {
     const vw = c.views.get(u.id);
     if (!vw) continue;
     const [hx, hy] = c.site.toScreen(vw.x, vw.y + 1.75);
-    const el = labels.find((e) => (e.getAttribute("aria-label") ?? "").startsWith(u.name + ":"));
-    if (!el) { out.push({ n: u.name, side: u.side, missing: true }); continue; }
+    const el = labels.find((e) => (e.getAttribute("aria-label") ?? "").startsWith(c.displayName(u.id) + ":"));
+    if (!el) { out.push({ n: u.name, side: u.side, missing: true, offscreenByDesign: hx < 0 || hx > innerWidth }); continue; }
     const r = el.getBoundingClientRect();
     out.push({ n: u.name, side: u.side, dx: Math.round(r.left + r.width / 2 - hx), dy: Math.round(r.bottom - hy), onScreen: hx > 0 && hx < innerWidth && hy > 0 && hy < innerHeight });
   }

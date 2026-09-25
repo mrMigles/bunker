@@ -60,13 +60,22 @@ export class CombatUI {
   private selectedTarget: string | null = null;
   private submenu: "attack" | "items" | "more" | null = null;
   private mobileCollapsed = false;
-  private cameraFollow = false;
+  /** the camera frames the field between the top bar and the command panel; off after a manual pan */
+  private fit = true;
+  private zoomMul = 1;
+  /** where the camera looks during the enemies' turn: the one who acts */
+  private focusX: number | null = null;
+  private intelOpen = false;
   private markerMaterials = new Map<string, THREE.MeshBasicMaterial>();
   private markerGeometry = new THREE.PlaneGeometry(0.92, 1.9);
+  private stripGeometry = new THREE.PlaneGeometry(0.84, 0.16);
   intel = h("aside.combat-intel.panel.hidden");
+  /** what the last event was, in words: who did what to whom */
+  ticker = h("div.combat-ticker.hidden");
+  private tickerT = 0;
 
   constructor(private r: WorldRenderer) {
-    ui().append(this.labels, this.top, this.panel, this.intel);
+    ui().append(this.labels, this.top, this.panel, this.intel, this.ticker);
     const canvas = r.renderer.domElement;
     canvas.addEventListener("mousemove", (e) => {
       this.mouse.x = e.clientX;
@@ -205,7 +214,7 @@ export class CombatUI {
     this.plan = [];
     audio.sfx("blip", 0.5);
     this.mode = null;
-    if (a.t === "move") this.setCameraFollow(true);
+    if (a.t === "move") this.fit = true;
     net.send({ k: "cact", action: a });
     this.key = "";
   }
@@ -307,8 +316,9 @@ export class CombatUI {
     this.top.classList.remove("hidden");
     this.intel.classList.remove("hidden");
     if (this.where !== "bunker") {
-      this.site.follow = true;
-      this.cameraFollow = false;
+      this.site.follow = false;
+      this.fit = true;
+      this.zoomMul = 1;
     }
     audio.sfx("siren", 0.4);
   }
@@ -317,8 +327,66 @@ export class CombatUI {
     if (this.where === "bunker") this.r.follow = on;
     else {
       this.site.follow = false;
-      this.cameraFollow = on;
+      this.fit = on;
+      if (on) this.zoomMul = 1;
     }
+  }
+
+  /** «+» / «−» and the wheel: zoom around the field (and the own fighter), not around the middle of the screen. */
+  zoom(factor: number) {
+    this.zoomMul = Math.max(0.6, Math.min(3, this.zoomMul / factor));
+    this.fit = true;
+  }
+
+  /** The screen band the field may use: under the top bars, above the command panel. */
+  private freeBand(): { top: number; bottom: number } {
+    const rect = (e: Element | null) => {
+      const r = e?.getBoundingClientRect();
+      return r && r.width && r.height ? r : null;
+    };
+    const portrait = innerHeight > innerWidth;
+    let top = 0;
+    for (const e of [this.top, document.querySelector(".hud-top"), portrait ? document.querySelector(".camera-controls") : null]) {
+      const r = rect(e);
+      if (r && r.top < innerHeight / 3) top = Math.max(top, r.bottom);
+    }
+    const panel = rect(this.panel);
+    let bottom = panel && panel.top > innerHeight * 0.3 ? panel.top : innerHeight;
+    // an opened submenu may not squeeze the field to nothing
+    bottom = Math.max(bottom, Math.min(innerHeight, top + innerHeight * 0.4));
+    return { top: top + 4, bottom: bottom - 4 };
+  }
+
+  /**
+   * Fit the whole field (both floors, room for the labels) into the free band and centre it there.
+   * On a phone a cell is never smaller than ~40 px while the band allows it; then the camera follows the
+   * own fighter (or, in the enemies' turn, the one who acts) along the street.
+   */
+  private fitCamera(dt: number) {
+    const s = this.cs!;
+    const f = s.field;
+    const { top, bottom } = this.freeBand();
+    const LABEL_ROOM = innerHeight < 480 ? 30 : 46;
+    const bandH = Math.max(60, bottom - top - LABEL_ROOM);
+    const fieldH = f.floors * 2 + 0.5,
+      fieldW = f.cols + 1;
+    const fitPpu = Math.min(innerWidth / fieldW, bandH / fieldH);
+    const small = document.documentElement.classList.contains("mobile");
+    const ppu = Math.max(fitPpu, small ? Math.min(40, bandH / fieldH) : 0) * this.zoomMul;
+    const me = this.myUnit();
+    const mine = me ? this.views.get(me.id) : null;
+    // horizontal: centre the field, or follow the fighter when it does not fit
+    const halfW = innerWidth / ppu / 2;
+    let cx = f.cols / 2;
+    if (halfW * 2 < fieldW) cx = Math.max(halfW - 0.5, Math.min(f.cols + 0.5 - halfW, this.focusX ?? mine?.x ?? cx));
+    // vertical: the field's middle at the middle of the band under the label room
+    let cy = -f.floors + 0.25;
+    if (bandH / ppu < fieldH && mine) cy = mine.y + 1;
+    const camY = cy + (top + LABEL_ROOM + bandH / 2 - innerHeight / 2) / ppu;
+    const k = Math.min(1, dt * 6);
+    this.site.viewH += (innerHeight / ppu - this.site.viewH) * k;
+    this.site.camX += (cx - this.site.camX) * k;
+    this.site.camY += (camY - this.site.camY) * k;
   }
 
   teardown() {
@@ -332,6 +400,9 @@ export class CombatUI {
     this.panel.classList.add("hidden");
     this.top.classList.add("hidden");
     this.intel.classList.add("hidden");
+    this.ticker.classList.add("hidden");
+    this.focusX = null;
+    this.intelOpen = false;
     this.selectedTarget = null;
     this.submenu = null;
     this.mobileCollapsed = false;
@@ -415,13 +486,10 @@ export class CombatUI {
       }
     }
     this.drawOverlay();
+    if (!this.queue.length && this.qT <= 0) this.focusX = null;
+    if (this.tickerT > 0 && (this.tickerT -= dt) <= 0) this.ticker.classList.add("hidden");
     if (this.where !== "bunker") {
-      const me = this.myUnit();
-      const vw = me ? this.views.get(me.id) : null;
-      if (vw && this.cameraFollow) {
-        this.site.camX += (vw.x - this.site.camX) * Math.min(1, dt * 4);
-        this.site.camY += (vw.y + 1.4 - this.site.camY) * Math.min(1, dt * 4);
-      }
+      if (this.fit) this.fitCamera(dt);
       this.site.render(this.r.renderer);
       this.renderLabels();
       return true;
@@ -443,6 +511,14 @@ export class CombatUI {
     };
     const actor = cvOf(vw, e.u);
     const victim = cvOf(tv, e.to);
+    const said = describeEvent(e, (id) => this.displayName(id));
+    if (said) {
+      this.ticker.textContent = said;
+      this.ticker.classList.toggle("enemy", (s.units[e.u] as Unit | undefined)?.side === "enemy");
+      this.ticker.classList.remove("hidden");
+      this.tickerT = 2.6;
+    }
+    if (vw) this.focusX = tv ? (vw.x + tv.x) / 2 : vw.x;
     switch (e.k) {
       case "move": {
         if (vw && e.col !== undefined) {
@@ -553,20 +629,34 @@ export class CombatUI {
     const u = this.myUnit();
     // cleanup previous frame's plan markers (keep fire meshes which remove themselves)
     for (const o of [...this.overlay.children]) if (o.userData.plan) this.overlay.remove(o);
-    if (!u || s.phase !== "plan") return;
+    if (!u) return;
+    const material = (color: number, op: number) => {
+      const key = color + ":" + op;
+      let m = this.markerMaterials.get(key);
+      if (!m) {
+        // drawn over the scenery: facades and glass must not swallow the marks (#1)
+        m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthWrite: false, depthTest: false, toneMapped: false });
+        this.markerMaterials.set(key, m);
+      }
+      return m;
+    };
+    // a cell mark is a bright strip on the floor, readable at any size, plus a faint tint of the cell
     const addMark = (col: number, floor: number, color: number, op = 0.35) => {
       const [x, y] = this.pos(col, floor);
-      const key = color + ":" + op;
-      let material = this.markerMaterials.get(key);
-      if (!material) {
-        material = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthWrite: false });
-        this.markerMaterials.set(key, material);
-      }
-      const m = new THREE.Mesh(this.markerGeometry, material);
-      m.position.set(x, y + 0.95, 0.05);
-      m.userData.plan = true;
-      this.overlay.add(m);
+      const tint = new THREE.Mesh(this.markerGeometry, material(color, Math.min(0.14, op * 0.45)));
+      tint.position.set(x, y + 0.95, 0.3);
+      tint.renderOrder = 5;
+      const strip = new THREE.Mesh(this.stripGeometry, material(color, Math.min(0.95, op * 2.6)));
+      strip.position.set(x, y + 0.06, 0.32);
+      strip.renderOrder = 6;
+      tint.userData.plan = strip.userData.plan = true;
+      this.overlay.add(tint, strip);
     };
+    // the own fighter always stands on a green strip, the picked target on a red one
+    if (!u.dead && !u.fled) addMark(u.col, u.floor, 0x7dff8a, 0.34);
+    const picked = this.selectedTarget ? (s.units[this.selectedTarget] as Unit | undefined) : undefined;
+    if (picked && !picked.dead && !picked.fled) addMark(picked.col, picked.floor, picked.side === "enemy" ? 0xff5a4a : 0x9fe07a, 0.34);
+    if (s.phase !== "plan") return;
     // XCOM-style reach: blue = you can still shoot after moving there, yellow = a dash
     if (!this.queue.length && u.ap > 0 && !u.down && (this.mode === null || this.mode === "move")) {
       const key = JSON.stringify([u.col, u.floor, u.ap, Object.values(s.units).map((x) => [x.col, x.floor, x.dead]), s.field.doors.map((d) => d.closed)]);
@@ -632,6 +722,10 @@ export class CombatUI {
       this.r.camX.toFixed(1),
       this.r.camY.toFixed(1),
       this.r.viewH,
+      // the arena / sortie camera zooms and pans too: the labels follow it (#34)
+      this.site.camX.toFixed(2),
+      this.site.camY.toFixed(2),
+      this.site.viewH.toFixed(2),
       innerWidth,
       innerHeight,
       s.phase,
@@ -639,14 +733,14 @@ export class CombatUI {
     if (key === this.labKey) return;
     this.labKey = key;
     clear(this.labels);
-    // left to right; a label that would overlap its neighbour climbs one row up
+    // left to right; a label that would overlap its neighbour climbs one row up and a tail joins it to its
+    // figure — on phones too: a label never wanders off onto another floor or over someone else (#3)
     const placed: { l: number; r: number; row: number; floorY: number }[] = [];
-    const mobileRects: DOMRect[] = [];
-    const controls = document.querySelector(".camera-controls") as HTMLElement | null;
-    const panels = [this.top, this.panel, this.intel, controls].filter(Boolean).map(e => e!.getBoundingClientRect()).filter(r => r.width && r.height);
     const small = document.documentElement.classList.contains("mobile");
-    const LABEL_W = small ? 92 : 108,
-      ROW_H = small ? 28 : 40;
+    const LABEL_W = small ? 84 : 108,
+      ROW_H = small ? 40 : 40;
+    // one hit chance on the field: the picked target's, the same number as in its card (#6)
+    const aimAt = (this.selectedTarget ? (s.units[this.selectedTarget] as Unit | undefined) : undefined) ?? target;
     const units = (Object.values(s.units) as Unit[])
       .filter((x) => !x.dead && !x.fled && this.views.get(x.id))
       .map((x) => {
@@ -655,16 +749,26 @@ export class CombatUI {
         return { x, vw, sx, sy };
       })
       .sort((a, b) => a.sx - b.sx);
-    for (const { x, vw, sx, sy: baseY } of units) {
+    // a fighter out of the frame gets no label but a pointer at that edge of the screen (#35)
+    const offscreen: Record<"left" | "right", { x: Unit; vw: UnitView }[]> = { left: [], right: [] };
+    for (const { x, vw, sx: headX, sy: baseY } of units) {
+      if (headX < 0 || headX > innerWidth) {
+        offscreen[headX < 0 ? "left" : "right"].push({ x, vw });
+        continue;
+      }
+      // half a label hanging off the edge can be neither read nor tapped
+      const sx = Math.max(LABEL_W / 2 + 2, Math.min(innerWidth - LABEL_W / 2 - 2, headX));
+      // climb until the label's box is clear of every label already placed, whatever floor it belongs to
       let row = 0;
-      while (placed.some((p) => Math.abs(p.floorY - baseY) < 20 && p.row === row && sx - LABEL_W / 2 < p.r && sx + LABEL_W / 2 > p.l)) row++;
-      placed.push({ l: sx - LABEL_W / 2, r: sx + LABEL_W / 2, row, floorY: baseY });
+      const hits = (r: number) => placed.some((p) => sx - LABEL_W / 2 < p.r && sx + LABEL_W / 2 > p.l && Math.abs(baseY - r * ROW_H - p.floorY) < ROW_H - 2);
+      while (row < 4 && hits(row)) row++;
       const sy = baseY - row * ROW_H;
-      const el = h("div.label.combat-unit-label" + (x.id === this.selectedTarget ? ".selected" : "") + (x.id === this.hoverUnit ? ".hover" : "") + (row ? ".raised" : ""), {
+      placed.push({ l: sx - LABEL_W / 2, r: sx + LABEL_W / 2, row, floorY: sy });
+      const el = h("div.label.combat-unit-label." + x.side + (u && x.id === u.id ? ".me" : "") + (x.id === this.selectedTarget ? ".selected" : "") + (x.id === this.hoverUnit ? ".hover" : "") + (row ? ".raised" : ""), {
         style: { left: sx + "px", top: sy + "px" },
         role: "button",
         tabindex: 0,
-        "aria-label": `${x.name}: ${Math.max(0, x.hp)} здоровья`,
+        "aria-label": `${this.displayName(x.id)}: ${Math.max(0, x.hp)} здоровья`,
         onclick: () => {
           if (this.mode && s.phase === "plan") {
             this.mouse.x = sx;
@@ -684,7 +788,7 @@ export class CombatUI {
       if (x.side === "enemy" && x.intentText && s.phase === "plan")
         el.append(h("div.intent", null, intentIcon(x) + " " + x.intentText));
       el.append(
-        h("div.nm" + (x.side === "ally" ? ".player" : ""), null, `${x.side === "enemy" ? x.icon + " " : ""}${x.name}`),
+        h("div.nm" + (x.side === "ally" ? ".player" : ""), null, `${u && x.id === u.id ? "▼ " : ""}${x.side === "enemy" ? x.icon + " " : ""}${this.displayName(x.id)}`),
       );
       const hb = bar(Math.max(0, x.hp), x.side === "ally" ? "#8fcf6a" : "#e0503a", x.maxHp);
       hb.style.width = "50px";
@@ -693,7 +797,7 @@ export class CombatUI {
       if (x.down) el.append(h("div.bad", null, x.captured ? "сдался" : "без сознания"));
       if (
         u &&
-        target?.id === x.id &&
+        aimAt?.id === x.id &&
         x.side === "enemy" &&
         (this.mode === "shoot" || this.mode === "aim" || this.mode === null)
       ) {
@@ -702,30 +806,44 @@ export class CombatUI {
         const ch = hitChance({ ...s, hitBonus: s.hitBonus ?? 0 } as any, me, x, this.mode === "aim", this.mode === "aim" ? this.aimPart : undefined);
         el.append(h("div.warn", null, `🎯 ${ch}%`));
       }
+      el.style.setProperty("--tail", row * ROW_H + "px");
       this.labels.appendChild(el);
-      if (small) {
-        // Actual rectangles, across floors: wrapped names and edge clamping must
-        // not create overlapping touch targets. Intent lives in the target card.
-        el.style.left = Math.max(42, Math.min(innerWidth - 42, sx)) + "px";
-        el.style.top = baseY + "px";
-        const original = el.getBoundingClientRect();
-        const candidates = [];
-        for (let dy = -8; dy <= 8; dy++) for (let dx = -4; dx <= 4; dx++) candidates.push({ dx: dx * (original.width + 5), dy: dy * (original.height + 5) });
-        candidates.sort((a, b) => a.dx * a.dx + a.dy * a.dy - b.dx * b.dx - b.dy * b.dy);
-        const offset = candidates.find(({ dx, dy }) => {
-          const r = { left: original.left + dx, right: original.right + dx, top: original.top + dy, bottom: original.bottom + dy };
-          return r.left >= 4 && r.right <= innerWidth - 4 && r.top >= 4 && r.bottom <= innerHeight - 4 &&
-            ![...panels, ...mobileRects].some(p => r.left < p.right + 4 && r.right > p.left - 4 && r.top < p.bottom + 4 && r.bottom > p.top - 4);
-        });
-        if (offset) {
-          el.style.left = parseFloat(el.style.left) + offset.dx + "px";
-          el.style.top = baseY + offset.dy + "px";
-        }
-        const rect = el.getBoundingClientRect();
-        el.classList.toggle("raised", rect.bottom < baseY - 5);
-        mobileRects.push(rect);
-      }
     }
+    for (const side of ["left", "right"] as const) {
+      const list = offscreen[side];
+      if (!list.length) continue;
+      const foes = list.filter((o) => o.x.side === "enemy").length,
+        friends = list.length - foes;
+      const nearest = list.sort((a, b) => Math.abs(a.vw.x - this.site.camX) - Math.abs(b.vw.x - this.site.camX))[0];
+      const [, py] = this.where === "bunker" ? this.r.toScreen(nearest.vw.x, nearest.vw.y + 1) : this.site.toScreen(nearest.vw.x, nearest.vw.y + 1);
+      const arrow = side === "left" ? "◀" : "▶";
+      const text = [foes ? `врагов ${foes}` : "", friends ? `своих ${friends}` : ""].filter(Boolean).join(" · ");
+      this.labels.appendChild(
+        h(
+          "button.combat-edge." + side + (foes ? ".enemy" : ".ally"),
+          {
+            style: { top: Math.max(60, Math.min(innerHeight - 60, py)) + "px" },
+            "aria-label": `За краем экрана: ${text}`,
+            onclick: () => {
+              // look there; «◎» or the next step brings the camera back to the own fighter
+              this.fit = false;
+              if (this.where !== "bunker") this.site.camX = nearest.vw.x;
+              this.labKey = "";
+            },
+          },
+          side === "left" ? `${arrow} ${text}` : `${text} ${arrow}`,
+        ),
+      );
+    }
+  }
+
+  /** A name that tells two enemies of one kind apart: «Крыса-мутант 1», «Крыса-мутант 2». */
+  displayName(id: string): string {
+    const s = this.cs;
+    const u = s?.units[id] as Unit | undefined;
+    if (!s || !u) return "";
+    const same = (Object.values(s.units) as Unit[]).filter((o) => o.side === u.side && o.name === u.name);
+    return same.length > 1 ? `${u.name} ${same.findIndex((o) => o.id === id) + 1}` : u.name;
   }
 
   renderPanel() {
@@ -749,6 +867,7 @@ export class CombatUI {
       s.log?.length,
       this.queue.length > 0,
       this.mobileCollapsed,
+      this.intelOpen,
       Object.values(s.units).map((x) => [x.id, x.hp, x.dead, x.fled]),
     ]);
     if (key === this.key) return;
@@ -768,6 +887,16 @@ export class CombatUI {
         h("span", null, s.phase === "plan" ? "сек. — ваш ход" : s.phase === "anim" ? "Идёт действие…" : "Бой завершён"),
       ),
       h("div.combat-forces", null, h("span", null, `Отряд ${allies}`), h("b", null, `Противники ${enemies}`)),
+      // phones: the rules and the combat log sit behind this button instead of being gone (#2)
+      h("button.combat-intel-toggle" + (this.intelOpen ? ".active" : ""), {
+        "aria-label": this.intelOpen ? "Скрыть журнал боя" : "Журнал боя",
+        "aria-expanded": String(this.intelOpen),
+        onclick: () => {
+          this.intelOpen = !this.intelOpen;
+          this.key = "";
+          this.renderPanel();
+        },
+      }, "📜"),
       h("button.combat-panel-toggle", {
         "aria-label": this.mobileCollapsed ? "Показать команды" : "Скрыть команды",
         "aria-expanded": String(!this.mobileCollapsed),
@@ -785,6 +914,7 @@ export class CombatUI {
     this.panel.classList.toggle("mobile-collapsed", this.mobileCollapsed);
     const target = this.selectedTarget ? s.units[this.selectedTarget] : null;
     this.intel.classList.toggle("has-target", !!target && !target.dead && !target.fled);
+    this.intel.classList.toggle("open", this.intelOpen);
     if (target && !target.dead && !target.fled) {
       const chance = u
         ? hitChance({ ...s, hitBonus: s.hitBonus ?? 0 } as any, { ...u, ...this.simPos() } as Unit, target, this.mode === "aim", this.aimPart)
@@ -792,7 +922,7 @@ export class CombatUI {
       add(
         this.intel,
         h("div.combat-eyebrow", null, target.side === "enemy" ? "ВЫБРАННАЯ ЦЕЛЬ" : "БОЕЦ ОТРЯДА"),
-        h("h3", null, target.name),
+        h("h3", null, this.displayName(target.id)),
         h(
           "div.combat-target-health",
           null,
@@ -829,12 +959,12 @@ export class CombatUI {
       this.intel,
       h(
         "details.combat-journal",
-        null,
+        this.intelOpen ? { open: true } : null,
         h("summary", null, "Журнал боя"),
         h(
           "div.combat-log",
           null,
-          (s.log ?? []).slice(-5).map((l) => h("div", null, l)),
+          (s.log ?? []).slice(this.intelOpen ? -8 : -5).map((l) => h("div", null, l)),
         ),
       ),
     );
@@ -844,6 +974,8 @@ export class CombatUI {
     }
     const w = WEAPONS[u.weapon] ?? WEAPONS.fists,
       ap = this.apLeft(),
+      // out of the points this turn started with, not out of what is left (#7)
+      turnAp = Math.max(u.ap, u.maxAp + ((s as any).coordination ?? 0)),
       ab = u.ability ? ABILITIES[u.ability] : undefined;
     const canPlan = s.phase === "plan" && !u.dead && !u.down && !u.fled;
     const setMode = (mode: Mode) => {
@@ -875,12 +1007,12 @@ export class CombatUI {
       h(
         "div.combat-ap",
         null,
-        h("b", null, `${ap} / ${u.ap}`),
+        h("b", null, `${ap} / ${turnAp}`),
         h("span", null, "очки действий"),
         h(
           "div.combat-ap-pips",
           null,
-          Array.from({ length: u.ap }, (_, i) => h("i" + (i < ap ? ".available" : ""))),
+          Array.from({ length: turnAp }, (_, i) => h("i" + (i < ap ? ".available" : ""))),
         ),
       ),
     );
@@ -908,6 +1040,9 @@ export class CombatUI {
           h("span.dim", null, u.ap > 0 ? `Осталось ${u.ap} ОД. Клетка — идти, враг — атаковать. Действия выполняются сразу.` : "ОД кончились — нажмите «Конец хода»."),
         ),
       ),
+      u.down && !u.dead
+        ? h("div.combat-down-note", null, u.captured ? "Вы сдались и ждёте конца боя." : "Вы без сознания. Союзник рядом может поднять вас аптечкой (Предметы → Лечить).")
+        : null,
       h(
         "div.combat-actions",
         null,
@@ -1090,6 +1225,30 @@ function intentIcon(u: Unit) {
               : a.t === "door"
                 ? "🚪"
                 : "✨";
+}
+
+/** One line for the ticker: who did what to whom and what came of it. */
+function describeEvent(e: CEvent, name: (id: string) => string): string {
+  const who = name(e.u),
+    whom = e.to ? name(e.to) : "";
+  switch (e.k) {
+    case "shoot":
+      return `🔫 ${who} → ${whom}: ${e.hit ? `попал, −${e.dmg}${e.crit ? " (крит)" : ""}` : "мимо"}`;
+    case "melee":
+      return `👊 ${who} → ${whom}: ${e.hit ? (e.dmg ? `−${e.dmg}` : (e.text ?? "попал")) : "мимо"}`;
+    case "heal":
+      return `✚ ${who} лечит ${whom}: +${e.dmg}`;
+    case "down":
+      return `✚ ${who} без сознания`;
+    case "dead":
+      return `☠ ${who} погибает`;
+    case "flee":
+      return `🏃 ${who} убегает`;
+    case "move":
+      return "";
+    default:
+      return e.text ? `${who}: ${e.text}` : "";
+  }
 }
 
 function describe(a: Action): string {

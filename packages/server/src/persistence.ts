@@ -22,6 +22,12 @@ db.exec(`
     code TEXT PRIMARY KEY,
     chat TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS tglast (
+    user TEXT PRIMARY KEY,
+    chat TEXT NOT NULL,
+    title TEXT,
+    updated INTEGER NOT NULL
+  );
   CREATE TABLE IF NOT EXISTS legacy (
     name TEXT PRIMARY KEY,
     points INTEGER NOT NULL,
@@ -35,6 +41,8 @@ const stmtSave = db.prepare(
 const stmtLoad = db.prepare("SELECT data FROM saves WHERE code = ?");
 const stmtList = db.prepare("SELECT code, day, phase, players, updated FROM saves ORDER BY updated DESC LIMIT ?");
 const stmtDel = db.prepare("DELETE FROM saves WHERE code = ?");
+const stmtLastSet = db.prepare("INSERT INTO tglast(user, chat, title, updated) VALUES (?, ?, ?, ?) ON CONFLICT(user) DO UPDATE SET chat=excluded.chat, title=excluded.title, updated=excluded.updated");
+const stmtLastGet = db.prepare("SELECT chat, title, updated FROM tglast WHERE user = ?");
 const stmtLegacyGet = db.prepare("SELECT points, unlocks FROM legacy WHERE name = ?");
 const stmtLegacySet = db.prepare("INSERT INTO legacy(name, points, unlocks) VALUES (?, ?, ?) ON CONFLICT(name) DO UPDATE SET points=excluded.points, unlocks=excluded.unlocks");
 
@@ -90,4 +98,15 @@ export function getLegacy(name: string) {
 export function addLegacy(name: string, points: number) {
   const cur = getLegacy(name);
   stmtLegacySet.run(name, cur.points + points, JSON.stringify(cur.unlocks));
+}
+
+/** The group bunker a Telegram user last played in: a Mini App opened from the bot's private chat goes there. */
+export function rememberLastGroup(user: string, chat: string, title?: string) {
+  stmtLastSet.run(user, chat, title ?? null, Date.now());
+}
+export function lastGroup(user: string): { chat: string; title?: string } | null {
+  const row = stmtLastGet.get(user) as { chat: string; title: string | null; updated: number } | undefined;
+  // a month-old game is not "the game with friends" any more
+  if (!row || Date.now() - row.updated > 30 * 86400_000) return null;
+  return { chat: row.chat, title: row.title ?? undefined };
 }

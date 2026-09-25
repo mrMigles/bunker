@@ -16,6 +16,10 @@ export interface TgSession {
   chatTitle?: string;
   verified: boolean;
   photo?: string;
+  /** opened without a chat: the user's own bunker */
+  personal?: boolean;
+  /** opened without a chat and sent to the group bunker the user last played in */
+  fromLast?: boolean;
 }
 
 /** Telegram's check: HMAC-SHA256 over the sorted fields with a key derived from the bot token. */
@@ -58,7 +62,7 @@ export function verifyPid(pid: string, code: string, sig: unknown) {
   return typeof sig === "string" && sig === signPid(pid, code);
 }
 
-export function tgSession(initData: string): TgSession | { error: string } {
+export function tgSession(initData: string, lastGroup?: (user: string) => { chat: string; title?: string } | null): TgSession | { error: string } {
   const p = checkInitData(initData);
   if (!p) return { error: "Подпись Telegram не сошлась" };
   let user: any;
@@ -73,8 +77,17 @@ export function tgSession(initData: string): TgSession | { error: string } {
   // the chat the app was opened in (its chat_instance — the same key the game button uses), else the chat
   // id, else a start parameter, else the user's own bunker
   const ci = p.get("chat_instance");
-  const chatKey = (ci ? "ci" + ci : "") || (chat?.id ? String(chat.id) : "") || p.get("start_param") || "u" + user.id;
+  let chatKey = (ci ? "ci" + ci : "") || (chat?.id ? String(chat.id) : "") || p.get("start_param") || "";
+  let chatTitle: string | undefined = chat?.title;
+  let personal = false,
+    fromLast = false;
+  if (!chatKey) {
+    // opened from the bot's private chat or its menu button: rejoin the group the user last played with (#33)
+    const last = lastGroup?.(String(user.id));
+    if (last) ((chatKey = last.chat), (chatTitle = last.title), (fromLast = true));
+    else ((chatKey = "u" + user.id), (personal = true));
+  }
   const pid = "tg_" + user.id;
   const name = [user.first_name, user.last_name ? user.last_name[0] + "." : ""].filter(Boolean).join(" ").slice(0, 16) || user.username || "Выживший";
-  return { code: codeForChat(chatKey), pid, sig: signPid(pid, codeForChat(chatKey)), name, chat: chatKey, chatTitle: chat?.title, verified: !!BOT_TOKEN, photo: user.photo_url };
+  return { code: codeForChat(chatKey), pid, sig: signPid(pid, codeForChat(chatKey)), name, chat: chatKey, chatTitle, verified: !!BOT_TOKEN, photo: user.photo_url, personal, fromLast };
 }

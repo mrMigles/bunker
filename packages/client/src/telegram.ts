@@ -9,6 +9,9 @@ export interface TgInfo {
   name: string;
   chatTitle?: string;
   verified: boolean;
+  /** the user's own bunker (opened without a chat) / the group bunker they last played in (#33) */
+  personal?: boolean;
+  fromLast?: boolean;
   /** a signed link token to this bunker: opens the same game in a normal browser */
   token?: string;
 }
@@ -215,7 +218,8 @@ export async function startTelegram(onJoined: () => void): Promise<boolean> {
     toast(s.error ?? "Не удалось войти через Telegram");
     return false;
   }
-  tgInfo = { code: s.code, name: s.name, chatTitle: s.chatTitle, verified: s.verified, token: s.token };
+  tgInfo = { code: s.code, name: s.name, chatTitle: s.chatTitle, verified: s.verified, token: s.token, personal: s.personal, fromLast: s.fromLast };
+  if (s.fromLast) toast(s.chatTitle ? `Вы в бункере группы «${s.chatTitle}», где играли в прошлый раз` : "Вы в бункере группы, где играли в прошлый раз");
   setPlayerId(s.pid);
   net.joinExtra = { sig: s.sig };
   localStorage.setItem("bunker.name", s.name);

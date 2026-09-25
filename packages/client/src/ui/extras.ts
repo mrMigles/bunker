@@ -108,6 +108,7 @@ export function installExtras(game: GameUI) {
   CLIENT_SCREENS.cook = (a) => (openCook(a), true);
   CLIENT_SCREENS.craft = (a) => (openCraft(a), true);
   CLIENT_SCREENS.board = () => (openBoard(), true);
+  CLIENT_SCREENS.watch_table = (a) => ((table.spectating = a.t.id), true);
   CLIENT_SCREENS.carry_to_store = () => {
     // walk the armful to the nearest shelf and put it away
     const me = net.myChar();
