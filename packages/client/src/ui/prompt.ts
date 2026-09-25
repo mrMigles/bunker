@@ -17,6 +17,7 @@ export class Prompt {
   private listKey = "";
   private focused: string | null = null;
   private title = "Рядом с вами";
+  private mobileExpanded = false;
 
   focus(id: string, title: string) { this.focused = id; this.title = title; this.key = ""; }
 
@@ -63,6 +64,7 @@ export class Prompt {
     if (lk !== this.listKey) {
       this.listKey = lk;
       this.sel = 0;
+      this.mobileExpanded = false;
     }
     if (this.sel >= this.list.length) this.sel = 0;
     menuArrows.on = this.list.length >= 2;
@@ -76,12 +78,36 @@ export class Prompt {
     this.key = key;
     clear(this.el);
     const focusedHere = this.title !== "Рядом с вами";
-    this.el.append(h("div.dock-heading", null, h("span", null, icon(focusedHere ? "target" : "hand"), " ", this.title), focusedHere ? h("button.small.dock-all", { onclick: () => { this.focused = null; this.title = "Рядом с вами"; this.key = ""; } }, "всё рядом") : null, this.list.length > 1 ? h("span.dock-keys", null, "↑↓ выбор · E действие") : this.list.length ? h("span.dock-keys", null, "E действие") : null));
+    this.el.classList.toggle("mobile-expanded", this.mobileExpanded);
+    this.el.append(
+      h(
+        "div.dock-heading",
+        null,
+        h("span", null, icon(focusedHere ? "target" : "hand"), " ", this.title),
+        focusedHere ? h("button.small.dock-all", { onclick: () => { this.focused = null; this.title = "Рядом с вами"; this.key = ""; } }, "всё рядом") : null,
+        this.list.length > 1
+          ? h(
+              "button.small.mobile-action-toggle",
+              {
+                "aria-expanded": String(this.mobileExpanded),
+                onclick: () => {
+                  this.mobileExpanded = !this.mobileExpanded;
+                  this.key = "";
+                  this.update(false);
+                },
+              },
+              this.mobileExpanded ? "Свернуть" : `Ещё ${this.list.length - 1}`,
+              icon(this.mobileExpanded ? "chevronDown" : "chevronRight"),
+            )
+          : null,
+        this.list.length > 1 ? h("span.dock-keys", null, "↑↓ выбор · E действие") : this.list.length ? h("span.dock-keys", null, "E действие") : null,
+      ),
+    );
     if (taskLine) this.el.appendChild(h("div.dim", null, taskLine));
     this.list.forEach((a, i) => {
       this.el.appendChild(
         h(
-          "button.opt" + (i === this.sel ? ".sel" : "") + (a.reason ? ".dis" : ""),
+          "button.opt" + (i === this.sel ? ".sel" : "") + (a.reason ? ".dis" : "") + (i > 0 ? ".mobile-extra-action" : ""),
           {
             disabled: !!a.reason,
             // «hold» actions (pedalling, digging…) last while the finger or the mouse button is down

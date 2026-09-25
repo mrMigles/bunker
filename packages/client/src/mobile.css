@@ -605,3 +605,480 @@ html.mobile .exp-destination {
 html.mobile .exp-side .exp-eyebrow {
   font-size: 9px;
 }
+
+/* ========================================================================
+   Mobile HUD v2
+   Keep the bunker visible: every information-heavy panel starts as a one-line
+   summary and expands only when the player asks for it. Portrait is a first-
+   class layout, not a rotate-device interstitial.
+   ======================================================================== */
+html.mobile body {
+  font-size: 11px;
+}
+
+/* Context actions: the primary action is always visible; the rest live behind
+   a deliberate disclosure control. Keyboard selection still sees the full list. */
+html.mobile .mobile-action-toggle {
+  display: inline-flex !important;
+  min-height: 24px;
+  padding: 2px 7px;
+  margin-left: auto;
+  font-size: 9.5px;
+  white-space: nowrap;
+}
+html.mobile .mobile-action-toggle .ic {
+  width: 12px;
+  height: 12px;
+}
+html.mobile .action-dock:not(.mobile-expanded) .mobile-extra-action {
+  display: none !important;
+}
+html.mobile .action-dock:not(.mobile-expanded) {
+  overflow: hidden;
+}
+html.mobile .action-dock.mobile-expanded {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+html.mobile .dock-heading {
+  gap: 5px;
+}
+html.mobile .dock-heading > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Survivor summary: two useful numbers when folded, all bars after a tap. */
+html.mobile .hud-me {
+  padding: 5px 7px;
+}
+html.mobile .hud-me:not(.mobile-expanded) > :not(.survivor-portrait):not(.hud-me-head):not(.hud-me-peek) {
+  display: none !important;
+}
+html.mobile .hud-me .hud-me-head {
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}
+html.mobile .hud-me .hud-me-head .name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+html.mobile .hud-me-toggle {
+  display: inline-flex !important;
+  flex: none;
+  width: 23px;
+  min-width: 23px;
+  height: 23px;
+  min-height: 23px !important;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+html.mobile .hud-me-toggle .ic {
+  width: 14px;
+  height: 14px;
+}
+html.mobile .hud-me-peek {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  padding-top: 3px;
+  color: var(--dim);
+}
+html.mobile .hud-me-peek > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+html.mobile .hud-me-peek .ic {
+  width: 13px;
+  height: 13px;
+}
+html.mobile .hud-me-peek b {
+  color: var(--text);
+  font-size: 10px;
+}
+html.mobile .hud-me-peek small {
+  margin-left: auto;
+  font-size: 8.5px;
+}
+html.mobile .hud-me.mobile-expanded {
+  width: 178px;
+  max-height: min(58dvh, 250px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+html.mobile .hud-me.mobile-expanded .hud-me-peek {
+  display: none !important;
+}
+html.mobile .hud-me.mobile-expanded .need {
+  display: grid;
+}
+
+/* The desktop journal remains visible as a passive feed. On touch screens it is
+   opened from the icon rail so it never sits over live play. */
+html.mobile .journal-dock-button {
+  display: flex !important;
+}
+.mobile-journal {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.mobile-journal-entry {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--frame-soft);
+  line-height: 1.4;
+}
+.mobile-journal-entry.bad { color: #f0a093; }
+.mobile-journal-entry.good { color: #a9d891; }
+.mobile-journal-entry.chat { color: #a9d5ed; }
+
+/* Every mobile window owns exactly one vertical scroll surface. Dynamic viewport
+   units account for the browser address bar; safe-area padding keeps the last
+   action reachable above gesture/navigation UI. */
+html.mobile .modal-back {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+html.mobile .modal {
+  box-sizing: border-box;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh !important;
+  min-height: 0;
+  padding: calc(8px + env(safe-area-inset-top)) calc(10px + var(--sr)) calc(22px + env(safe-area-inset-bottom)) calc(10px + var(--sl));
+  overflow-x: hidden;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+html.mobile .modal > * {
+  min-width: 0;
+}
+html.mobile .modal h2 {
+  position: sticky;
+  top: calc(-8px - env(safe-area-inset-top));
+  z-index: 4;
+  margin: 0 0 8px;
+  padding: calc(8px + env(safe-area-inset-top)) 42px 8px 0;
+  background: linear-gradient(180deg, rgba(28, 23, 20, 0.99) 80%, rgba(28, 23, 20, 0));
+}
+html.mobile .modal .close {
+  position: fixed;
+  top: calc(5px + env(safe-area-inset-top));
+  right: calc(6px + var(--sr));
+  z-index: 35;
+}
+html.mobile .modal .row {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+html.mobile .modal .crew-list,
+html.mobile .modal .intercom-trade .trade-cols,
+html.mobile .modal .prep-cols,
+html.mobile .modal .prep-col {
+  min-width: 0;
+  max-height: none !important;
+  overflow: visible !important;
+}
+html.mobile .modal .crew-list {
+  width: 100%;
+}
+html.mobile .modal table,
+html.mobile .modal .table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+html.mobile .settings-foot,
+html.mobile .exp-prep-foot {
+  position: sticky;
+  bottom: calc(-22px - env(safe-area-inset-bottom));
+  z-index: 3;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+/* Council uses named rows instead of fixed inline widths, so ration controls can
+   reflow without pushing the final residents or the Ready button off-screen. */
+html.mobile .council-panel {
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+html.mobile .council-head {
+  position: sticky;
+  top: -14px;
+  z-index: 3;
+  padding: 7px 0;
+  background: linear-gradient(180deg, rgba(27, 22, 19, 0.99) 82%, transparent);
+}
+html.mobile .council-summary {
+  display: grid;
+  grid-template-columns: auto auto minmax(160px, 1fr);
+  align-items: center;
+  gap: 8px 14px !important;
+}
+html.mobile .ration-row {
+  display: grid !important;
+  grid-template-columns: minmax(125px, 1.35fr) 78px 78px auto;
+  align-items: center;
+  gap: 6px;
+}
+html.mobile .ration-name,
+html.mobile .ration-need {
+  min-width: 0;
+}
+html.mobile .ration-controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(32px, 1fr));
+  gap: 3px;
+}
+html.mobile .ration-controls button {
+  min-width: 0;
+  padding: 3px 6px;
+}
+html.mobile .council-ready-row {
+  bottom: calc(-14px - env(safe-area-inset-bottom));
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+/* ---------------------------------------------------------------- portrait phone */
+@media (orientation: portrait) and (max-width: 700px) {
+  html.mobile {
+    --top: 43px;
+    --gap: 6px;
+  }
+  html.mobile body[data-phase]:not([data-phase="lobby"])::before {
+    content: none !important;
+    display: none !important;
+  }
+  html.mobile .hud-top {
+    left: calc(var(--gap) + var(--sl));
+    right: calc(var(--gap) + var(--sr));
+    top: 0;
+    height: var(--top);
+    min-height: var(--top);
+    padding: 3px 5px;
+    border-radius: 0 0 10px 10px;
+  }
+  html.mobile .hud-clock,
+  html.mobile .hud-time {
+    padding-right: 5px;
+    margin-right: 2px;
+  }
+  html.mobile .hud-clock strong,
+  html.mobile .hud-time strong {
+    font-size: 11.5px;
+    letter-spacing: .25px;
+  }
+  html.mobile .resource-meter {
+    display: none;
+    grid-template-columns: 17px auto;
+    grid-template-rows: 24px;
+    padding: 0 1px;
+  }
+  html.mobile .resource-meter:nth-of-type(3),
+  html.mobile .resource-meter:nth-of-type(4),
+  html.mobile .resource-meter:nth-of-type(5) {
+    display: grid;
+  }
+  html.mobile .resource-meter .atlas-art {
+    width: 17px;
+    height: 17px;
+  }
+  html.mobile .resource-meter b {
+    font-size: 11px;
+  }
+  html.mobile .game-toolbar {
+    top: calc(var(--top) + 5px);
+    right: calc(var(--gap) + var(--sr));
+  }
+  html.mobile .game-toolbar button {
+    width: 42px;
+    height: 36px;
+    min-height: 36px;
+  }
+  html.mobile .objectives {
+    top: calc(var(--top) + 5px);
+    left: calc(var(--gap) + var(--sl));
+    width: min(160px, calc(100vw - 150px));
+    max-height: 34dvh;
+    padding: 3px 6px;
+  }
+  html.mobile .objectives-head {
+    font-size: 10.5px;
+  }
+  html.mobile .objective {
+    font-size: 10px;
+  }
+  html.mobile .game-dock {
+    top: calc(var(--top) + 49px);
+    right: calc(var(--gap) + var(--sr));
+    max-height: calc(100dvh - var(--top) - 215px);
+    overflow-y: auto;
+  }
+  html.mobile .game-dock button {
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+  }
+  html.mobile .touch-stick {
+    left: calc(10px + var(--sl));
+    bottom: calc(98px + env(safe-area-inset-bottom));
+    width: 106px;
+    height: 106px;
+  }
+  html.mobile .touch-knob {
+    left: 30px;
+    top: 30px;
+    width: 42px;
+    height: 42px;
+  }
+  html.mobile .touch-pad {
+    right: calc(8px + var(--sr));
+    bottom: calc(108px + env(safe-area-inset-bottom));
+  }
+  html.mobile .touch-btn.big {
+    width: 70px;
+    height: 70px;
+  }
+  html.mobile .hud-me,
+  html.mobile .hud-me.mobile-expanded {
+    left: 50%;
+    right: auto;
+    bottom: calc(105px + env(safe-area-inset-bottom));
+    width: min(150px, calc(100vw - 232px));
+    max-height: 230px;
+    transform: translateX(-50%);
+  }
+  html.mobile .hud-me .name {
+    font-size: 9.5px;
+  }
+  html.mobile .hud-me-peek {
+    gap: 5px;
+  }
+  html.mobile .hud-me-peek small {
+    display: none;
+  }
+  html.mobile .action-dock,
+  html.mobile .prologue-actions,
+  html.mobile .exp-context.prompt {
+    left: calc(var(--gap) + var(--sl)) !important;
+    right: calc(var(--gap) + var(--sr)) !important;
+    bottom: calc(var(--gap) + env(safe-area-inset-bottom));
+    width: auto;
+    max-height: 42dvh;
+    z-index: 24;
+  }
+  html.mobile .action-dock .prompt.opt,
+  html.mobile .prompt .opt {
+    font-size: 10.5px;
+    min-height: 34px;
+  }
+  html.mobile .action-dock.mobile-expanded {
+    box-shadow: 0 -12px 42px #000d !important;
+  }
+  html.mobile .prologue-hud {
+    left: 50%;
+    bottom: calc(102px + env(safe-area-inset-bottom));
+    width: 145px;
+    transform: translateX(-50%);
+  }
+  html.mobile .exp-hud {
+    top: calc(var(--top) + 48px);
+    right: calc(48px + var(--sr));
+    width: 150px;
+  }
+  html.mobile .exp-dock {
+    top: calc(var(--top) + 48px);
+  }
+  html.mobile .tip-card {
+    top: calc(var(--top) + 92px);
+    width: calc(100vw - 24px);
+    max-height: 38dvh;
+    overflow-y: auto;
+  }
+  html.mobile body[data-phase="night"] .hud-me,
+  html.mobile body[data-phase="night"] .objectives,
+  html.mobile body[data-phase="ending"] .hud-me,
+  html.mobile body[data-phase="ending"] .objectives {
+    display: none !important;
+  }
+  html.mobile .council-panel {
+    top: 27dvh !important;
+    bottom: 0;
+    width: 100vw !important;
+    max-height: 73dvh !important;
+    padding: 12px 12px calc(18px + env(safe-area-inset-bottom)) !important;
+    border-radius: 22px 22px 0 0 !important;
+  }
+  html.mobile .council-title {
+    font-size: 17px;
+  }
+  html.mobile .council-explain {
+    margin: 6px 0;
+    padding: 8px !important;
+  }
+  html.mobile .council-explain p {
+    display: block;
+    font-size: 11px;
+  }
+  html.mobile .council-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  html.mobile .council-steps span {
+    padding: 4px 3px !important;
+    text-align: center;
+    font-size: 9px;
+  }
+  html.mobile .council-summary {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px !important;
+  }
+  html.mobile .council-summary > :last-child {
+    grid-column: 1 / -1;
+  }
+  html.mobile .ration-row {
+    grid-template-columns: 1fr 1fr;
+    padding: 7px 0 !important;
+  }
+  html.mobile .ration-name {
+    grid-column: 1 / -1;
+    font-size: 11px;
+  }
+  html.mobile .ration-row > .grow {
+    display: none;
+  }
+  html.mobile .ration-controls {
+    grid-column: 1 / -1;
+  }
+  html.mobile .ration-controls button {
+    min-height: 34px;
+  }
+  html.mobile .council-ready-row {
+    margin: 10px -12px calc(-18px - env(safe-area-inset-bottom)) !important;
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+  html.mobile .council-ready-row .dim {
+    display: none;
+  }
+  html.mobile .council-ready-row button {
+    width: 100%;
+  }
+}

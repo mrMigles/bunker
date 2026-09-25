@@ -31,12 +31,14 @@ export class Hud {
   lastLogLen = 0;
   labelEls = new Map<string, HTMLElement>();
   hidden = false;
+  private mobileStatsExpanded = false;
 
   constructor(private r: WorldRenderer) {
     this.root.append(this.labels, this.top, this.me, this.feed, this.help);
-    // on a phone the small survivor card opens «Персонаж»
+    // On a phone the survivor card is a compact glanceable strip. Tap it to reveal the bars;
+    // the dedicated character button still opens the complete character screen.
     this.me.addEventListener("click", (e) => {
-      if (document.documentElement.classList.contains("mobile") && !(e.target as HTMLElement).closest("button")) (window as any).__openCharacter?.();
+      if (document.documentElement.classList.contains("mobile") && !(e.target as HTMLElement).closest("button")) this.toggleMobileStats();
     });
     ui().appendChild(this.root);
     this.help.innerHTML = "<b>МЫШЬ</b> идти / выбрать предмет <span>·</span> <b>WASD</b> движение <span>·</span> <b>Esc</b> отмена";
@@ -47,6 +49,29 @@ export class Hud {
   setHidden(v: boolean) {
     this.hidden = v;
     for (const el of [this.top, this.me, this.feed, this.help]) el.classList.toggle("hidden", v);
+  }
+
+  private toggleMobileStats() {
+    this.mobileStatsExpanded = !this.mobileStatsExpanded;
+    this.me.classList.toggle("mobile-expanded", this.mobileStatsExpanded);
+    this.meKey = "";
+    if (net.pub) this.renderMe(net.pub);
+  }
+
+  /** The mobile HUD keeps the journal behind an icon instead of covering the scene. */
+  openJournal() {
+    const log = (net.pub?.log ?? []) as any[];
+    modal(
+      "Журнал событий",
+      h(
+        "div.mobile-journal",
+        null,
+        ...(log.length
+          ? log.slice(-40).reverse().map((e) => h("div.mobile-journal-entry." + (e.kind ?? "system"), null, e.who ? h("b", null, `${e.who}: `) : null, e.text))
+          : [h("div.dim", null, "В журнале пока тихо.")]),
+      ),
+      { icon: "journal", cls: "journal-modal" },
+    );
   }
 
   onFx(f: Fx) {
@@ -120,6 +145,7 @@ export class Hud {
 
   private meKey = "";
   renderMe(v: any) {
+    this.me.classList.toggle("mobile-expanded", this.mobileStatsExpanded);
     const c = net.myChar();
     if (!c) {
       const key = "ghost" + (net.priv?.pid ?? "");
@@ -135,9 +161,29 @@ export class Hud {
     this.meKey = key;
     clear(this.me);
     const pd = PROFS[c.card.prof];
+    const secondaryNeeds: ("food" | "water" | "energy" | "sanity")[] = ["food", "water", "energy", "sanity"];
+    secondaryNeeds.sort((a, b) => c.needs[a] - c.needs[b]);
+    const peekNeed = secondaryNeeds[0];
     this.me.append(portrait(c.id, c.card, "survivor-portrait", () => art(portraitTile(c.card.prof, c.card.gender))));
     add(this.me,
-      h("div.row", null, h("span.name", null, `${pd?.icon ?? ""} ${c.card.name}`), h("span.dim", null, pd?.name)),
+      h(
+        "div.row.hud-me-head",
+        null,
+        h("span.name", null, `${pd?.icon ?? ""} ${c.card.name}`),
+        h("span.dim", null, pd?.name),
+        h(
+          "button.small.hud-me-toggle",
+          { "aria-label": this.mobileStatsExpanded ? "Свернуть показатели" : "Показать показатели", "aria-expanded": String(this.mobileStatsExpanded), onclick: () => this.toggleMobileStats() },
+          icon(this.mobileStatsExpanded ? "chevronDown" : "chevronRight"),
+        ),
+      ),
+      h(
+        "div.hud-me-peek",
+        null,
+        h("span", { title: NEED_NAMES.health }, cic(NEED_IC, "health"), h("b", null, c.needs.health)),
+        h("span", { title: NEED_NAMES[peekNeed] }, cic(NEED_IC, peekNeed), h("b", null, c.needs[peekNeed])),
+        h("small", null, "показатели"),
+      ),
       levelLine(c),
       c.perkOffer?.length ? h("button.small.primary.perk-btn", { onclick: () => openPerkChoice() }, "⭐ Новый уровень — выберите умение") : null,
       c.status !== "ok" ? h("div.bad", null, c.status === "down" ? `Без сознания! ${c.downT} с` : c.status === "breakdown" ? "Нервный срыв!" : c.status === "dead" ? "Погиб" : "") : null,

@@ -75,6 +75,7 @@ export function installExtras(game: GameUI) {
   const dock = h("nav.game-dock", { "aria-label": "Действия в бункере" },
     h("button", { onclick: () => openCharacterScreen(), title: "Персонаж: снаряжение, вещи спутников, прокачка (I)" }, icon("user"), h("span", null, "Персонаж")),
     h("button", { onclick: () => openBoard(), title: "Убежище: склад, дела, газета, рецепты (Tab)" }, icon("box"), h("span", null, "Убежище")),
+    h("button.journal-dock-button", { onclick: () => game.hud.openJournal(), title: "Журнал событий" }, icon("journal"), h("span", null, "Журнал")),
     h("button", { onclick: () => { game.navigation.cancel(); game.build.toggle(); }, title: "Стройка (B)" }, icon("hammer"), h("span", null, "Строить")),
     h("button", { onclick: travel, title: "Вылазка" }, icon("backpack"), h("span", null, "Вылазка")),
     h("button", { onclick: () => game.setAquarium(!game.aquarium), title: "Отдать персонажа боту и смотреть (H)" }, icon("eye"), h("span", null, "Наблюдать")),

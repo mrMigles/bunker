@@ -37,6 +37,7 @@ button.good {background:linear-gradient(145deg,#256343,#153d2c);border-color:#88
 .hud-feed .msg {font-size:11px;line-height:1.35;border:0;border-bottom:1px solid #ffffff0c;border-radius:0;background:none;padding:6px 0;color:#c6cccb}.hud-feed .msg.bad{color:#e9a69a}.hud-feed .msg.good{color:#c0d5b2}
 .game-dock {position:fixed;bottom:15px;right:14px;display:flex;gap:6px;z-index:10;padding:5px;border:1px solid #424e58;border-radius:8px;background:#0c141be8}
 .game-dock button {display:flex;align-items:center;gap:9px;min-height:40px;padding:6px 13px;font-size:21px;border-color:#3e4850}.game-dock span {font-size:12px}
+.journal-dock-button,.mobile-action-toggle,.hud-me-toggle,.hud-me-peek{display:none!important}
 .help {bottom:18px;left:380px;right:auto;font-size:10px;text-align:left;line-height:1.6;color:#afb1aa;max-width:300px;padding:6px 10px;border-left:1px solid #6e797d66}.help b{font-size:9px;color:#deded7}.help span{color:#6f7776;margin:0 6px}
 .action-dock {left:auto!important;top:auto!important;right:14px;bottom:83px;transform:none;width:310px;padding:10px;max-height:325px;overflow:auto;white-space:normal;z-index:11}
 .dock-heading {display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;color:#eae8df;border-bottom:1px solid #626b704d;padding:0 2px 8px;margin-bottom:6px;letter-spacing:.3px}

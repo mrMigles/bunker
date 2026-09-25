@@ -12,7 +12,7 @@ const MULTS: [number, string][] = [
 ];
 
 export class CouncilUI {
-  el = h("div.panel", { style: { position: "fixed", left: "50%", top: "52px", transform: "translateX(-50%)", width: "min(760px, calc(100vw - 24px))", maxHeight: "calc(100vh - 64px)", overflow: "auto", padding: "14px", zIndex: "20" } });
+  el = h("div.panel.council-panel", { style: { position: "fixed", left: "50%", top: "52px", transform: "translateX(-50%)", width: "min(760px, calc(100vw - 24px))", maxHeight: "calc(100dvh - 64px)", overflow: "auto", padding: "14px", zIndex: "20" } });
   noteInput = h("input", { placeholder: "Заметка на доску: кто идёт в вылазку, что строим…", maxLength: 120, style: { flex: "1" } }) as HTMLInputElement;
   private key = "";
   private minimized = false;
@@ -58,7 +58,7 @@ export class CouncilUI {
     ];
     this.el.append(
       h(
-        "div.row",
+        "div.row.council-head",
         null,
         h("h2.council-title", null, icon("moon"), `Ночь ${v.day} · Совет`),
         h("div.grow"),
@@ -88,7 +88,7 @@ export class CouncilUI {
       h(
         "div.council-explain",
         null,
-        h("div.council-steps", null, ...steps.map(([id, label], i) => h("span" + (i < idx ? ".done" : i === idx ? ".now" : ""), null, (i < idx ? "✓ " : "") + label))),
+        h("div.council-steps", null, ...steps.map(([, label], i) => h("span" + (i < idx ? ".done" : i === idx ? ".now" : ""), null, (i < idx ? "✓ " : "") + label))),
         h("b", null, what),
         h("p", null, how),
         h("small.dim", null, solo ? "Совет ждёт вас: читайте спокойно и нажмите «Готов». Утром — новый день, решения уже в силе." : h("span", null, "Совет идёт дальше, когда все нажмут «Готов» или через ", h("span.council-left", null, String(left)), " с. Утром — новый день, решения уже в силе.")),
@@ -122,7 +122,7 @@ export class CouncilUI {
     const water = v.res.water ?? 0;
     this.el.append(
       h(
-        "div.row",
+        "div.row.council-summary",
         { style: { margin: "10px 0", gap: "20px" } },
         h("div", null, "🥫 Еды: ", h("b", { class: food >= wantF ? "good" : "bad" }, food.toFixed(1)), ` / нужно ${wantF.toFixed(1)}`),
         h("div", null, "💧 Воды: ", h("b", { class: water >= wantW ? "good" : "bad" }, Math.floor(water)), ` / нужно ${wantW}`),
@@ -142,20 +142,24 @@ export class CouncilUI {
       const player = c.ctrl ? v.players[c.ctrl] : null;
       this.el.append(
         h(
-          "div.row",
+          "div.row.ration-row",
           { style: { padding: "3px 0", borderBottom: "1px solid #2a221c" } },
-          h("div", { style: { width: "210px" } }, `${PROFS[c.card.prof]?.icon ?? ""} ${c.card.name}`, player ? h("span.dim", null, ` (${player.name})`) : h("span.dim", null, " (бот)")),
-          h("div", { style: { width: "90px" } }, h("span.dim", { style: { fontSize: "11px" } }, "сытость"), bar(c.needs.food)),
-          h("div", { style: { width: "90px" } }, h("span.dim", { style: { fontSize: "11px" } }, "вода"), bar(c.needs.water)),
+          h("div.ration-name", null, `${PROFS[c.card.prof]?.icon ?? ""} ${c.card.name}`, player ? h("span.dim", null, ` (${player.name})`) : h("span.dim", null, " (бот)")),
+          h("div.ration-need", null, h("span.dim", { style: { fontSize: "11px" } }, "сытость"), bar(c.needs.food)),
+          h("div.ration-need", null, h("span.dim", { style: { fontSize: "11px" } }, "вода"), bar(c.needs.water)),
           h("div.grow"),
-          ...MULTS.map(([m, label]) =>
-            h(
-              "button.small" + (cur === m ? ".primary" : ""),
-              {
-                title: c.id === myChar && m < cur ? "Урезать свой паёк (без голосования)" : "Предложить совету",
-                onclick: () => cur !== m && net.send({ k: "ration", char: c.id, mult: m }),
-              },
-              label,
+          h(
+            "div.ration-controls",
+            null,
+            ...MULTS.map(([m, label]) =>
+              h(
+                "button.small" + (cur === m ? ".primary" : ""),
+                {
+                  title: c.id === myChar && m < cur ? "Урезать свой паёк (без голосования)" : "Предложить совету",
+                  onclick: () => cur !== m && net.send({ k: "ration", char: c.id, mult: m }),
+                },
+                label,
+              ),
             ),
           ),
         ),
