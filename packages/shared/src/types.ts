@@ -122,6 +122,8 @@ export interface Char {
   mind: BotMind;
   status: CharStatus;
   downT: number;
+  /** what put them down: «жажда», «голод», «ранение в бою»… (#22) */
+  downCause?: string;
   breakT: number;
   anim: string; // idle, walk, work, sleep, sit, climb, dance...
   bark: Bark | null;
@@ -208,6 +210,8 @@ export interface Chore {
   pinnedBy?: string;
   prio?: boolean;
   created: number;
+  /** nobody could find a way to it: no bot takes it again before this game hour (day*24+hour) */
+  noPath?: number;
 }
 
 export interface Power {

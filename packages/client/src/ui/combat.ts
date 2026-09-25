@@ -6,6 +6,7 @@ import {
   hitChance,
   moveCost,
   pathTo,
+  standError,
   validatePlan,
   weaponOf,
   type Action,
@@ -452,12 +453,20 @@ export class CombatUI {
         this.qT = this.playEvent(e);
       }
     }
-    // unit positions
+    // unit positions; two of ours on one cell stand half a cell apart (#36)
+    const onCell = new Map<string, string[]>();
+    for (const x of Object.values(s.units) as Unit[]) {
+      if (x.dead || x.fled) continue;
+      const k = x.col + "," + x.floor;
+      onCell.set(k, [...(onCell.get(k) ?? []), x.id]);
+    }
     for (const [id, vw] of this.views) {
       const u = s.units[id] as Unit | undefined;
       if (!u) continue;
       if (!animating) {
-        const [x, y] = this.pos(u.col, u.floor);
+        let [x, y] = this.pos(u.col, u.floor);
+        const mates = onCell.get(u.col + "," + u.floor) ?? [];
+        if (mates.length > 1) x += (mates.indexOf(id) - (mates.length - 1) / 2) * 0.5;
         vw.x += (x - vw.x) * Math.min(1, dt * 8);
         vw.y += (y - vw.y) * Math.min(1, dt * 8);
       }
@@ -652,7 +661,12 @@ export class CombatUI {
       tint.userData.plan = strip.userData.plan = true;
       this.overlay.add(tint, strip);
     };
-    // the own fighter always stands on a green strip, the picked target on a red one
+    // every fighter stands on its side's colour: red is for enemies only, the own fighter bright green,
+    // other allies a muted green — findable at a glance at any zoom (#35)
+    for (const o of Object.values(s.units) as Unit[]) {
+      if (o.dead || o.fled || o.id === u.id) continue;
+      addMark(o.col, o.floor, o.side === "enemy" ? 0xff4a3a : 0x5fae6a, o.side === "enemy" ? 0.3 : 0.18);
+    }
     if (!u.dead && !u.fled) addMark(u.col, u.floor, 0x7dff8a, 0.34);
     const picked = this.selectedTarget ? (s.units[this.selectedTarget] as Unit | undefined) : undefined;
     if (picked && !picked.dead && !picked.fled) addMark(picked.col, picked.floor, picked.side === "enemy" ? 0xff5a4a : 0x9fe07a, 0.34);
@@ -668,8 +682,8 @@ export class CombatUI {
           for (let col = 0; col < s.field.cols; col++) {
             if (col === u.col && fl === u.floor) continue;
             if (!s.field.walk[fl * s.field.cols + col]) continue;
-            // standing room only: cells taken by anyone alive are not destinations
-            if (Object.values(s.units).some((o) => o.col === col && o.floor === fl && !o.dead && !o.fled)) continue;
+            // never onto an enemy, two of ours at most on one cell (#36)
+            if (standError(s as any, u as Unit, col, fl)) continue;
             const path = pathTo(s as any, u as Unit, col, fl);
             if (!path) continue;
             const cost = moveCost(path.length);
@@ -677,7 +691,11 @@ export class CombatUI {
             this.reach.push({ col, floor: fl, dash: u.ap - cost < wap });
           }
       }
-      for (const r of this.reach) addMark(r.col, r.floor, r.dash ? 0xe8c14a : 0x4fa8ff, 0.3);
+      for (const r of this.reach) {
+        // a cell shared with one of ours: teal — «встать вместе»
+        const shared = (Object.values(s.units) as Unit[]).some((o) => o.side === "ally" && !o.dead && !o.fled && o.col === r.col && o.floor === r.floor);
+        addMark(r.col, r.floor, shared ? 0x3fe0d0 : r.dash ? 0xf2c230 : 0x3fa2ff, 0.3);
+      }
     }
     // my plan
     let p = { col: u.col, floor: u.floor };

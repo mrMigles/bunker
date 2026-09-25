@@ -126,9 +126,19 @@ onTick("status", "*", (w, dt) => {
     }
     if (w.phase !== "day") continue;
     if (c.status === "down") {
+      const before = c.downT;
       c.downT -= dt;
       c.anim = "down";
-      if (c.downT <= 0) killChar(w, c, "не дождался помощи");
+      // half a minute left and nobody on the way: say it loudly (#22)
+      if (before > 30 && c.downT <= 30) {
+        const rescuer = Object.values(w.chars).some((o) => o.status === "ok" && (o.task?.action === "rescue" || o.mind?.act?.a === "rescue") && ((o.task as any)?.char === c.id || o.mind?.act?.t === c.id));
+        if (!rescuer) {
+          const meds = (w.res.meds ?? 0) + (w.res.medkit ?? 0) >= 1;
+          fx(w, { k: "toast", text: `🚑 ${firstName(c)}: 30 с до смерти — ${meds ? "подойдите с аптечкой (E)" : "нет ни одной аптечки!"}` });
+          fx(w, { k: "sound", id: "alarm", x: c.x, lv: c.lv });
+        }
+      }
+      if (c.downT <= 0) killChar(w, c, `${c.downCause ?? "без сознания"} — не дождался помощи`);
     } else if (c.status === "breakdown") {
       c.breakT -= dt;
       c.anim = "breakdown";
@@ -142,8 +152,24 @@ onTick("status", "*", (w, dt) => {
   }
 });
 
+/** The real reason health ran out — the chronicle says «жажда», not just «не дождался помощи» (#22). */
+function healthCause(w: World, c: Char): string {
+  const n = c.needs;
+  if (c.injury === "bleed") return "кровотечение";
+  if (n.water <= 0) return "жажда";
+  if (n.food <= 0) return "голод";
+  if (w.air.co2 > 60) return "удушье (CO₂)";
+  if (c.injury === "infection") return "заражение";
+  if (n.rad > BAL.radDmgThreshold) return "радиация";
+  if (c.sick > 0) return "болезнь";
+  if (n.energy <= 0) return "истощение";
+  return "раны";
+}
+
 export function knockDown(w: World, c: Char, why: string) {
   if (c.status === "dead") return;
+  if (why === "здоровье") why = healthCause(w, c);
+  c.downCause = why;
   c.status = "down";
   c.downT = BAL.downSeconds;
   c.task = null;

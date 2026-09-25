@@ -250,6 +250,18 @@ export function pathTo(s: CombatState, u: Unit, col: number, floor: number): { c
 }
 
 /** XCOM-like movement: one AP covers a short move (up to 4 cells), two a dash (up to 8). */
+/**
+ * Can `u` end its move on this cell? Never on an enemy; enemies stand one to a cell; allies may share a cell
+ * two at a time — a narrow corridor must not lock a squad in place (#36). Null = yes, else why not.
+ */
+export function standError(s: CombatState, u: Unit, col: number, floor: number): string | null {
+  const here = Object.values(s.units).filter((o) => o.id !== u.id && !o.dead && !o.fled && o.col === col && o.floor === floor);
+  if (here.some((o) => o.side !== u.side && !o.down)) return "Там противник";
+  const own = here.filter((o) => o.side === u.side).length;
+  if (u.side === "ally" ? own >= 2 : own >= 1) return "Клетка занята";
+  return null;
+}
+
 export function moveCost(steps: number) {
   if (steps <= 0) return 0;
   return steps <= 4 ? 1 : steps <= 8 ? 2 : 3;
@@ -440,6 +452,8 @@ function stepSim(s: CombatState, u: Unit, sim: Sim, a: Action): string | null {
       if (u.tags.includes("static")) return "Не может двигаться";
       const p = pathTo(s, fake, a.col, a.floor);
       if (!p) return "Туда не пройти";
+      const stand = standError(s, u, a.col, a.floor);
+      if (stand) return stand;
       cost = moveCost(p.length);
       sim.col = a.col;
       sim.floor = a.floor;

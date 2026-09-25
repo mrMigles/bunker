@@ -10,7 +10,7 @@ import { ROOMS, addObj, canPlaceRoom, objsInRoom, objsOfKind, placeRoom, roomCos
 import { roomLocked } from "./build";
 import { arriveHooks, capacity, departExpedition, elogPublic as elog, exped, newExpedition, startLegPublic as startAutoLeg, wmap, type Expedition } from "./expedition";
 import { killChar } from "./needs";
-import { foodUnits } from "./items";
+import { foodUnits, missingText, payRes } from "./items";
 import { registerCmd } from "./commands";
 import { onTick } from "./tick";
 import { clamp, firstName, isBotDriven, log, rng } from "./util";
@@ -22,8 +22,27 @@ function alive(w: World) {
   return Object.values(w.chars).filter((c) => c.status !== "dead");
 }
 
+/** Materials already promised to marked rooms that have not paid for their frame yet (#21). */
+export function reservedRes(w: World): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const r of Object.values(w.rooms)) {
+    if (r.state === "done" || (r as any).paid) continue;
+    const cost = roomCost(r.type, r.w);
+    for (const k in cost) out[k] = (out[k] ?? 0) + cost[k];
+  }
+  return out;
+}
+
+/** Enough on the shelves once the marked rooms have taken what they need. */
 function canAfford(w: World, cost: Record<string, number>) {
-  return Object.entries(cost).every(([k, n]) => (w.res[k] ?? 0) >= n);
+  const held = reservedRes(w);
+  return Object.entries(cost).every(([k, n]) => (w.res[k] ?? 0) - (held[k] ?? 0) >= n);
+}
+
+/** A marked room stuck for 2+ days without the materials for its frame (tracked by the foreman tick). */
+function stalled(w: World, id: string) {
+  const since = w.flags["_stall_" + id];
+  return since !== undefined && w.day - since >= 2;
 }
 
 /** Days of food left at one ration per resident per day. */
@@ -40,7 +59,8 @@ function activePlanners(w: World) {
 
 export function neededRoom(w: World): { type: string; why: string } | null {
   const n = alive(w).length;
-  const building = Object.values(w.rooms).some((r) => r.state !== "done");
+  // a room waiting days for its frame materials does not freeze all other planning (#21)
+  const building = Object.values(w.rooms).some((r) => r.state !== "done" && !stalled(w, r.id));
   if (building) return null;
   const trays = objsOfKind(w, "hydro_tray").length + objsOfKind(w, "mushroom_bed").length;
   const beds = objsOfKind(w, "bed").length;
@@ -87,7 +107,10 @@ function autoPlan(w: World) {
     spot = findSpot(w, type);
   }
   if (!spot) return;
-  placeRoom(w, type, spot.x, spot.lv, spot.width, false);
+  const r = placeRoom(w, type, spot.x, spot.lv, spot.width, false);
+  // the frame's materials are set aside right away: digging takes days and nothing else may spend them
+  payRes(w, roomCost(type, spot.width));
+  (r as any).paid = 1;
   w.flags._autoPlanDay = w.day;
   log(w, `🏗 Жильцы сами размечают: ${ROOMS[type].name} (${spot.width} кл.) — ${need.why}. Отменить можно в режиме стройки (B).`, "info");
 }
@@ -310,6 +333,27 @@ registerCmd("expSendBots", (w, p, cmd) => {
 
 // ---------------------------------------------------------------- the tick
 
+/** Unpaid marked rooms that cannot afford their frame: remember since when, say once a day what is missing. */
+function watchStalls(w: World) {
+  for (const r of Object.values(w.rooms)) {
+    const key = "_stall_" + r.id;
+    if (r.state === "done" || (r as any).paid) {
+      delete w.flags[key];
+      continue;
+    }
+    const miss = missingText(w, roomCost(r.type, r.w));
+    if (!miss) {
+      delete w.flags[key];
+      continue;
+    }
+    w.flags[key] ??= w.day;
+    if (r.state === "frame" && (w.flags["_stallSaid_" + r.id] ?? -1) < w.day) {
+      w.flags["_stallSaid_" + r.id] = w.day;
+      log(w, `🏗 Каркас «${ROOMS[r.type]?.name ?? r.type}» ждёт материалов. ${miss}.`, "info");
+    }
+  }
+}
+
 onTick("foreman", "day", (w, dt) => {
   if (!w.settings.botInitiative || w.phase !== "day") return;
   w.flags._foremanT = (w.flags._foremanT ?? 0) + dt;
@@ -318,6 +362,7 @@ onTick("foreman", "day", (w, dt) => {
   // running average of daytime demand (≈ the last few hours)
   w.flags._demAvg = (w.flags._demAvg ?? w.power.demand) * 0.9 + w.power.demand * 0.1;
   const planners = activePlanners(w);
+  watchStalls(w);
   if ((w.flags._autoPowerDay ?? -9) < w.day) autoPower(w);
   // with players around, the colony only steps in after two days without any planning
   const humanQuiet = !planners.length || (w.day >= 3 && (w.flags._humanPlanDay ?? 0) < w.day - 2);

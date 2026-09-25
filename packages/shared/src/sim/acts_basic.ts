@@ -456,6 +456,10 @@ defAction({
     x.status = "ok";
     x.downT = 0;
     x.needs.health = Math.max(x.needs.health, 25);
+    // back on their feet with the same empty stomach they would just fall again: a sip and a bite first (#22)
+    if (x.needs.water < 25 && (w.res.water ?? 0) >= 1) ((w.res.water -= 1), (x.needs.water = 25));
+    if (x.needs.food < 25 && takeFood(w, 1)[0] > 0) x.needs.food = 25;
+    x.downCause = undefined;
     x.anim = "idle";
     x.rel[c.id] = (x.rel[c.id] ?? 0) + 25;
     log(w, `${firstName(c)} спасает ${firstName(x)}!`, "good");

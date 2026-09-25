@@ -11,7 +11,7 @@ import { foodUnits, isStorable } from "./items";
 import { REST_ACTIONS } from "./leisure";
 import { stepMove } from "./move";
 import { onTick } from "./tick";
-import { clamp, firstName, hasTrait, rng, skillLevel } from "./util";
+import { clamp, firstName, hasTrait, isBotDriven, rng, skillLevel } from "./util";
 import { timeMult } from "./time";
 
 const BARKS = barksJson as Record<string, string[]>;
@@ -250,6 +250,7 @@ function pickChore(w: World, c: Char): Plan | null {
     const ch = w.chores[id];
     if (ch.by && ch.by !== c.id) continue;
     if (ch.pinnedBy) continue; // player took it
+    if (ch.noPath && ch.noPath > w.day * 24 + w.hour) continue; // unreachable for now (#20)
     // haul needs empty hands; dig/build need no junk in hands
     const s = choreScore(w, c, ch);
     if (s > bs) {
@@ -310,10 +311,11 @@ export function decide(w: World, c: Char): Plan | null {
       return { a: "extinguish", tt: "room", t: id, thought: "Тушу пожар!" };
     }
   }
-  // someone down
+  // someone down: one rescuer each is enough, the others keep the colony going
   for (const id in w.chars) {
     const o = w.chars[id];
-    if (o.status === "down" && ((w.res.meds ?? 0) >= 1 || (w.res.medkit ?? 0) >= 1)) return { a: "rescue", tt: "char", t: id, thought: `Спасаю ${firstName(o)}!` };
+    if (o.status === "down" && ((w.res.meds ?? 0) >= 1 || (w.res.medkit ?? 0) >= 1) && !rescuerOf(w, id, c.id))
+      return { a: "rescue", tt: "char", t: id, thought: `Спасаю ${firstName(o)}!` };
   }
   // help request from a player
   const hr = (w.mods as any)._helpReq as { char: string; t: number } | undefined;
@@ -406,6 +408,9 @@ function execPlan(w: World, c: Char, p: Plan) {
   if (!routed) {
     const d = ((w.mods as any)._botErr ??= {}) as Record<string, number>;
     d[p.a + ": нет пути"] = (d[p.a + ": нет пути"] ?? 0) + 1;
+    // an unreachable thing is not an eternal goal: rest the chore for two game hours, the map may change (#20)
+    const ch = m.chore ? w.chores[m.chore] : undefined;
+    if (ch) ch.noPath = w.day * 24 + w.hour + 2;
     releaseChore(w, c);
     m.plan = "idle";
     m.act = undefined;
@@ -448,10 +453,43 @@ function shouldStop(w: World, c: Char): boolean {
   return false;
 }
 
+/** Who (other than `except`) is already on the way to or treating the one who is down. */
+function rescuerOf(w: World, id: string, except?: string): Char | undefined {
+  return Object.values(w.chars).find(
+    (o) => o.id !== except && o.status === "ok" && ((o.task?.action === "rescue" && (o.task as any).char === id) || (o.mind.act?.a === "rescue" && o.mind.act.t === id)),
+  );
+}
+
+/**
+ * A resident is down, there are meds, nobody is coming — and this bot is the nearest one who can:
+ * drop whatever it is doing, sleep and own thirst included (#22).
+ */
+function mustRescue(w: World, c: Char): boolean {
+  if (c.status !== "ok" || c.task?.action === "rescue" || c.mind.act?.a === "rescue") return false;
+  if ((w.res.meds ?? 0) < 1 && (w.res.medkit ?? 0) < 1) return false;
+  for (const id in w.chars) {
+    const o = w.chars[id];
+    if (o.status !== "down" || rescuerOf(w, id)) continue;
+    const dist = (x: Char) => Math.abs(x.x - o.x) + Math.abs(x.lv - o.lv) * 6;
+    const nearest = Object.values(w.chars)
+      .filter((x) => x.status === "ok" && isBotDriven(w, x.id) && x.mind.plan !== "combat")
+      .sort((a, b) => dist(a) - dist(b))[0];
+    if (nearest?.id === c.id) return true;
+  }
+  return false;
+}
+
 export function botTick(w: World, c: Char, dt: number) {
   const m = c.mind;
   m.barkCd -= dt;
   m.talkCd -= dt;
+  if (mustRescue(w, c)) {
+    if (c.task) stopTask(w, c);
+    releaseChore(w, c);
+    m.plan = "idle";
+    m.act = undefined;
+    m.idleT = 0;
+  }
   if (c.task) {
     if (shouldStop(w, c)) {
       stopTask(w, c);
