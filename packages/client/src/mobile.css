@@ -1743,3 +1743,17 @@ html.mobile .map-places { margin-bottom: 6px; }
     grid-template-columns: 34px minmax(0, 1fr) 20px auto;
   }
 }
+
+/* the bunker code under the clock: on phones it was hidden, so nobody knew what to tell a friend */
+html.mobile .hud-time small {
+  display: block !important;
+  margin-top: 1px;
+  font-size: 9.5px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  color: var(--dim);
+  text-align: right;
+}
+@media (orientation: portrait) and (max-width: 700px) {
+  html.mobile .hud-time strong { line-height: 1.05; }
+}

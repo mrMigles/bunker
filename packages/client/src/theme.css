@@ -1541,3 +1541,23 @@ html.mobile .restart-text small { font-size: 9.5px; }
   font-size: 12.5px;
   line-height: 1.4;
 }
+.bunker-share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border-radius: 9px;
+  border: 1px solid var(--frame-soft);
+  background: rgba(239, 165, 76, 0.06);
+}
+.bunker-code { display: flex; flex-direction: column; gap: 2px; }
+.bunker-code b {
+  font-size: 22px;
+  letter-spacing: 3px;
+  color: var(--amber-hi, #f6be71);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.bunker-share small { flex-basis: 100%; }

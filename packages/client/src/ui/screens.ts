@@ -691,6 +691,45 @@ export function openCharacter(id: string) {
 
 // ---------------------------------------------------------------- settings
 
+/** The bunker's link: whoever opens it lands in this bunker (after typing their name). */
+export function bunkerLink() {
+  return `${location.origin}${location.pathname}?code=${net.code}`;
+}
+
+export async function shareBunker() {
+  const url = bunkerLink();
+  const text = `Заходи ко мне в бункер «ГЛУБЖЕ» — код ${net.code}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: "ГЛУБЖЕ", text, url });
+      return;
+    }
+  } catch (e) {
+    if ((e as Error)?.name === "AbortError") return; // the player closed the share sheet
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    toast("Ссылка на бункер скопирована");
+  } catch {
+    prompt("Ссылка на бункер:", url);
+  }
+}
+
+function bunkerShare() {
+  return h(
+    "div.bunker-share",
+    null,
+    h(
+      "div.bunker-code",
+      null,
+      h("span.dim", null, "Код бункера"),
+      h("b", { title: "Скопировать код", onclick: () => navigator.clipboard?.writeText(net.code).then(() => toast("Код скопирован"), () => {}) }, net.code),
+    ),
+    h("button.small.primary", { onclick: () => shareBunker(), title: bunkerLink() }, icon("users"), "Поделиться ссылкой"),
+    h("small.dim", null, "По ссылке друг сразу попадёт в этот бункер."),
+  );
+}
+
 export function openSettings(r: { shadows: boolean }) {
   const slider = (cat: "master" | "sfx" | "music" | "radio" | "ambient", label: string) => {
     const inp = h("input", { type: "range", min: 0, max: 1, step: 0.05, value: String(audio.volumes[cat]) }) as HTMLInputElement;
@@ -745,6 +784,7 @@ export function openSettings(r: { shadows: boolean }) {
         "div.sect",
         null,
         h("div.sect-h", null, icon("hatch"), "Бункер"),
+        net.code ? bunkerShare() : null,
         tgInfo?.token && insideTelegram() ? h("button.small", { onclick: () => openInBrowser() }, icon("fullscreen"), "Открыть в браузере — на весь экран") : null,
         net.pub && net.pub.phase !== "lobby" && net.pub.phase !== "ending"
           ? (net.pub as any).restart
