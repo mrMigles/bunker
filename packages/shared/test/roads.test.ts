@@ -105,7 +105,7 @@ describe("companions in a building", () => {
       const w = startedWorld({ players: 1, residents: 6, seed });
       w.flags._dbgOk = 1;
       debugOps.sortie(w, undefined, "p0");
-      debugOps.quiet(w);
+      debugOps.quiet(w, undefined, "p0");
       const e = w.mods.expedition;
       const s = e.site;
       const leader = w.chars[w.players.p0.char!];
