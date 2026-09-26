@@ -105,3 +105,49 @@ export function showMenu(onJoined: () => void) {
 export function phaseName(p: string) {
   return ({ lobby: "лобби", prologue: "пролог", day: "день", night: "ночь", ending: "финал" } as any)[p] ?? p ?? "";
 }
+
+/** A link with ?code=: ask the name first, so friends see who came in, not «Выживший» (#39). */
+export function showJoinByLink(code: string, onJoined: () => void) {
+  document.querySelector(".menu")?.remove();
+  const name = h("input", { placeholder: "Ваше имя", maxLength: 16, value: localStorage.getItem("bunker.name") ?? "", "aria-label": "Ваше имя" }) as HTMLInputElement;
+  const err = h("div.menu-err");
+  const enter = async () => {
+    const n = name.value.trim();
+    if (!n) {
+      err.textContent = "Как вас зовут? Имя увидят остальные в бункере.";
+      name.focus();
+      return;
+    }
+    err.textContent = "";
+    localStorage.setItem("bunker.name", n);
+    try {
+      await net.join(code, n);
+      root.remove();
+      onJoined();
+    } catch (e: any) {
+      err.textContent = e?.message ?? String(e);
+    }
+  };
+  name.addEventListener("keydown", (e) => e.key === "Enter" && enter());
+  const root = h(
+    "div.menu",
+    null,
+    h(
+      "div.menu-col",
+      null,
+      h("div.logo", null, "ГЛУБЖЕ"),
+      h("div.tagline", null, `Вас зовут в бункер ${code.toUpperCase()}.`),
+      h(
+        "div.panel.menu-card",
+        null,
+        h("div.sect-h", null, "Как вас зовут?"),
+        h("label.field", null, icon("user"), name),
+        h("div.menu-row", null, h("button.primary.big", { onclick: enter }, icon("enter"), `Войти в бункер ${code.toUpperCase()}`)),
+        err,
+        h("div.menu-row", null, h("button.small", { onclick: () => (root.remove(), showMenu(onJoined)) }, "В главное меню")),
+      ),
+    ),
+  );
+  ui().appendChild(root);
+  setTimeout(() => name.focus(), 50);
+}

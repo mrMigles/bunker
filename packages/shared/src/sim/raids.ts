@@ -152,6 +152,13 @@ battleEndHooks.raid = (w, b: BattleMod) => {
   if (blast && door) {
     blast.st.closed = door.closed ? 1 : 0;
     if (!door.barricaded) blast.st.barricade = 0;
+    // the fight is over: the defenders open up again — a shut door kept whoever stood in the airlock
+    // cut off from water, beds and work for the rest of the game
+    if (blast.st.closed) {
+      blast.st.closed = 0;
+      blast.st.barricade = 0;
+      log(w, "🚪 Налёт позади — гермодверь снова открыта.", "info");
+    }
   }
   if (s.result === "win") {
     w.notice = clamp(w.notice - 15);

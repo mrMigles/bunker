@@ -85,7 +85,7 @@ body[data-activity=expedition] .game-dock,body[data-activity=combat] .game-dock 
 @media(max-width:900px){.objectives{top:74px;width:240px;left:8px}.objective-hint{display:none}}
 /* full-screen modes: bunker panels step aside */
 body.mode-combat .hud-feed,body.mode-combat .hud-me,body.mode-combat .help,body.mode-combat .action-dock,
-body.mode-table .hud-feed,body.mode-table .action-dock,
+body.mode-table .hud-feed,body.mode-table .action-dock,body.mode-table .game-dock,
 body.mode-map .hud-me,body.mode-map .action-dock,body.mode-map .hud-feed,
 body.mode-site .hud-feed{display:none!important}
 body.mode-build .objectives,body.mode-build .hud-feed,body.mode-build .hud-me,body.mode-build .action-dock{display:none!important}
@@ -259,3 +259,18 @@ html.mobile .prompt .key, html.mobile .exp-action .key {display:none}
 .fd-actions{margin-top:7px;gap:8px;flex-wrap:wrap}
 html.mobile .first-day{top:calc(var(--top) + 6px);left:calc(6px + var(--sl));right:calc(56px + var(--sr));width:auto;transform:none;padding:8px 10px;font-size:12px}
 html.mobile .intro-q{font-size:15px}html.mobile .intro-text{font-size:13px}
+
+/* #15 the sortie hint wraps instead of stretching the dock over the character card */
+html:not(.mobile) body.mode-site .exp-dock-hint{white-space:normal;max-width:260px;line-height:1.3}
+@media (max-width:1500px){html:not(.mobile) body.mode-site .exp-dock{left:calc(50% + 90px)}}
+/* #11 the lobby buttons get a solid bar on phones, the card scrolls under it */
+html.mobile .lobby-actions{background:#0e0b09f7;border-top:1px solid #5c4a36;box-shadow:0 -8px 18px #000c;margin:0 -12px;padding:8px 12px}
+/* #16 toasts on a phone sortie sit under the sortie header and its buttons */
+@media (orientation:portrait){html.mobile body.mode-site .toast{top:calc(var(--top) + 118px)}}
+/* #12 a tip that would cover the thing it explains folds into a chip */
+.tip-card .tip-open{display:none}
+.tip-card.mini{width:auto;max-width:min(260px,70vw);padding:6px 10px;cursor:pointer}
+.tip-card.mini > :not(.tip-head){display:none}
+.tip-card.mini .tip-count{display:none}
+.tip-card.mini .tip-open{display:inline;margin-left:8px;font-size:11px;color:#eac98a}
+html.mobile .tip-card.mini{width:auto;max-width:min(260px,70vw);max-height:none}

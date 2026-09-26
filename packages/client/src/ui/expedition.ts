@@ -187,7 +187,8 @@ export class ExpeditionUI {
       "div.exp-sendbots",
       null,
       h("div.exp-eyebrow", null, "ИЛИ ОТПРАВИТЬ ЖИЛЬЦОВ БЕЗ МЕНЯ"),
-      h("p.dim", null, `${names} пойдут сами. Без вас они не выбирают бои и не прячутся — в опасных местах велик шанс вернуться ни с чем и ранеными.`),
+      // one or several: «Захар пойдёт сам. Без вас он…» (#19)
+      h("p.dim", null, bots.length === 1 ? `${names} пойдёт в одиночку. Без вас не выбирает бои и не прячется — в опасных местах велик шанс вернуться ни с чем и раненым.` : `${names} пойдут сами. Без вас они не выбирают бои и не прячутся — в опасных местах велик шанс вернуться ни с чем и ранеными.`),
       h(
         "div.row",
         null,
@@ -576,7 +577,10 @@ export class ExpeditionUI {
       const label = document.createElementNS(NS, "text");
       label.setAttribute("x", n.x);
       label.setAttribute("y", String(n.y + 5.5));
-      label.setAttribute("font-size", "1.65");
+      label.setAttribute("font-size", document.documentElement.classList.contains("mobile") ? "2.5" : "1.65");
+      label.setAttribute("class", "map-label");
+      // who keeps a label when they crowd: the picked place, where the squad is, home, then the rest
+      label.dataset.prio = String(id === this.selectedNode ? 0 : id === e?.node ? 1 : n.type === "home" ? 2 : 3);
       label.setAttribute("text-anchor", "middle");
       label.setAttribute("fill", "#d7ddd1");
       label.setAttribute("paint-order", "stroke");
@@ -721,7 +725,22 @@ export class ExpeditionUI {
       }),
       h("div.exp-map-legend", null, "● Отряд   ─ Известные дороги   ◆ Опасная зона"),
     );
+    // phones: the places as a list too — a finger finds «Школа на Слесарном» easier than a 20 px dot (#10)
+    if (document.documentElement.classList.contains("mobile")) {
+      const known = (Object.values(nodes) as any[]).filter((n) => n.known && n.type !== "home" && !n.hidden).sort((a, b) => Math.hypot(a.x - (here?.x ?? 50), a.y - (here?.y ?? 50)) - Math.hypot(b.x - (here?.x ?? 50), b.y - (here?.y ?? 50)));
+      if (known.length)
+        side.prepend(
+          h(
+            "div.map-places",
+            null,
+            ...known.slice(0, 8).map((n) =>
+              h("button.small" + (n.id === this.selectedNode ? ".primary" : ""), { onclick: () => ((this.selectedNode = n.id), (this.mapKey = ""), this.renderMap()) }, `${LOC.types[n.type]?.icon ?? "•"} ${n.name}`),
+            ),
+          ),
+        );
+    }
     this.mapEl.append(h("div.exp-map-inner", null, chart, side));
+    requestAnimationFrame(() => cullMapLabels(chart));
   }
 
   tradePanel(e: any) {
@@ -1573,3 +1592,15 @@ const TALK_TEXT: Record<string, string> = {
 };
 
 export { BOX_NAMES };
+
+/** Map labels that would lie on each other: the more important one stays, the other hides (#10). */
+function cullMapLabels(root: Element) {
+  const labels = [...root.querySelectorAll<SVGTextElement>("text.map-label")].sort((a, b) => Number(a.dataset.prio) - Number(b.dataset.prio));
+  const kept: DOMRect[] = [];
+  for (const l of labels) {
+    l.style.display = "";
+    const r = l.getBoundingClientRect();
+    if (kept.some((k) => r.left < k.right + 2 && r.right > k.left - 2 && r.top < k.bottom && r.bottom > k.top)) l.style.display = "none";
+    else kept.push(r);
+  }
+}

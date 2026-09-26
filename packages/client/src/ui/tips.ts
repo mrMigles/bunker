@@ -247,6 +247,7 @@ export class TipsUI {
       // a card leaves by itself once its moment has passed (or after a good while)
       const age = now - this.lastShown;
       if (age > 40 || (age > 8 && !safe(() => this.shown!.when(x)))) this.hide();
+      else this.place();
       return;
     }
     const tip = TIPS.find((t) => !this.seen.has(t.id) && safe(() => t.when(x)));
@@ -264,7 +265,14 @@ export class TipsUI {
     this.save();
     clear(this.el);
     this.el.append(
-      h("div.tip-head", null, h("span.tip-icon", null, t.icon), h("b", null, t.title), h("span.tip-count", null, `подсказка ${this.seen.size} из ${TIPS.length}`)),
+      h(
+        "div.tip-head",
+        { onclick: () => this.el.classList.contains("mini") && (this.el.classList.remove("mini"), this.el.classList.add("open")) },
+        h("span.tip-icon", null, t.icon),
+        h("b", null, t.title),
+        h("span.tip-count", null, `подсказка ${this.seen.size} из ${TIPS.length}`),
+        h("span.tip-open", null, "💡 открыть"),
+      ),
       ...(mobile && t.touch ? t.touch : t.lines).map((l) => h("p", { html: l })),
       h(
         "div.tip-foot",
@@ -273,10 +281,66 @@ export class TipsUI {
         h("button.small.primary", { onclick: () => this.hide() }, "Понятно"),
       ),
     );
-    this.el.classList.remove("hidden");
+    this.el.classList.remove("hidden", "mini", "open");
     this.el.classList.remove("in");
     void this.el.offsetWidth;
     this.el.classList.add("in");
+    this.place();
+  }
+
+  /**
+   * A tip never covers what it explains (#12): try a few spots and take one that overlaps nothing
+   * important; when every spot does, fold into a small «💡» chip in a corner — a tap opens it.
+   */
+  private place() {
+    if (this.el.classList.contains("open")) return;
+    const IMPORTANT = ".council-panel:not(.is-minimized), .mini-modal, .modal, .game-dock, .game-toolbar, .objectives:not(.hidden), .exp-hud, .exp-dock, .exp-side, .build-strip:not(.hidden), .build-panel:not(.hidden), .first-day:not(.hidden), .prologue-hud:not(.hidden), .prologue-actions:not(.hidden), .combat-panel:not(.hidden), .combat-top:not(.hidden), .hud-me, .action-dock:not(.hidden), .touch-stick, .touch-pad, .hud-top, .exp-chart svg, .exp-side";
+    const rects = [...document.querySelectorAll(IMPORTANT)]
+      .filter((e) => !this.el.contains(e) && getComputedStyle(e).display !== "none" && getComputedStyle(e).visibility !== "hidden")
+      .map((e) => e.getBoundingClientRect())
+      .filter((r) => r.width > 0 && r.height > 0);
+    const cover = () => {
+      const a = this.el.getBoundingClientRect();
+      let s = 0;
+      for (const r of rects) s += Math.max(0, Math.min(a.right, r.right) - Math.max(a.left, r.left)) * Math.max(0, Math.min(a.bottom, r.bottom) - Math.max(a.top, r.top));
+      return s;
+    };
+    const st = this.el.style;
+    const set = (p: Partial<CSSStyleDeclaration>) => {
+      st.left = st.right = st.top = st.bottom = st.transform = "";
+      // the stylesheet centres the card with translateX(-50%): a corner spot must switch that off
+      if (Object.keys(p).length && !p.transform) st.transform = "none";
+      Object.assign(st, p);
+    };
+    const top = Math.max(8, ...[...document.querySelectorAll(".hud-top, .combat-top")].map((e) => e.getBoundingClientRect().bottom).filter((b) => b > 0 && b < innerHeight / 3)) + 8;
+    const spots: Partial<CSSStyleDeclaration>[] = [
+      {},
+      { left: "50%", top: top + "px", transform: "translateX(-50%)" },
+      { left: "8px", top: top + "px" },
+      { right: "8px", left: "auto", top: top + "px" },
+      { left: "50%", top: "auto", bottom: "8px", transform: "translateX(-50%)" },
+      { left: "8px", top: "auto", bottom: "8px" },
+      { right: "8px", left: "auto", top: "auto", bottom: "8px" },
+    ];
+    this.el.classList.remove("mini");
+    let best = spots[0],
+      bestCover = Infinity;
+    for (const p of spots) {
+      set(p);
+      const c = cover();
+      if (c < bestCover) ((bestCover = c), (best = p));
+      if (c === 0) return;
+    }
+    // no free spot: a chip in the least busy corner
+    this.el.classList.add("mini");
+    let chipBest = spots[3],
+      chipCover = Infinity;
+    for (const p of spots.slice(2)) {
+      set(p);
+      const c = cover();
+      if (c < chipCover) ((chipCover = c), (chipBest = p));
+    }
+    set(chipBest ?? best);
   }
 
   private hide() {

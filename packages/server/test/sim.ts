@@ -226,18 +226,25 @@ function runGame(seed: number) {
           clumpSamples++;
           const k = where(biggest[0].x, biggest[0].lv);
           cur.clumpWhere[k] = (cur.clumpWhere[k] ?? 0) + 1;
+          if (process.env.SIM_DEBUG_CLUMP && (w.flags._dbgClump ?? -1) < w.day * 24 + Math.floor(w.hour)) {
+            w.flags._dbgClump = w.day * 24 + Math.floor(w.hour);
+            console.error("CLUMP", k, w.day, w.hour.toFixed(1), JSON.stringify(biggest.map((c) => (c.task?.action ?? "-") + "|" + c.mind.plan + "|" + c.mind.thought)));
+          }
         }
         cur.clumpMax = Math.max(cur.clumpMax, biggest.length);
         // frozen: no task and not moving for STILL_SEC game seconds (one sample ≈ 1 s)
         for (const c of alive) {
           const s = (still[c.id] ??= { x: c.x, lv: c.lv, t: 0, flagged: false });
-          if (c.status === "ok" && !c.task && Math.abs(c.x - s.x) < 0.05 && c.lv === s.lv) {
+          // a character a live player drives stands where the player left it: not a frozen bot
+          const human = !!c.ctrl && !!w.players[c.ctrl]?.online && !w.players[c.ctrl]?.aquarium;
+          if (c.status === "ok" && !c.task && !human && Math.abs(c.x - s.x) < 0.05 && c.lv === s.lv) {
             s.t += 20 * 0.05;
             if (s.t >= STILL_SEC && !s.flagged) {
               s.flagged = true;
               cur.frozen++;
               const k = `${where(c.x, c.lv)}: ${c.mind.plan}${c.mind.thought ? " · " + c.mind.thought : ""}`;
               cur.frozenWhere[k] = (cur.frozenWhere[k] ?? 0) + 1;
+              if (process.env.SIM_DEBUG_FROZEN) console.error("FROZEN", JSON.stringify({ day: w.day, h: +w.hour.toFixed(1), x: +c.x.toFixed(2), y: +c.y.toFixed(2), lv: c.lv, climbing: c.climbing, plan: c.mind.plan, act: c.mind.act, path: c.mind.path?.length, dest: c.mind.dest, stall: c.mind.goStallT, idleT: c.mind.idleT, avoid: c.mind.avoid }));
             }
           } else Object.assign(s, { x: c.x, lv: c.lv, t: 0, flagged: false });
         }

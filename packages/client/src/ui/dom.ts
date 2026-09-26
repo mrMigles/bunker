@@ -55,6 +55,9 @@ export const ui = () => document.getElementById("ui")!;
 
 export function toast(text: string) {
   const t = h("div.toast", null, text);
+  // two toasts at once stack instead of lying on each other (#16)
+  const n = document.querySelectorAll(".toast").length;
+  if (n) t.style.marginTop = Math.min(3, n) * 46 + "px";
   ui().appendChild(t);
   setTimeout(() => t.remove(), 3300);
 }

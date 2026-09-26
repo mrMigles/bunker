@@ -229,7 +229,10 @@ export class Hud {
         this.labelEls.set(id, el);
       }
       const [sx, sy] = this.r.toScreen(cv.x, -cv.y + 1.55, 0);
-      el.style.left = sx + "px";
+      // a speech bubble stays readable: not under the phone's icon column, not off the left edge (#16)
+      const half = c.bark?.text ? (el.offsetWidth || 120) / 2 : 0;
+      const right = innerWidth - (document.documentElement.classList.contains("mobile") ? 58 : 8) - half;
+      el.style.left = (half ? Math.max(half + 6, Math.min(right, sx)) : sx) + "px";
       el.style.top = sy + "px";
       const player = c.ctrl ? v.players[c.ctrl] : null;
       // a player who is away still owns their resident: it keeps their name and face, marked as played by a bot

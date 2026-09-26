@@ -100,6 +100,13 @@ export interface BotMind {
   pedalRest?: number;
   /** day of the last morning coffee */
   coffeeDay?: number;
+  /** seconds on the way without getting anywhere (#23) */
+  goStallT?: number;
+  /** the closest this bot has come to its current goal */
+  goBest?: number;
+  goFor?: string;
+  /** object id → game hour until which this bot does not try it again (it could not get there) */
+  avoid?: Record<string, number>;
 }
 
 export type CharStatus = "ok" | "down" | "dead" | "away" | "breakdown";

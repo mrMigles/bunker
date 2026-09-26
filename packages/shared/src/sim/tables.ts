@@ -131,6 +131,9 @@ defAction({
   avail: ({ w, c, o }) => {
     const t = tableFor(w, o!.id);
     if (t.seats.includes(c.id)) return "🃏 За игровым столом";
+    // a resident would get up again at once in work hours (see tick): do not offer the table then —
+    // sitting down and standing up every tick kept bots frozen next to it (#23)
+    if (isBotDriven(w, c.id) && workHours(w) && t.status !== "playing") return null;
     const seat = seatFor(w, t, c);
     if (!seat) return { label: "🃏 Сесть за стол", reason: t.status === "playing" ? "идёт партия — можно смотреть" : "все места заняты — можно смотреть" };
     if (seat.bot) return `🃏 Сесть вместо ${firstName(seat.bot)}`;
@@ -278,6 +281,30 @@ registerCmd("tableInvite", (w, p) => {
   bot.task = { action: "sit_table", obj: table.id, t: 0, dur: 0, hold: false };
   bot.mind.until = w.phaseT + 180;
   bot.bark = { text: "Раздавай!", t: 3 };
+});
+
+/** Sat down during a hand: take a resident bot's cards and play on (#38). */
+registerCmd("tableTakeOver", (w, p, cmd) => {
+  const c = p.char ? w.chars[p.char] : undefined;
+  if (!c?.seat) return "Сначала сядьте за стол";
+  const t = tableFor(w, c.seat);
+  if (t.status !== "playing" || !t.state) return "Партия не идёт";
+  const players = (t.state.players ?? []) as string[];
+  if (players.includes(c.id)) return "Вы уже в партии";
+  const bot = String(cmd.char);
+  const b = w.chars[bot];
+  if (!b || !players.includes(bot) || b.ctrl || !isBotDriven(w, bot)) return "Заменить можно только жильца-бота";
+  // the hand is the same, only the name on it changes: ids appear as quoted strings in the game state
+  t.state = JSON.parse(JSON.stringify(t.state).split(JSON.stringify(bot)).join(JSON.stringify(c.id)));
+  const bi = t.seats.indexOf(bot);
+  const mi = t.seats.indexOf(c.id);
+  if (bi >= 0) t.seats[bi] = c.id;
+  if (mi >= 0 && mi !== bi) t.seats[mi] = null;
+  if (b.task?.action === "sit_table") stopTask(w, b);
+  b.seat = undefined;
+  b.bark = { text: "Держи мои карты!", t: 3 };
+  say(t, "стол", `${firstName(c)} играет вместо ${firstName(b)}`);
+  t.turnT = turnTime(w, t);
 });
 
 registerCmd("tableKick", (w, p, cmd) => {
@@ -451,6 +478,8 @@ modViews.tables = {
         paused: t.paused,
         view: g && t.state ? g.viewFor(t.state, null) : null,
         toAct: g && t.state && t.status === "playing" ? g.toAct(t.state) : [],
+        // who plays this hand: a seated player not in it waits for the next one (#38)
+        players: t.status === "playing" ? ((t.state?.players ?? []) as string[]) : [],
         games: availableGames(w),
       };
     }

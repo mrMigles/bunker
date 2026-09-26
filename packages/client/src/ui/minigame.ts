@@ -16,6 +16,29 @@ type Game = {
 const W = 460,
   H = 250;
 
+/** On a touch screen the words speak of fingers, not keys and a mouse (#13). */
+const TOUCH_WORDS: [RegExp, string][] = [
+  [/Жмите A и D по очереди/g, "Касайтесь левой и правой половины колеса по очереди"],
+  [/A и D по очереди/g, "лево-право по очереди"],
+  [/A, D, A, D/g, "лево, право, лево, право"],
+  [/\[A\]/g, "◀"],
+  [/\[D\]/g, "▶"],
+  [/мышью или W\/S/g, "пальцем вверх-вниз"],
+  [/ПРОБЕЛ или кликайте/g, "касайтесь"],
+  [/ПРОБЕЛ или клик/g, "касание"],
+  [/ПРОБЕЛ/g, "касание"],
+  [/Зажмите мышь/g, "Ведите пальцем"],
+  [/ведите мышь/g, "ведите пальцем"],
+  [/мышью/g, "пальцем"],
+  [/Кликайте/g, "Касайтесь"],
+  [/кликами/g, "касаниями"],
+];
+export function touchWords(s: string) {
+  if (!document.documentElement.classList.contains("mobile")) return s;
+  for (const [re, to] of TOUCH_WORDS) s = s.replace(re, to);
+  return s;
+}
+
 export class MinigameUI {
   private taskKey = "";
   private declined = "";
@@ -64,6 +87,7 @@ export class MinigameUI {
   }
 
   private say(text: string) {
+    text = touchWords(text);
     if (this.status && this.status.textContent !== text) this.status.textContent = text;
   }
 
@@ -80,7 +104,7 @@ export class MinigameUI {
 
   private show(mg: MiniDef & { action: string }) {
     const canvas = h("canvas.mini-canvas", { width: W, height: H }) as HTMLCanvasElement;
-    this.status = h("div.mini-status", null, mg.hint);
+    this.status = h("div.mini-status", null, touchWords(mg.hint));
     this.progress = h("i");
     this.done = 0;
     const key = this.taskKey;
@@ -311,7 +335,7 @@ function pedalGame(pulse: (q: number, t?: string) => void, say: (t: string) => v
       g.arc(350, 170, 26, 0, Math.PI * 2);
       g.fill();
       g.fillStyle = "#cfd6cf";
-      g.fillText("[A]     [D]", 110, 235);
+      g.fillText(touchWords("[A]     [D]"), 110, 235);
     },
   };
 }
@@ -614,8 +638,8 @@ function phGame(pulse: (q: number, t?: string) => void, say: (t: string) => void
   let hold = 0;
   let good = 0;
   const btns = [
-    { x: 40, label: "+ Кислота  [A]", d: -1 },
-    { x: 280, label: "+ Щёлочь  [D]", d: 1 },
+    { x: 40, label: touchWords("+ Кислота  [A]"), d: -1 },
+    { x: 280, label: touchWords("+ Щёлочь  [D]"), d: 1 },
   ];
   const add = (d: number) => (vel += d * 0.9);
   return {

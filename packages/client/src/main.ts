@@ -5,7 +5,7 @@ import { WorldRenderer } from "./render/world";
 import { toast } from "./ui/dom";
 import { Hud } from "./ui/hud";
 import { LobbyUI } from "./ui/lobby";
-import { showMenu } from "./ui/menu";
+import { showJoinByLink, showMenu } from "./ui/menu";
 import { GameUI } from "./ui/game";
 import { installExtras } from "./ui/extras";
 import "./polish.css";
@@ -130,9 +130,11 @@ onKeyDown((e) => {
 
 // Telegram: straight into the chat's bunker; otherwise the menu (or a rejoin after a reload)
 // a reload (or a phone waking the tab up) goes back into the bunker this tab was playing in
-let auto = new URLSearchParams(location.search).get("code");
+// a shared link asks the name first (#39); a reload of this tab rejoins silently
+const linkCode = new URLSearchParams(location.search).get("code");
+let auto: string | null = null;
 try {
-  auto ||= sessionStorage.getItem("bunker.session");
+  auto = sessionStorage.getItem("bunker.session");
 } catch {}
 if (new URLSearchParams(location.search).has("code")) {
   const u = new URL(location.href);
@@ -146,7 +148,10 @@ if (isTelegram()) {
       toast(String(e?.message ?? e));
       showMenu(route);
     });
-} else if (auto) {
+} else if (linkCode && linkCode.toUpperCase() !== auto?.toUpperCase()) {
+  showJoinByLink(linkCode, route);
+} else if (auto || linkCode) {
+  auto ||= linkCode!;
   net
     .join(auto, localStorage.getItem("bunker.name") ?? "")
     .then(route)

@@ -27,7 +27,8 @@ export class BuildMode {
   active = false;
   type = "corridor";
   width = 1;
-  panel = h("div.panel", { style: { position: "fixed", left: "10px", top: "44px", bottom: "200px", width: "300px", overflow: "auto", padding: "8px", fontSize: "12px" } });
+  // under the top bar, not over «ДЕНЬ 1» and the bunker number (#15)
+  panel = h("div.panel.build-panel", { style: { position: "fixed", left: "10px", top: "86px", bottom: "200px", width: "300px", overflow: "auto", padding: "8px", fontSize: "12px" } });
   ghost: THREE.Mesh;
   info = h("div.prompt.hidden");
   hover: { x: number; lv: number } | null = null;
@@ -96,6 +97,17 @@ export class BuildMode {
     this.spots.visible = v;
     this.spotsKey = "";
     if (v) {
+      // open on what the colony needs, not on the corridor from last time (#9)
+      try {
+        const need = net.pub ? neededRoom(net.pub as any) : null;
+        if (need && ROOMS[need.type] && !this.picked) {
+          this.type = need.type;
+          const [lo, hi] = ROOMS[need.type].w;
+          this.width = Math.max(lo, Math.min(hi, this.width));
+        }
+      } catch {
+        /* no need */
+      }
       this.renderPanel();
       this.frameBunker();
       if (mobile) {
@@ -176,8 +188,12 @@ export class BuildMode {
     this.widthEl.textContent = String(this.width);
   }
 
+  /** the player chose a room this session: opening the mode keeps it */
+  private picked = false;
+
   select(type: string) {
     this.type = type;
+    this.picked = true;
     this.width = ROOMS[type].w[0];
     this.renderPanel();
     if (mobile) {
@@ -342,7 +358,12 @@ export class BuildMode {
     );
     this.widthEl.textContent = String(this.width);
     const sel = this.stripCards.querySelector<HTMLElement>(".sel");
-    if (sel) this.stripCards.scrollLeft = Math.max(0, sel.offsetLeft - this.stripCards.clientWidth / 2 + sel.offsetWidth / 2);
+    // scroll only as far as needed: the ★ card at the start stays in view when the selection fits (#9)
+    if (sel) {
+      const box = this.stripCards;
+      if (sel.offsetLeft < box.scrollLeft) box.scrollLeft = sel.offsetLeft;
+      else if (sel.offsetLeft + sel.offsetWidth > box.scrollLeft + box.clientWidth) box.scrollLeft = sel.offsetLeft + sel.offsetWidth - box.clientWidth;
+    }
   }
 
   /** The whole list, big cards with what each room does. */

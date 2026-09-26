@@ -12,7 +12,7 @@ const MULTS: [number, string][] = [
 ];
 
 export class CouncilUI {
-  el = h("div.panel.council-panel", { style: { position: "fixed", left: "50%", top: "52px", transform: "translateX(-50%)", width: "min(760px, calc(100vw - 24px))", maxHeight: "calc(100dvh - 64px)", overflow: "auto", padding: "14px", zIndex: "20" } });
+  el = h("div.panel.council-panel", { style: { position: "fixed", left: "50%", top: "86px", transform: "translateX(-50%)", width: "min(760px, calc(100vw - 24px))", maxHeight: "calc(100dvh - 98px)", overflow: "auto", padding: "14px", zIndex: "20" } });
   noteInput = h("input", { placeholder: "Заметка на доску: кто идёт в вылазку, что строим…", maxLength: 120, style: { flex: "1" } }) as HTMLInputElement;
   private key = "";
   private minimized = false;

@@ -306,7 +306,7 @@ export class TableUI {
             "div.table-seat" + (toAct.includes(id) ? ".turn" : "") + (id === me ? ".me" : ""),
             { style: { borderColor: "#" + (c?.card.color ?? 0x555555).toString(16).padStart(6, "0") } },
             h("b", null, c ? c.card.name.split(" ")[0] : id),
-            h("small", null, id === me ? "вы" : who),
+            h("small", null, (id === me ? "вы" : who) + (t?.status === "playing" && !(t?.players ?? []).includes(id) ? " · ждёт следующей партии" : "")),
             toAct.includes(id) ? h("span.table-turn", null, "ходит") : null,
           );
         }),
@@ -321,7 +321,16 @@ export class TableUI {
     // controls
     clear(this.panel);
     const btn = (label: string, move: any, cls = "") => h("button" + cls, { onclick: () => this.send(move) }, label);
-    if (t?.status === "playing" && seated) {
+    const inHand = !!me && (t?.players ?? []).includes(me);
+    if (t?.status === "playing" && seated && !inHand) {
+      // sat down during a hand: say so, and offer a resident's cards (#38)
+      const bots = ((t?.players ?? []) as string[]).filter((id) => v.chars[id] && !v.chars[id].ctrl);
+      add(
+        this.panel,
+        h("span.dim", null, `Вы в следующей партии — идёт кон${t.toAct?.length ? `, ходит: ${t.toAct.map(name).join(", ")}` : ""}.`),
+        ...bots.slice(0, 2).map((id) => h("button.primary", { onclick: () => net.send({ k: "tableTakeOver", char: id }) }, `Сыграть сейчас вместо ${name(id)}`)),
+      );
+    } else if (t?.status === "playing" && seated) {
       if (t.game === "durak") {
         const take = legal.find((m) => m.t === "take");
         const pass = legal.find((m) => m.t === "pass");

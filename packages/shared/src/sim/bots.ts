@@ -184,15 +184,27 @@ interface Plan {
   leisure?: number; // seconds
 }
 
+/** One person at a time: a bot already on its way there holds it, the others look for something else (#40). */
+const SINGLE_USE = new Set(["pedal", "pump"]);
+
+function heldByOther(w: World, c: Char, actionId: string, id: string) {
+  return Object.values(w.chars).some(
+    (o) => o.id !== c.id && o.status === "ok" && ((o.mind.act?.a === actionId && o.mind.act.t === id) || (o.task?.action === actionId && o.task.obj === id)),
+  );
+}
+
 function bestObj(w: World, c: Char, actionId: string, kinds: string[], filter?: (id: string) => boolean): Plan | null {
   let best: Plan | null = null;
   let bd = Infinity;
   const a = ACTIONS[actionId];
   if (!a) return null;
+  const now = w.day * 24 + w.hour;
   for (const id in w.objs) {
     const o = w.objs[id];
     if (!kinds.includes(o.kind) || o.st.hidden) continue;
     if (filter && !filter(id)) continue;
+    if ((c.mind.avoid?.[id] ?? 0) > now) continue;
+    if (SINGLE_USE.has(actionId) && heldByOther(w, c, actionId, id)) continue;
     const av = a.avail({ w, c, t: { type: "obj", id }, o });
     if (typeof av !== "string") continue;
     const d = Math.abs(o.x - c.x) + Math.abs(o.lv - c.lv) * 8;
@@ -429,6 +441,8 @@ function execPlan(w: World, c: Char, p: Plan) {
     // an unreachable thing is not an eternal goal: rest the chore for two game hours, the map may change (#20)
     const ch = m.chore ? w.chores[m.chore] : undefined;
     if (ch) ch.noPath = w.day * 24 + w.hour + 2;
+    // the same for a table, a tap, a bed out of reach: look for another one for a game hour
+    if (p.tt === "obj") (m.avoid ??= {})[p.t] = w.day * 24 + w.hour + 1;
     releaseChore(w, c);
     m.plan = "idle";
     m.act = undefined;
@@ -525,6 +539,31 @@ export function botTick(w: World, c: Char, dt: number) {
   if (m.plan === "go" && m.act) {
     const t: Target = { type: m.act.tt as TargetType, id: m.act.t };
     if (!inReach(w, c, t) || m.dest) {
+      // on the way but not getting closer (standing, wiggling, stuck on the rungs): give the goal up in a
+      // few seconds, not a minute (#23)
+      // progress is measured along the planned route (a detour to a far ladder is still progress)
+      const key = m.act.a + m.act.t;
+      const next = m.path?.length ? unnode(w, m.path[0]) : null;
+      const goal = next ? { x: next[0] + 0.5, lv: next[1] } : targetPos(w, m.act.tt as TargetType, m.act.t);
+      const dist = (m.path?.length ?? 0) * 2 + (goal ? Math.abs(c.x - goal.x) + Math.abs(c.y - (goal.lv * 2 + 2)) : 0);
+      if (m.goFor !== key || dist < (m.goBest ?? Infinity) - 0.1) {
+        m.goFor = key;
+        m.goBest = dist;
+        m.goStallT = 0;
+      } else m.goStallT = (m.goStallT ?? 0) + dt;
+      if (m.goStallT > 6) {
+        const d = ((w.mods as any)._botErr ??= {}) as Record<string, number>;
+        d[m.act.a + ": застрял в пути"] = (d[m.act.a + ": застрял в пути"] ?? 0) + 1;
+        if (m.act.tt === "obj") (m.avoid ??= {})[m.act.t] = w.day * 24 + w.hour + 1;
+        m.goStallT = 0;
+        m.plan = "idle";
+        m.act = undefined;
+        m.path = undefined;
+        m.dest = undefined;
+        releaseChore(w, c);
+        m.idleT = 1;
+        return;
+      }
       const st = followPath(w, c, dt);
       if (st === "stuck") {
         m.plan = "idle";
@@ -664,7 +703,17 @@ onTick("bots", "day", (w, dt) => {
     if (c.status !== "ok" || c.mind.plan === "combat") continue;
     if (c.ctrl) {
       const p = w.players[c.ctrl];
-      if (p && p.online && !p.aquarium) continue; // a live player drives this one
+      if (p && p.online && !p.aquarium) {
+        // a live player drives this one: whatever the bot was on its way to is forgotten
+        if (c.mind.plan === "go" || c.mind.act) {
+          releaseChore(w, c);
+          c.mind.plan = "idle";
+          c.mind.act = undefined;
+          c.mind.path = undefined;
+          c.mind.dest = undefined;
+        }
+        continue;
+      }
     }
     botTick(w, c, dt);
   }

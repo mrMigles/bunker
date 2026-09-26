@@ -1676,3 +1676,26 @@ html.mobile .combat-ticker { top: calc(54px + var(--st)); font-size: 12px; paddi
   html.mobile .combat-panel { max-height: 42dvh; }
   html.mobile .combat-down-note { font-size: 10.5px; padding: 3px 6px; }
 }
+
+/* #13 a minigame in a short landscape window: the canvas yields height, «Пусть делает сам» stays on screen */
+@media (max-height: 480px) {
+  html.mobile .mini-modal .mini-canvas { max-height: calc(100dvh - 150px); width: auto; max-width: 100%; display: block; margin: 0 auto; }
+  html.mobile .mini-modal .mini .row > .dim { display: none; }
+  html.mobile .mini-modal .mini .row { position: sticky; bottom: 0; background: #1b1511f2; padding: 4px 0; margin-top: 4px !important; }
+  html.mobile .mini-modal .mini-status { font-size: 11px; margin: 2px 0; }
+}
+
+/* #14 a short landscape screen: the council's explanation folds to its title, the choices come first */
+@media (max-height: 480px) {
+  html.mobile .council-explain p, html.mobile .council-explain small { display: none; }
+  html.mobile .council-explain b { font-size: 12px; }
+  html.mobile .council-explain { padding: 4px 8px; margin: 4px 0; }
+  html.mobile .council-summary { margin: 4px 0 !important; gap: 8px !important; font-size: 11.5px; }
+  html.mobile .council-summary .dim, html.mobile .council-panel > .dim { display: none; }
+  html.mobile .council-panel { box-shadow: inset 0 -18px 14px -12px #000c, 0 8px 26px #000a; }
+}
+
+/* #10 the wasteland places as a list under the map on phones */
+html.mobile .map-places { display: flex; flex-wrap: wrap; gap: 5px; padding: 6px 2px 2px; }
+html.mobile .map-places button { min-height: 34px; font-size: 11.5px; padding: 4px 9px; width: auto !important; flex: 0 1 auto; display: inline-flex; margin: 0 !important; }
+html.mobile .map-places { margin-bottom: 6px; }

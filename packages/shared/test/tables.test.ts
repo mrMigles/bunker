@@ -108,3 +108,26 @@ describe("a full table and a second player (#37)", () => {
     expect(t.status).toBe("playing");
   });
 });
+
+describe("sat down during a hand (#38)", () => {
+  it("a player takes a resident bot's cards and plays on", () => {
+    const w = startedWorld({ players: 2, residents: 6, seed: 21 });
+    const table = objsOfKind(w, "game_table")[0].id;
+    seatAt(w, "p0", table);
+    expect(applyCmd(w, "p0", { k: "tableInvite" })).toBeUndefined();
+    expect(applyCmd(w, "p0", { k: "tableStart", game: "durak" })).toBeUndefined();
+    const t = w.mods.tables[table];
+    const bot = (t.state.players as string[]).find((id) => !w.chars[id].ctrl)!;
+    seatAt(w, "p1", table);
+    const me = w.players.p1.char!;
+    expect(t.state.players).not.toContain(me);
+    expect((publicView(w) as any).mods.tables[table].players).toContain(bot);
+    expect(applyCmd(w, "p1", { k: "tableTakeOver", char: bot })).toBeUndefined();
+    expect(t.state.players).toContain(me);
+    expect(t.state.players).not.toContain(bot);
+    expect(t.seats).toContain(me);
+    // the game goes on with the new player's legal moves
+    const pv = privateView(w, "p1") as any;
+    expect(Array.isArray(pv.mods.tables.view.hands[me])).toBe(true);
+  });
+});
