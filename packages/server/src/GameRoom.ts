@@ -85,20 +85,17 @@ export class GameRoom extends Room {
     this.onMessage(MSG.input, (client, msg: InputMsg) => {
       const pid = this.pidOf.get(client.sessionId);
       if (!pid || !msg || typeof msg !== "object") return;
-      // anti speed-hack: movement dt budget per real time
+      // anti speed-hack: a token bucket of movement time refilled by real time. Packets bunched up by the
+      // network spend the saved-up budget; a step beyond it is trimmed, never dropped — a dropped step was
+      // lost walking and a pull-back on the client (#41)
       const lim = this.lim(client);
       const now = Date.now() / 1000;
-      lim.inputDt += Math.max(0, Math.min(0.1, Number(msg.dt) || 0));
-      const allowed = now - lim.inputT + 0.25;
-      if (lim.inputDt > allowed) {
-        lim.inputDt = allowed;
-        return;
-      }
-      if (now - lim.inputT > 2) {
-        lim.inputT = now - 0.5;
-        lim.inputDt = 0;
-      }
-      applyInput(this.world, pid, msg);
+      lim.inputDt = Math.min(0.75, (lim.inputDt ?? 0.5) + Math.max(0, now - (lim.inputT || now)));
+      lim.inputT = now;
+      const want = Math.max(0, Math.min(0.1, Number(msg.dt) || 0));
+      const dt = Math.min(want, lim.inputDt);
+      lim.inputDt -= dt;
+      applyInput(this.world, pid, { ...msg, dt });
     });
 
     this.onMessage(MSG.act, (client, cmd: Cmd) => {

@@ -77,19 +77,24 @@ net.onLeave.add(async (code) => {
   toast("Не удалось вернуться. Обновите страницу.");
 });
 
-// input + prediction run at 20 Hz independently of rendering
+// input + prediction: fixed 50 ms steps pumped from both the render loop and a timer. A slow frame or a
+// starved timer no longer loses walking time (#41): the steps it missed are caught up, up to a quarter second.
+const INPUT_STEP = 0.05;
 let lastInput = performance.now();
-setInterval(() => {
-  const now = performance.now();
-  const dt = Math.min(0.1, (now - lastInput) / 1000);
+let inputAcc = 0;
+function pumpInput(now: number) {
+  inputAcc = Math.min(0.25, inputAcc + Math.max(0, (now - lastInput) / 1000));
   lastInput = now;
-  if (net.pub && net.pub.phase !== "lobby") {
+  while (inputAcc >= INPUT_STEP) {
+    inputAcc -= INPUT_STEP;
+    if (!net.pub || net.pub.phase === "lobby") continue;
     if (game?.inputBlocked()) game.navigation.cancel();
-    const a = game?.inputBlocked() ? { mx: 0, my: 0, run: false } : game?.navigation.input(axis(), dt) ?? axis();
+    const a = game?.inputBlocked() ? { mx: 0, my: 0, run: false } : game?.navigation.input(axis(), INPUT_STEP) ?? axis();
     if (a.mx || a.my) game?.resumeCameraFollow();
-    net.sendInput(a.mx, a.my, a.run, dt);
+    net.sendInput(a.mx, a.my, a.run, INPUT_STEP);
   }
-}, 50);
+}
+setInterval(() => pumpInput(performance.now()), 25);
 
 // render loop
 let last = performance.now();
@@ -97,6 +102,7 @@ let fpsAcc = 60;
 function loop(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
+  pumpInput(now);
   if (net.pred) net.pred.stepT += dt;
   let pred: { x: number; y: number } | null = null;
   if (net.pred) {

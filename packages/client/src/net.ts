@@ -241,9 +241,13 @@ export class Net {
       p.prevX = p.x = tmp.x;
       p.prevY = p.y = tmp.y;
     } else {
-      // gentle correction
-      p.x += (tmp.x - p.x) * 0.35;
-      p.y += (tmp.y - p.y) * 0.35;
+      // gentle correction, applied to both ends of the interpolation so the figure does not hop
+      const cx = (tmp.x - p.x) * 0.35,
+        cy = (tmp.y - p.y) * 0.35;
+      p.x += cx;
+      p.y += cy;
+      p.prevX += cx;
+      p.prevY += cy;
     }
     p.lv = tmp.lv;
     p.climbing = tmp.climbing;
