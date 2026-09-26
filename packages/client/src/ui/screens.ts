@@ -14,6 +14,7 @@ import {
   FURNITURE,
   GOALS,
   ITEMS,
+  NEED_HINTS,
   NEED_NAMES,
   PROFS,
   PUZZLES,
@@ -627,8 +628,9 @@ export function openCharacter(id: string) {
           "div.dossier-needs",
           null,
           ...(["food", "water", "energy", "sanity", "health"] as const).map((k) =>
-            h("div.need", null, h("span", null, cic(NEED_IC, k), NEED_NAMES[k]), bar(c.needs[k], c.needs[k] < 30 ? "#e0503a" : undefined), h("span", null, c.needs[k])),
+            h("div.need", { title: NEED_HINTS[k] }, h("span", null, cic(NEED_IC, k), NEED_NAMES[k]), bar(c.needs[k], c.needs[k] < 30 ? "#e0503a" : undefined), h("span", null, c.needs[k])),
           ),
+          c.needs.sanity < 40 ? h("div.need-hint", null, icon("alert", { color: "#e58fb5" }), " ", NEED_HINTS.sanity) : null,
           c.needs.rad ? h("div.need", null, h("span", null, cic(NEED_IC, "rad"), "Радиация"), bar(c.needs.rad, "#b0e040"), h("span", null, c.needs.rad)) : null,
         ),
         c.injury ? h("div.bad", null, icon("alert"), " Травма: " + injuryName(c.injury)) : null,

@@ -7,7 +7,7 @@ mkdirSync(OUT, { recursive: true });
 const touch = W < 1000;
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: W, height: H }, hasTouch: touch, isMobile: touch });
-await ctx.addInitScript(() => localStorage.setItem("bunker.tipsOff", "1"));
+await ctx.addInitScript(() => { localStorage.setItem("bunker.tipsOff", "1"); localStorage.setItem("bunker.introSeen", "1"); localStorage.setItem("bunker.guide", '{"done":true}'); });
 const p = await ctx.newPage();
 p.setDefaultTimeout(60000);
 const errs = [];

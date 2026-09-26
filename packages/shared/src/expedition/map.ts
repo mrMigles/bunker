@@ -108,6 +108,41 @@ interface MapSlot {
   links?: string[];
 }
 
+/**
+ * Who hunts the roads of each district: the odds of an attack on one leg of the way, and who attacks.
+ * The bandits of the промзона keep their roads at 20%+ until their bunker is taken (flag `ratkingBeaten`).
+ */
+export const TERRITORY: Record<string, { ambush: number; foes: string[][]; who: string }> = {
+  Заречье: { ambush: 0.04, foes: [["dog", "dog"], ["marauder", "rat"]], who: "Бродячие собаки" },
+  Центр: { ambush: 0.05, foes: [["marauder", "raider"], ["dog", "dog", "dog"]], who: "Мародёры" },
+  Мосты: { ambush: 0.08, foes: [["marauder", "raider"], ["raider", "raider"]], who: "Мародёры у мостов" },
+  Холм: { ambush: 0.05, foes: [["dog", "dog", "rat"], ["marauder", "raider"]], who: "Стая с холма" },
+  Лес: { ambush: 0.1, foes: [["cultist", "cultist"], ["dog", "dog", "dog"]], who: "Дети Вспышки" },
+  Вокзал: { ambush: 0.05, foes: [["marauder", "raider"], ["rat", "rat", "dog"]], who: "Шпана с вокзала" },
+  Кратер: { ambush: 0.12, foes: [["dog", "dog", "dog"], ["marauder", "raider", "raider"]], who: "Твари из воронки" },
+  Горы: { ambush: 0.07, foes: [["dog", "dog", "dog"]], who: "Волчья стая" },
+  Промзона: { ambush: 0.22, foes: [["raider", "marauder", "raider"], ["raider", "raider", "marauder"]], who: "Бандиты Крысиного короля" },
+};
+
+/**
+ * Odds that the squad is attacked on the road from `a` to `b`. Nothing happens on the doorstep: legs
+ * between home and its neighbours are safe. Otherwise the worse district of the two ends counts;
+ * the промзона goes quiet once the bandits' bunker is taken.
+ */
+export function roadAmbush(m: WasteMap, a: string, b: string, flags: Record<string, number> = {}): { chance: number; district: string } {
+  const home = m.nodes[m.home];
+  const near = (id: string) => id === m.home || home.links.includes(id);
+  if (near(a) && near(b)) return { chance: 0, district: "" };
+  let best = { chance: 0.05, district: "" };
+  for (const id of [a, b]) {
+    const d = m.nodes[id]?.district ?? "";
+    let c = TERRITORY[d]?.ambush ?? 0.05;
+    if (d === "Промзона" && flags.ratkingBeaten) c = 0;
+    if (!best.district || c > best.chance) best = { chance: c, district: d };
+  }
+  return best;
+}
+
 /** Travel time in game hours between linked nodes. */
 export function travelHours(a: MapNode, b: MapNode, weather = "ash") {
   const d = Math.hypot(a.x - b.x, a.y - b.y);

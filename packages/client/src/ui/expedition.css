@@ -635,3 +635,35 @@
 .exp-intel { gap: 4px; margin: 4px 0; }
 .exp-side .exp-journal { max-height: 120px; overflow: auto; }
 @media (max-height: 800px) { .exp-side .exp-current .dim { display: none; } .exp-map { padding: 12px; } }
+
+/* zoomable wasteland chart */
+.map-zoom-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.map-zoom-wrap > svg.wmap-zoom {
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+.map-zoom-wrap > svg.wmap-zoom:active { cursor: grabbing; }
+.map-zoom {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 2;
+}
+.map-zoom button {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+}

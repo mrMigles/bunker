@@ -1,5 +1,6 @@
 import type { Fx } from "../net/protocol";
 import { Rng } from "../rng";
+import { BAL } from "../data/balance";
 import type { Char, LogEntry, World } from "../types";
 
 export function fx(w: World, f: Fx) {
@@ -84,7 +85,7 @@ export function dist(c: { x: number; lv: number }, x: number, lv: number) {
 
 /** Game-hours per real second during the day phase. */
 export function hoursPerSec(w: World) {
-  return (22 - 6) / w.settings.dayLength;
+  return (BAL.dayEndHour - BAL.dayStartHour) / w.settings.dayLength;
 }
 
 export function totalFood(w: World, nutOf: (k: string) => number) {

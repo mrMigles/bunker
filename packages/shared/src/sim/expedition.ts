@@ -1,7 +1,7 @@
 import { unitAlive, type Cover, type Door, type Field, type UnitInit } from "../combat/combat";
 import { BAL } from "../data/balance";
 import { ITEMS, itemName } from "../data/items";
-import { FACTIONS, LOC, generateMap, mapPath, travelHours, type MapNode, type WasteMap } from "../expedition/map";
+import { FACTIONS, LOC, generateMap, mapPath, travelHours, type MapNode, type WasteMap, TERRITORY, roadAmbush } from "../expedition/map";
 import { generateSite, rollLoot, siteRoomAt, siteWorld, type Site, type SiteCont } from "../expedition/site";
 import { modViews } from "../net/view";
 import { Rng } from "../rng";
@@ -16,7 +16,7 @@ import { addNpc, effectHooks } from "./events";
 import { bark } from "./bots";
 import { spawnItem } from "./items";
 import { settleKeepsakes } from "./cozy";
-import { stepMove } from "./move";
+import { moveSpeed, stepMove } from "./move";
 import { decayNeeds, killChar } from "./needs";
 import { grantXp, threatLevel } from "./progress";
 import { debugOps } from "./debug";
@@ -62,6 +62,8 @@ export interface Expedition {
   auto?: string;
   /** what the enemies of a road fight carried, until someone searches the bodies */
   bodies?: Record<string, number>;
+  /** this leg's attack, rolled when it starts: fires when `travelLeft` drops to `at` */
+  ambush?: { at: number; foes: string[]; who: string };
 }
 
 // ---------------------------------------------------------------- helpers
@@ -367,6 +369,11 @@ function startLeg(w: World, e: Expedition) {
   e.travelTotal = travelHours(m.nodes[e.node], m.nodes[next], w.weather.today) * (weightOf({ ...e.supplies, ...e.loot }) > capacity(w, e.squad) ? 1.4 : 1);
   e.travelLeft = e.travelTotal;
   e.stage = "travel";
+  // one roll per leg: the district decides the odds and who is waiting (TERRITORY)
+  const R = rng(w);
+  const road = roadAmbush(m, e.node, next, w.flags);
+  const early = w.day <= 2 ? 0.5 : 1;
+  e.ambush = road.chance > 0 && R.chance(road.chance * early) ? { at: e.travelTotal * R.range(0.25, 0.75), foes: R.pick(TERRITORY[road.district]?.foes ?? [["marauder", "raider"]]), who: TERRITORY[road.district]?.who ?? "Мародёры" } : undefined;
   const h = e.travelTotal / 2;
   elog(e, `Путь: ${m.nodes[next].known ? m.nodes[next].name : "неизвестное место"} (~${h < 1 ? Math.max(1, Math.round(h * 60)) + " мин" : h.toFixed(1) + " ч"} игрового времени).`);
 }
@@ -613,6 +620,16 @@ function squadUnit(w: World, e: Expedition, c: Char, col: number, floor: number,
   return u;
 }
 
+/** The bandits' bunker with nobody left standing: the промзона roads go quiet for good. */
+export function ratkingFalls(w: World, e: Expedition, n: MapNode | undefined) {
+  if (w.flags.ratkingBeaten || n?.type !== "rival" || n.district !== "Промзона") return;
+  if (e.site && e.site.threats.length) return;
+  w.flags.ratkingBeaten = 1;
+  elog(e, "👑 Бункер Крысиного короля пал. Бандиты промзоны больше не выйдут на дороги.");
+  log(w, "👑 Бункер Крысиного короля взят! Дороги промзоны теперь безопасны.", "good");
+  fx(w, { k: "toast", text: "👑 Крысиный король повержен — в промзоне больше не нападают" });
+}
+
 battleEndHooks.expedition = (w, b: BattleMod) => {
   const e = exped(w);
   if (!e) return;
@@ -666,6 +683,7 @@ battleEndHooks.expedition = (w, b: BattleMod) => {
       }
     }
     site.noise = clamp(site.noise + 20);
+    ratkingFalls(w, e, wmap(w).nodes[e.node]);
   }
   if (s.result === "lose") {
     // the squad is overrun: each downed member either dies or crawls home robbed
@@ -743,24 +761,25 @@ onTick("expedition", "*", (w, dt) => {
   }
   if (e.stage === "travel") {
     if (hours <= 0) return; // camp at night
-    // legs play out twice as fast as bunker time: the road is a transition, not the game
-    e.travelLeft -= hours * 2;
-    // encounters: roughly one roll per hour of travel
+    // legs play out twice as fast as bunker time: the road is a transition, not the game;
+    // the residents' own runs (nobody to play them) go by three times faster still
+    const unattended = e.auto && squad.every((c) => isBotDriven(w, c.id));
+    e.travelLeft -= hours * (unattended ? 6 : 2);
+    // the leg's attack, if one was rolled: a street fight, then the road goes on
+    if (e.ambush && e.travelLeft <= e.ambush.at) {
+      const a = e.ambush;
+      e.ambush = undefined;
+      elog(e, `⚔ Засада в пути: ${a.who}!`);
+      roadFight(w, e, a.foes);
+      return;
+    }
+    // small finds along the way: roughly one roll per hour of travel
     w.flags._encT = (w.flags._encT ?? 0) + hours;
     if (w.flags._encT >= 1) {
       w.flags._encT = 0;
-      const n = wmap(w).nodes[e.route[0]];
       const R = rng(w);
-      const early = w.day <= 3 ? 0.5 : 1;
-      if (R.chance((0.06 + (n?.danger ?? 1) * 0.04) * early)) {
-        const kind = R.pick(["dogs", "raiders", "trader", "ruins"]);
-        if (kind === "dogs") {
-          elog(e, "На дороге — стая диких собак!");
-          roadFight(w, e, ["dog", "dog", R.chance(0.5) ? "dog" : "rat"]);
-        } else if (kind === "raiders") {
-          elog(e, "Засада мародёров!");
-          roadFight(w, e, ["marauder", "raider"]);
-        } else if (kind === "trader") {
+      if (R.chance(0.06)) {
+        if (R.chance(0.5)) {
           elog(e, "Встретили бродячего торговца — поменялись мелочами.");
           e.loot.cigarettes = (e.loot.cigarettes ?? 0) + 1;
         } else {
@@ -903,14 +922,29 @@ function walkTo(s: Site, c: Char, tx: number, lv: number, dt: number, tol = 0.2)
   const sw = siteWorld(s);
   if (c.lv !== lv || c.climbing) {
     const stairX = 2.5;
-    if (!c.climbing && Math.abs(c.x - stairX) > 0.1) stepMove(sw, c, Math.sign(stairX - c.x), 0, dt);
-    else stepMove(sw, c, 0, Math.sign(lv - c.lv) || 1, dt);
+    const d = stairX - c.x;
+    if (!c.climbing && Math.abs(d) > 0.1) {
+      // slow down onto the ladder: a full step used to hop over it back and forth forever
+      const step = moveSpeed(c) * dt;
+      stepMove(sw, c, Math.abs(d) < step ? d / step : Math.sign(d), 0, dt);
+      return true;
+    }
+    const lvBefore = c.lv;
+    stepMove(sw, c, 0, Math.sign(lv - c.lv) || 1, dt);
+    if (!c.climbing && c.lv === lvBefore) {
+      // no ladder that way: stand still instead of treading on the spot
+      c.anim = "idle";
+      return false;
+    }
     return true;
   }
   if (Math.abs(tx - c.x) <= tol) return false;
   const before = c.x;
   stepMove(sw, c, Math.sign(tx - c.x), 0, dt);
-  if (Math.abs(c.x - before) < 1e-4) return false; // blocked by a wall or a closed door
+  if (Math.abs(c.x - before) < 1e-4) {
+    c.anim = "idle";
+    return false; // blocked by a wall or a closed door
+  }
   c.anim = "walk";
   return true;
 }
@@ -1788,7 +1822,7 @@ modViews.wmap = {
 };
 
 /** dev: skip the preparation and the road — me and the pre-filled squad step into the nearest shop */
-debugOps.sortie = (w, _a, pid) => {
+debugOps.sortie = (w, kind, pid) => {
   const me = w.chars[w.players[pid]?.char ?? ""];
   if (!me) return "Нет персонажа";
   const e = (w.mods.expedition = newExpedition(w));
@@ -1797,7 +1831,8 @@ debugOps.sortie = (w, _a, pid) => {
   baseKit(w, e);
   const err = departExpedition(w, e);
   if (err) return err;
-  const shop = Object.values(wmap(w).nodes).filter((n) => n.type === "shop" && n.known).sort((a, b) => Math.hypot(a.x - 50, a.y - 46) - Math.hypot(b.x - 50, b.y - 46))[0];
+  // `kind`: another place type to land in (a tall hospital for ladder checks)
+  const shop = Object.values(wmap(w).nodes).filter((n) => n.type === (kind || "shop") && (n.known || kind)).sort((a, b) => Math.hypot(a.x - 50, a.y - 46) - Math.hypot(b.x - 50, b.y - 46))[0];
   e.node = shop.id;
   enterSite(w, e, shop);
 };

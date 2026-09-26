@@ -76,25 +76,41 @@ onTick("needs", "day", (w, dt) => {
     decayNeeds(w, c, hours, { asleep: sleeping, sleepRate: sleepRate(w, c) });
     // environment effects on sanity (per hour)
     const r = roomAt(w, Math.floor(c.x), c.lv);
+    // (softened: the old rates emptied the bar of a resident in a bare, dim bunker within one day)
     let s = 0;
     if (r) {
-      s += ((r.comfort - 50) / 50) * 1.2;
-      if (!r.lit) s -= hasTrait(c, "darkfear") ? 5 : 1.5;
+      s += ((r.comfort - 50) / 50) * (r.comfort < 50 ? 0.6 : 1.2);
+      if (!r.lit) s -= hasTrait(c, "darkfear") ? 3 : 0.7;
       if (r.fire > 0) s -= 6;
-      if (hasTrait(c, "claustro") && (r.w <= 3 || c.lv >= 3)) s -= 1.5;
+      if (hasTrait(c, "claustro") && (r.w <= 3 || c.lv >= 3)) s -= 0.8;
     }
-    if (hasTrait(c, "smoker") && (w.flags["_smoke_" + c.id] ?? 0) < w.day - 1) s -= 1;
+    if (hasTrait(c, "smoker") && (w.flags["_smoke_" + c.id] ?? 0) < w.day - 1) s -= 0.6;
     // bodily misery and crowding wear the mind down
-    if (c.needs.food < 30) s -= 1.5;
-    if (c.needs.water < 30) s -= 1.5;
-    if (c.needs.health < 50) s -= 1;
-    if (crowded) s -= 0.6;
+    if (c.needs.food < 30) s -= 1;
+    if (c.needs.water < 30) s -= 1;
+    if (c.needs.health < 50) s -= 0.6;
+    if (crowded) s -= 0.3;
+    // sleep mends the mind a little
+    if (sleeping) s += 1.2;
+    const before = c.needs.sanity;
     c.needs.sanity = clamp(c.needs.sanity + s * hours);
+    sanityWarning(w, c, before);
     // status
     if (c.status === "ok" && c.needs.health <= 0) knockDown(w, c, "здоровье");
     else if (c.status === "ok" && c.needs.sanity <= 0) breakdown(w, c);
   }
 });
+
+/** A player's resident slipping: say so, and say what helps, before it turns into a breakdown. */
+function sanityWarning(w: World, c: Char, before: number) {
+  if (!c.ctrl) return;
+  const now = c.needs.sanity;
+  const cross = (t: number) => before >= t && now < t;
+  if (cross(35))
+    fx(w, { k: "toast", to: c.ctrl, text: "🧠 Рассудок падает (35). Поговорите с кем-нибудь, послушайте радио или музыку, сыграйте в настолку, посидите в уютной светлой комнате." });
+  else if (cross(15))
+    fx(w, { k: "toast", to: c.ctrl, text: "🧠 На грани срыва (15)! Срочно отдых: разговор, музыка, настолки, сон. На нуле — нервный срыв." });
+}
 
 export function sleepRate(w: World, c: Char) {
   const bed = c.task?.obj ? w.objs[c.task.obj] : undefined;

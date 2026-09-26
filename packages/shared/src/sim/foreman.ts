@@ -8,7 +8,7 @@ import type { Char, World } from "../types";
 import { BAL } from "../data/balance";
 import { ROOMS, addObj, canPlaceRoom, objsInRoom, objsOfKind, placeRoom, roomCost } from "../world/rooms";
 import { roomLocked } from "./build";
-import { arriveHooks, capacity, departExpedition, elogPublic as elog, exped, newExpedition, startLegPublic as startAutoLeg, wmap, type Expedition } from "./expedition";
+import { arriveHooks, ratkingFalls, capacity, departExpedition, elogPublic as elog, exped, newExpedition, startLegPublic as startAutoLeg, wmap, type Expedition } from "./expedition";
 import { killChar } from "./needs";
 import { foodUnits, missingText, payRes } from "./items";
 import { registerCmd } from "./commands";
@@ -307,6 +307,7 @@ arriveHooks.push((w, e: Expedition, n) => {
           : `❌ ${names}: в «${n.name}» отряд нарвался на засаду и бежал почти ни с чем.${hurt.length ? " Ранены: " + hurt.join(", ") + "." : ""}`;
     elog(e, text);
     log(w, text, outcome === "clean" ? "good" : "bad");
+    if (outcome === "clean") ratkingFalls(w, e, n);
     (w.mods._autoReports ??= []).push({ day: w.day, node: n.name, outcome, power: Math.round(power), threat: Math.round(threat) });
   }
   const back = mapPath(wmap(w), n.id, "home", false);

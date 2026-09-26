@@ -68,7 +68,7 @@ function residents(w: World) {
 }
 
 function newCall(w: World, R: Rng, force?: IntercomCall["kind"]): IntercomCall | null {
-  const until = Math.min(21.5, w.hour + 2.5);
+  const until = Math.min(22.5, w.hour + 2.5);
   const id = "ic" + w.nextId++;
   const doorEvents = EVENTS.filter((e) => e.cat === "door" && e.options && condOk(w, e.conditions) && w.day - (w.flags["_ev_" + e.id] ?? -99) >= 4);
   const kinds: [IntercomCall["kind"], number][] = [

@@ -2,7 +2,7 @@ import { BAL } from "../data/balance";
 import type { World } from "../types";
 import { beginDay } from "./lobby";
 import { onTick } from "./tick";
-import { hoursPerSec } from "./util";
+import { fx, hoursPerSec, log } from "./util";
 
 export const nightHooks: { start: ((w: World) => void)[]; end: ((w: World) => void)[]; dayStart: ((w: World) => void)[] } = {
   start: [],
@@ -19,7 +19,13 @@ export function timeMult(w: World) {
 }
 
 onTick("time", "day", (w, dt) => {
+  const was = w.hour;
   w.hour += dt * hoursPerSec(w) * timeMult(w);
+  // an hour before lights out: finish what you are doing, get home from the pantry
+  if (was < BAL.dayEndHour - 1 && w.hour >= BAL.dayEndHour - 1) {
+    fx(w, { k: "toast", text: "🌙 22:00 — через час отбой. Заканчивайте дела." });
+    log(w, "22:00 — через час отбой.", "system");
+  }
   if (w.hour >= BAL.dayEndHour) {
     w.hour = BAL.dayEndHour;
     startNight(w);

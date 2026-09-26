@@ -1531,3 +1531,13 @@ html.mobile .restart-text small { font-size: 9.5px; }
   html.mobile .restart-banner { top: calc(var(--st, 0px) + 88px); width: calc(100vw - 12px); flex-wrap: wrap; }
   html.mobile .restart-text { flex: 1 1 60%; }
 }
+.need-hint {
+  margin-top: 6px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: rgba(229, 143, 181, 0.08);
+  border: 1px solid rgba(229, 143, 181, 0.3);
+  color: #e9cddb;
+  font-size: 12.5px;
+  line-height: 1.4;
+}

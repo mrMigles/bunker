@@ -22,8 +22,11 @@ export function stepMove(w: World, c: Char, mx: number, my: number, dt: number) 
   if (c.climbing) {
     const top = feetY(c.lv - 1);
     const bottom = feetY(c.lv);
-    if (my !== 0) {
-      c.y += Math.sign(my) * BAL.climbSpeed * dt;
+    // pushing sideways on a ladder (a joystick held a bit off vertical) finishes the climb to the
+    // nearer floor instead of hanging there with nothing happening
+    const dir = my !== 0 ? Math.sign(my) : mx !== 0 ? (c.y >= (top + bottom) / 2 ? 1 : -1) : 0;
+    if (dir !== 0) {
+      c.y += dir * BAL.climbSpeed * dt;
       c.anim = "climb";
     }
     if (c.y >= bottom) {

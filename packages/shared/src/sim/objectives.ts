@@ -47,7 +47,7 @@ const TUTORIAL: { id: string; text: string; hint: string; done: (w: World) => bo
   {
     id: "night",
     text: "Переживите первую ночь",
-    hint: "В 22:00 соберётся совет: пайки, событие дня, план на завтра.",
+    hint: "В 23:00 отбой и совет: пайки, событие дня, план на завтра.",
     done: (w) => w.day >= 2,
   },
 ];

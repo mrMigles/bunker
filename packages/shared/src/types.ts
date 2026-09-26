@@ -4,7 +4,7 @@ export type Phase = "lobby" | "prologue" | "day" | "night" | "ending";
 export type Storyteller = "haven" | "classic" | "scorched";
 
 export interface Settings {
-  dayLength: number; // real seconds for 06:00→22:00
+  dayLength: number; // real seconds for 06:00→23:00
   nightLength: number; // max real seconds for council
   residents: number; // total residents (players + bots), 1..6
   storyteller: Storyteller;

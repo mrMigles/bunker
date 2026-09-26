@@ -1,6 +1,6 @@
 import { avatar, ownerOf } from "./avatar";
 import { portrait } from "../render/portrait";
-import { ITEMS, NEED_NAMES, PERKS, PROFS, itemName, threatLevel, xpForLevel, type Fx } from "@bunker/shared";
+import { ITEMS, NEED_HINTS, NEED_NAMES, PERKS, PROFS, itemName, threatLevel, xpForLevel, type Fx } from "@bunker/shared";
 import { net } from "../net";
 import type { WorldRenderer } from "../render/world";
 import { add, bar, clear, closeModal, esc, floatText, h, isModalOpen, modal, needColor, toast, ui } from "./dom";
@@ -189,7 +189,7 @@ export class Hud {
       c.perkOffer?.length ? h("button.small.primary.perk-btn", { onclick: () => openPerkChoice() }, "⭐ Новый уровень — выберите умение") : null,
       c.status !== "ok" ? h("div.bad", null, c.status === "down" ? `Без сознания! ${c.downT} с` : c.status === "breakdown" ? "Нервный срыв!" : c.status === "dead" ? "Погиб" : "") : null,
       ...(["health", "food", "water", "energy", "sanity"] as const).map((k) =>
-        h("div.need", null, h("span", null, cic(NEED_IC, k), NEED_NAMES[k]), bar(c.needs[k]), h("span", { style: { color: needColor(c.needs[k]) } }, c.needs[k])),
+        h("div.need", { title: NEED_HINTS[k] }, h("span", null, cic(NEED_IC, k), NEED_NAMES[k]), bar(c.needs[k]), h("span", { style: { color: needColor(c.needs[k]) } }, c.needs[k])),
       ),
       c.needs.rad > 0 ? h("div.need", null, h("span", null, cic(NEED_IC, "rad"), "Радиация"), bar(c.needs.rad, "#b0e040"), h("span.warn", null, c.needs.rad)) : null,
       c.injury ? h("div.bad", null, "Травма: " + injuryName(c.injury)) : null,

@@ -132,7 +132,7 @@ export class LobbyUI {
           null,
           h("label", null, "Рассказчик:", sel("storyteller", s.storyteller, [["haven", "Тихая гавань"], ["classic", "Классика"], ["scorched", "Выжженная земля"]])),
           h("label", null, "Жильцов:", sel("residents", s.residents, [[1, "1"], [2, "2"], [3, "3"], [4, "4"], [5, "5"], [6, "6"]])),
-          h("label", null, "Длина дня:", sel("dayLength", s.dayLength, [[180, "3 мин"], [360, "6 мин"], [600, "10 мин"]])),
+          h("label", null, "Длина дня:", sel("dayLength", s.dayLength, [[360, "6 мин"], [600, "10 мин"], [900, "15 мин"], [1200, "20 мин"]])),
           h("label", null, "Ход в бою:", sel("combatTurnTime", s.combatTurnTime, [[10, "10 с"], [20, "20 с"], [40, "40 с"]])),
           chk("short", s.short, "Короткая партия (10 дней)"),
           chk("traitor", s.traitor, "Засланец"),

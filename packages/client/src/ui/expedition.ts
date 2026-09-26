@@ -78,6 +78,12 @@ export class ExpeditionUI {
   actions: SiteAction[] = [];
   sel = 0;
   private mapKey = "";
+  /** the wasteland chart's zoom (1 = whole city) and centre, kept across rebuilds; 0 = not set yet */
+  private mapZoom = 0;
+  private mapCx = 50;
+  private mapCy = 40;
+  private mapGesture = false;
+  private wheelT = 0;
   private hudKey = "";
   private promptKey = "";
   private bannerKey = "";
@@ -494,8 +500,10 @@ export class ExpeditionUI {
   }
 
   // ---------------------------------------------------------------- map
-  svgMap(onClick?: (id: string) => void): SVGSVGElement {
+  svgMap(onClick?: (id: string) => void, z = 1): SVGSVGElement {
     const e = this.e;
+    // zoomed in, the marks grow slower than the map so the places spread apart instead of just swelling
+    const k = 1 / Math.sqrt(z);
     const m = net.pub?.mods?.wmap;
     const NS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(NS, "svg");
@@ -518,13 +526,13 @@ export class ExpeditionUI {
     for (const id in nodes)
       for (const l of nodes[id].links)
         if (id < l && seen(nodes[id]) && seen(nodes[l]))
-          el("line", { x1: nodes[id].x, y1: nodes[id].y, x2: nodes[l].x, y2: nodes[l].y, stroke: "#e8d6a4", "stroke-width": 0.28, "stroke-opacity": 0.55, "stroke-dasharray": "0.8 0.6" });
+          el("line", { x1: nodes[id].x, y1: nodes[id].y, x2: nodes[l].x, y2: nodes[l].y, stroke: "#e8d6a4", "stroke-width": 0.28 * k, "stroke-opacity": 0.55, "stroke-dasharray": `${0.8 * k} ${0.6 * k}` });
     // route
     if (e?.route?.length) {
       let prev = nodes[e.node];
       for (const id of e.route) {
         const n = nodes[id];
-        if (prev && n) el("line", { x1: prev.x, y1: prev.y, x2: n.x, y2: n.y, stroke: "#e0704f", "stroke-width": 0.7 });
+        if (prev && n) el("line", { x1: prev.x, y1: prev.y, x2: n.x, y2: n.y, stroke: "#e0704f", "stroke-width": 0.7 * k });
         prev = n;
       }
     }
@@ -532,7 +540,7 @@ export class ExpeditionUI {
       const n = nodes[id];
       if (!seen(n)) {
         // not scouted yet: a question mark on the drawn plot
-        el("text", { x: n.x, y: n.y + 0.9, "font-size": 2.4, "text-anchor": "middle", fill: "#c9bb96", "fill-opacity": 0.5 }, "?");
+        el("text", { x: n.x, y: n.y + 0.9 * k, "font-size": 2.4 * k, "text-anchor": "middle", fill: "#c9bb96", "fill-opacity": 0.5 }, "?");
         continue;
       }
       const icon =
@@ -547,18 +555,18 @@ export class ExpeditionUI {
       const c = document.createElementNS(NS, "circle");
       c.setAttribute("cx", n.x);
       c.setAttribute("cy", n.y);
-      c.setAttribute("r", "2.6");
+      c.setAttribute("r", String(2.6 * k));
       c.setAttribute("fill", n.visited ? "#3a2f27" : "#2a221c");
       c.setAttribute(
         "stroke",
         id === this.selectedNode ? "#ffffff" : id === e?.node ? "#ffc58a" : n.danger >= 3 ? "#d66a57" : "#8ba79a",
       );
-      c.setAttribute("stroke-width", id === e?.node ? "0.8" : "0.35");
+      c.setAttribute("stroke-width", String((id === e?.node ? 0.8 : 0.35) * k));
       g.appendChild(c);
       const t = document.createElementNS(NS, "text");
       t.setAttribute("x", n.x);
-      t.setAttribute("y", String(n.y + 1.1));
-      t.setAttribute("font-size", "3");
+      t.setAttribute("y", String(n.y + 1.1 * k));
+      t.setAttribute("font-size", String(3 * k));
       t.setAttribute("text-anchor", "middle");
       t.textContent = icon;
       g.appendChild(t);
@@ -576,8 +584,8 @@ export class ExpeditionUI {
       }
       const label = document.createElementNS(NS, "text");
       label.setAttribute("x", n.x);
-      label.setAttribute("y", String(n.y + 5.5));
-      label.setAttribute("font-size", document.documentElement.classList.contains("mobile") ? "2.5" : "1.65");
+      label.setAttribute("y", String(n.y + 5.5 * k));
+      label.setAttribute("font-size", String((document.documentElement.classList.contains("mobile") ? 2.5 : 1.65) * k));
       label.setAttribute("class", "map-label");
       // who keeps a label when they crowd: the picked place, where the squad is, home, then the rest
       label.dataset.prio = String(id === this.selectedNode ? 0 : id === e?.node ? 1 : n.type === "home" ? 2 : 3);
@@ -585,7 +593,7 @@ export class ExpeditionUI {
       label.setAttribute("fill", "#d7ddd1");
       label.setAttribute("paint-order", "stroke");
       label.setAttribute("stroke", "#172020");
-      label.setAttribute("stroke-width", "0.6");
+      label.setAttribute("stroke-width", String(0.6 * k));
       label.textContent = n.name;
       g.appendChild(label);
       svg.appendChild(g);
@@ -595,15 +603,135 @@ export class ExpeditionUI {
       const a = nodes[e.from ?? e.node];
       const b = e.stage === "travel" && e.route?.length ? nodes[e.route[0]] : null;
       const p = a && b ? { x: a.x + (b.x - a.x) * e.progress, y: a.y + (b.y - a.y) * e.progress } : nodes[e.node];
-      if (p) el("circle", { cx: p.x, cy: p.y, r: 1.3, fill: "#ffc58a", stroke: "#000", "stroke-width": 0.3 });
+      if (p) el("circle", { cx: p.x, cy: p.y, r: 1.3 * k, fill: "#ffc58a", stroke: "#000", "stroke-width": 0.3 * k });
     }
     return svg;
   }
 
+  /** The chart with zoom: wheel or pinch, drag to pan, and +/− buttons. The view survives rebuilds. */
+  private zoomableMap(squadAt: any): HTMLElement {
+    const mobile = document.documentElement.classList.contains("mobile");
+    if (!this.mapZoom) {
+      // a phone shows the whole city as a stamp: start closer, on the squad
+      this.mapZoom = mobile ? 2 : 1;
+      if (squadAt) {
+        this.mapCx = squadAt.x;
+        this.mapCy = squadAt.y;
+      }
+    }
+    const svg = this.svgMap((id) => {
+      this.selectedNode = id;
+      this.mapKey = "";
+      this.renderMap();
+    }, this.mapZoom);
+    svg.classList.add("wmap-zoom");
+    const view = () => {
+      const z = this.mapZoom, w = 100 / z, hh = 80 / z;
+      this.mapCx = Math.min(100 - w / 2, Math.max(w / 2, this.mapCx));
+      this.mapCy = Math.min(80 - hh / 2, Math.max(hh / 2, this.mapCy));
+      svg.setAttribute("viewBox", `${this.mapCx - w / 2} ${this.mapCy - hh / 2} ${w} ${hh}`);
+    };
+    view();
+    /** client pixels per map unit, and where the drawing starts (it is letterboxed: xMidYMid meet) */
+    const frame = () => {
+      const r = svg.getBoundingClientRect(), z = this.mapZoom;
+      const s = Math.min(r.width / (100 / z), r.height / (80 / z)) || 1;
+      return { s, ox: r.left + (r.width - (100 / z) * s) / 2, oy: r.top + (r.height - (80 / z) * s) / 2 };
+    };
+    /** zoom by `f`, keeping the map point under (px, py) in client pixels where it is */
+    const zoomAt = (f: number, px?: number, py?: number) => {
+      const z0 = this.mapZoom, z1 = Math.min(5, Math.max(1, z0 * f));
+      if (z1 === z0) return;
+      if (px !== undefined && py !== undefined) {
+        const { s, ox, oy } = frame();
+        const mx = this.mapCx - 50 / z0 + (px - ox) / s, my = this.mapCy - 40 / z0 + (py - oy) / s;
+        this.mapCx = mx + (this.mapCx - mx) * (z0 / z1);
+        this.mapCy = my + (this.mapCy - my) * (z0 / z1);
+      }
+      this.mapZoom = z1;
+      view();
+    };
+    const commit = () => ((this.mapKey = ""), this.renderMap());
+    svg.addEventListener(
+      "wheel",
+      (ev) => {
+        ev.preventDefault();
+        zoomAt(Math.exp(-ev.deltaY * 0.0015), ev.clientX, ev.clientY);
+        clearTimeout(this.wheelT);
+        this.wheelT = window.setTimeout(commit, 180);
+      },
+      { passive: false },
+    );
+    const pts = new Map<number, { x: number; y: number }>();
+    let moved = 0,
+      pinch = 0;
+    const move = (ev: PointerEvent) => {
+      const prev = pts.get(ev.pointerId);
+      if (!prev) return;
+      pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+      if (pts.size === 1) {
+        const { s } = frame();
+        this.mapCx -= (ev.clientX - prev.x) / s;
+        this.mapCy -= (ev.clientY - prev.y) / s;
+        moved += Math.abs(ev.clientX - prev.x) + Math.abs(ev.clientY - prev.y);
+        view();
+      } else {
+        const [a, b] = [...pts.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinch) zoomAt(d / pinch, (a.x + b.x) / 2, (a.y + b.y) / 2);
+        pinch = d;
+        moved += 10;
+      }
+      if (moved > 6) this.mapGesture = true;
+    };
+    const up = (ev: PointerEvent) => {
+      pts.delete(ev.pointerId);
+      pinch = 0;
+      if (pts.size) return;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      if (!this.mapGesture) return;
+      this.mapGesture = false;
+      // the lifted finger's click must not pick the place under it
+      const eat = (e: Event) => (e.stopPropagation(), e.preventDefault());
+      svg.addEventListener("click", eat, { capture: true });
+      setTimeout(() => (svg.removeEventListener("click", eat, { capture: true }), commit()), 0);
+    };
+    svg.addEventListener("pointerdown", (ev) => {
+      if (!pts.size) {
+        moved = 0;
+        window.addEventListener("pointermove", move);
+        window.addEventListener("pointerup", up);
+        window.addEventListener("pointercancel", up);
+      }
+      pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    });
+    const btn = (label: string, title: string, fn: () => void) => h("button.small", { title, "aria-label": title, onclick: () => (fn(), commit()) }, label);
+    return h(
+      "div.map-zoom-wrap",
+      null,
+      svg,
+      h(
+        "div.map-zoom",
+        null,
+        btn("+", "Приблизить", () => zoomAt(1.5)),
+        btn("−", "Отдалить", () => zoomAt(1 / 1.5)),
+        btn("◎", "К отряду", () => {
+          if (!squadAt) return;
+          this.mapCx = squadAt.x;
+          this.mapCy = squadAt.y;
+        }),
+      ),
+    );
+  }
+
   renderMap() {
+    if (this.mapGesture) return;
     const e = this.e,
       v = net.pub!;
     const key = JSON.stringify([
+      this.mapZoom,
       e.node,
       e.route,
       Math.round(e.progress * 50),
@@ -616,7 +744,7 @@ export class ExpeditionUI {
       e.stock,
       this.tradeGive,
       this.tradeTake,
-      v.hour > 21.5,
+      v.hour > 22.5,
       this.selectedNode,
     ]);
     if (key === this.mapKey) return;
@@ -644,7 +772,7 @@ export class ExpeditionUI {
             h(
               "p.dim",
               null,
-              `${Math.round(e.progress * 100)}% пути${v.hour > 21.5 ? " · скоро привал на ночь" : " · время и припасы расходуются"}`,
+              `${Math.round(e.progress * 100)}% пути${v.hour > 22.5 ? " · скоро привал на ночь" : " · время и припасы расходуются"}`,
             ),
           )
         : null,
@@ -718,11 +846,7 @@ export class ExpeditionUI {
         h("span", null, "ПУСТОШЬ"),
         h("small", null, "Щёлкните место, чтобы изучить маршрут"),
       ),
-      this.svgMap((id) => {
-        this.selectedNode = id;
-        this.mapKey = "";
-        this.renderMap();
-      }),
+      this.zoomableMap(nodes[e.from ?? e.node]),
       h("div.exp-map-legend", null, "● Отряд   ─ Известные дороги   ◆ Опасная зона"),
     );
     // phones: the places as a list too — a finger finds «Школа на Слесарном» easier than a 20 px dot (#10)

@@ -33,6 +33,8 @@ async function newPage(tgUser) {
     deviceScaleFactor: 1,
     userAgent: M.touch ? "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36" : undefined,
   });
+  // the intro cards are their own check (onboarding-check.mjs): here they would only cover the lobby
+  await ctx.addInitScript(() => localStorage.setItem("bunker.introSeen", "1"));
   if (M.tg)
     await ctx.addInitScript(() => {
       const noop = () => {};
@@ -205,7 +207,7 @@ S.day = async () => {
     } else await page.keyboard.press("KeyE");
     await wait(1500);
     await shot("23-minigame");
-    const mg = await ev(() => !!document.querySelector(".minigame, .mg, [class*=minigame]"));
+    const mg = await ev(() => !!document.querySelector(".mini-modal, .minigame, .mg, [class*=minigame]"));
     log("minigame opens", mg);
     await dismissTips();
     // play a bit

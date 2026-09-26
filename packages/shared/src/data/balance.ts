@@ -4,8 +4,8 @@ export const BAL = {
   tickHz: 20,
   // --- time
   dayStartHour: 6,
-  dayEndHour: 22,
-  defaultDayLength: 360, // real seconds of daytime (06→22)
+  dayEndHour: 23, // lights out; a warning at 22:00
+  defaultDayLength: 900, // real seconds of daytime (06→23)
   defaultNightLength: 120,
   skipTimeMult: 3,
   combatTimeMult: 0.25,
@@ -23,7 +23,7 @@ export const BAL = {
     food: 40,
     water: 60,
     energy: 55, // restored by sleep
-    sanity: 12, // baseline drift down (comfort offsets it)
+    sanity: 7, // baseline drift down (comfort offsets it); gentle: a bare bunker should not break people in a day
   },
   rationFood: 1, // food units per person per day
   rationWater: 2, // water units per person per day
@@ -37,7 +37,7 @@ export const BAL = {
   radDmgPerDay: 20,
   healthRegenPerDay: 8, // when fed & watered
   hallucinationSanity: 30,
-  breakdownSeconds: 60,
+  breakdownSeconds: 40,
   downSeconds: 90,
   sleepRestoreBed: 80,
   sleepRestoreFloor: 40,

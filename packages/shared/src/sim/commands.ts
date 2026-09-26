@@ -98,7 +98,7 @@ registerCmd("settings", (w, p, c) => {
   if (!p.host || w.phase !== "lobby") return "Только хост меняет настройки";
   const s = w.settings;
   const n = c.s ?? {};
-  if (n.dayLength) s.dayLength = Math.max(60, Math.min(1200, Number(n.dayLength)));
+  if (n.dayLength) s.dayLength = Math.max(60, Math.min(1800, Number(n.dayLength)));
   if (n.residents) s.residents = Math.max(1, Math.min(6, Number(n.residents)));
   if (n.storyteller && ["haven", "classic", "scorched"].includes(n.storyteller)) s.storyteller = n.storyteller;
   if (n.short !== undefined) s.short = !!n.short;
