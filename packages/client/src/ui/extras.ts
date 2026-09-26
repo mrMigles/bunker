@@ -16,6 +16,7 @@ import { DayVoteUI, InstrumentUI, RadioUI } from "./radio";
 import { TableUI } from "./tableui";
 import { ObjectivesUI } from "./objectives";
 import { MorningUI } from "./morning";
+import { FirstDayGuide } from "./onboarding";
 import { maybeOpenPerkChoice } from "./hud";
 import { CombatUI } from "./combat";
 import { openDebug } from "./debug";
@@ -102,6 +103,7 @@ export function installExtras(game: GameUI) {
   const ending = new EndingUI();
   const objectives = new ObjectivesUI(game);
   const morning = new MorningUI(() => objectives.expand());
+  const guide = new FirstDayGuide(game);
   const minigame = new MinigameUI();
   const tips = new TipsUI();
   (window as any).__tips = tips;
@@ -235,6 +237,7 @@ export function installExtras(game: GameUI) {
     ending.update();
     objectives.update();
     morning.update(!!(table.active || combat.active || exp.mode !== "none" || pro.active));
+    guide.update(!!(table.active || combat.active || exp.mode !== "none" || pro.active));
     minigame.update();
     tips.update();
     maybeOpenPerkChoice();

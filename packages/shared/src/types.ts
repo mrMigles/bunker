@@ -327,6 +327,8 @@ export interface Player {
   aquarium: boolean;
   table?: string;
   joinedDay: number;
+  /** reading «Как играть» in the lobby: the game waits for them (#43) */
+  reading?: boolean;
 }
 
 /** «Начать заново» mid-game: one asks, anyone else (in the game or in the Telegram chat) agrees */

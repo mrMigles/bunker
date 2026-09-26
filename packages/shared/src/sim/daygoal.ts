@@ -3,7 +3,7 @@
 // several days in a row → a streak that lifts spirits.
 import { ROOMS, objsOfKind, roomCost, roomsOfType } from "../world/rooms";
 import type { World } from "../types";
-import { foodUnits, missingText } from "./items";
+import { WHERE_TO_FIND, foodUnits, missingText } from "./items";
 import { neededRoom } from "./foreman";
 import { grantXp } from "./progress";
 import { onTick } from "./tick";
@@ -57,7 +57,8 @@ export function pickGoal(w: World): DayGoal {
     const target: Record<string, number> = {};
     for (const k in cost) if ((w.res[k] ?? 0) < cost[k]) target[k] = cost[k];
     const what = Object.keys(target).map((k) => `${k === "scrap" ? "металлолом" : k === "wood" ? "дерево" : k === "parts" ? "детали" : k === "chem" ? "химия" : k === "cloth" ? "ткань" : k} ${target[k]}`).join(", ");
-    return { day, kind: "materials", text: `Материалы для «${ROOMS[waiting.type]?.name}»: ${what}`, hint: "Вылазка в школу, гараж или магазин, разбор мусора на верстаке.", target, room: waiting.id };
+    const hint = Object.keys(target).map((k) => WHERE_TO_FIND[k] ? `${k === "chem" ? "химикаты" : k === "wood" ? "дерево" : k === "scrap" ? "металлолом" : "детали"}: ${WHERE_TO_FIND[k]}` : "").filter(Boolean).join("; ");
+    return { day, kind: "materials", text: `Материалы для «${ROOMS[waiting.type]?.name}»: ${what}`, hint: hint || "Вылазка в школу, гараж или магазин, разбор мусора на верстаке.", target, room: waiting.id };
   }
   const need = neededRoom(w);
   if (need) {

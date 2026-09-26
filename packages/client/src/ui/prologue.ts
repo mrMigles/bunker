@@ -34,6 +34,9 @@ export class PrologueUI {
   private lastSiren = -1;
   private listKey = "";
   private lastDelivered = 0;
+  /** «взять → донести»: the step of the on-screen lesson and when the first delivery landed (#43) */
+  step: 1 | 2 | 3 | 0 = 1;
+  private firstDeliveryT = 0;
   // the end of the world, seen from the street: distant strikes, mushroom clouds, ash, the radio
   private strikes = [
     { t: 6, dx: -4.5, size: 0.7 },
@@ -85,7 +88,22 @@ export class PrologueUI {
     }
     const left = Math.max(0, Math.ceil(p.dur-p.t));
     const saved = Object.values(p.delivered as Record<string,number>).reduce((a,b)=>a+b,0);
-    const key = `${left}|${saved}|${p.done}`;
+    // the lesson moves on by what the player does: take a supply, carry it to the hatch, then freedom
+    const me = net.myChar();
+    const mine = me ? (p.by?.[me.id]?.length ?? 0) : 0;
+    const now = performance.now() / 1000;
+    if (mine && !this.firstDeliveryT) this.firstDeliveryT = now;
+    this.step = p.done || !me ? 0 : !mine ? (me.hands?.length ? 2 : 1) : now - this.firstDeliveryT < 6 ? 3 : 0;
+    const touchUI = document.documentElement.classList.contains("mobile");
+    const stepText =
+      this.step === 1
+        ? ["Шаг 1 из 2", `Возьмите припас — ${touchUI ? "коснитесь" : "щёлкните"} подписи «ВЗЯТЬ»`]
+        : this.step === 2
+          ? ["Шаг 2 из 2", `Отнесите к люку — «Отнести припасы»${touchUI ? "" : " или Пробел"}`]
+          : this.step === 3
+            ? ["✓ Готово", "Припас на складе. Ищите ещё, пока есть время"]
+            : null;
+    const key = `${left}|${saved}|${p.done}|${this.step}`;
     if (key !== this.hudKey) {
       this.hudKey = key; clear(this.hud);
       add(this.hud,
@@ -93,7 +111,8 @@ export class PrologueUI {
         h("div.prologue-timer" + (left <= 20 ? ".urgent" : ""), null, p.done ? "ВСПЫШКА" : `${Math.floor(left/60)}:${String(left%60).padStart(2,"0")}`),
         h("div", null, p.done ? "Держитесь. Люк закрывается…" : "Лучшее — в дальних домах и на вторых этажах. Успейте к люку!"),
         h("div.countdown-track", null, h("i", {style:{width:`${100*left/p.dur}%`}})),
-        h("div.mission-saved", null, `В убежище: ${saved} припасов`, h("span.dim",null," · общий запас")));
+        h("div.mission-saved", null, `В убежище: ${saved} припасов`, h("span.dim",null," · общий запас")),
+        stepText ? h("div.pro-step" + (this.step === 3 ? ".ok" : ""), null, h("b", null, stepText[0]), " ", stepText[1]) : null);
       if (saved > this.lastDelivered) audio.sfx("find",.3);
       this.lastDelivered = saved;
       if (left <= 20 && left !== this.lastSiren && left%5 === 0) { this.lastSiren=left; audio.sfx("siren",.5); }
@@ -289,6 +308,7 @@ export class PrologueUI {
     this.site.render(this.r.renderer);
     this.site.camX -= shakeX; this.site.camY -= shakeY;
     const [hx,hy]=this.site.pos(p.hatchX,1),[hsx,hsy]=this.site.toScreen(hx,hy+1.1);
+    this.hatchLabel.classList.toggle("hint", this.step===2);
     this.hatchLabel.style.left=Math.max(90,Math.min(window.innerWidth-90,hsx))+"px";
     this.hatchLabel.style.top=Math.max(220,Math.min(window.innerHeight-110,hsy))+"px";
     this.updateMarkers(p,me); this.updatePrompt(); return true;
@@ -309,6 +329,8 @@ export class PrologueUI {
       // keep the whole label on screen: a half-hidden name at the edge cannot be read or tapped
       const half=(el.offsetWidth||120)/2;
       el.style.left=Math.max(half+4,Math.min(window.innerWidth-half-4,sx))+"px";el.style.top=sy+"px";
+      // lesson step 1: the nearest supply's label glows
+      el.classList.toggle("hint", this.step===1 && seen.size===1);
     });
     for(const [id,el] of this.labels) if(!seen.has(id)) {el.remove();this.labels.delete(id);}
     // nothing to take in the frame: an arrow at the edge says which way the nearest supply is

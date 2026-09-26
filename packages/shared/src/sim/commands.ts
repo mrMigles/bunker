@@ -113,7 +113,19 @@ registerCmd("settings", (w, p, c) => {
 registerCmd("start", (w, p) => {
   if (w.phase !== "lobby") return;
   if (!p.host) return "Начать может только хост";
+  // nobody is thrown into the running clock while still reading the intro; a second press does not wait (#43)
+  const readers = Object.values(w.players).filter((x) => x.online && x.reading && x.id !== p.id);
+  if (readers.length && !w.flags._startAnyway) {
+    w.flags._startAnyway = 1;
+    return `Ждём: ${readers.map((x) => x.name).join(", ")} читает «Как играть». Нажмите «Начать» ещё раз, чтобы не ждать.`;
+  }
+  delete w.flags._startAnyway;
   startGame(w);
+});
+
+registerCmd("reading", (w, p, c) => {
+  p.reading = !!c.v;
+  if (!p.reading) delete w.flags._startAnyway;
 });
 
 registerCmd("take", (w, p, c) => {

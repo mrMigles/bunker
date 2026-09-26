@@ -41,7 +41,8 @@ function playerSortie(w: World): string | null {
     .sort((a, b) => b.card.stats.sil + b.card.stats.vyn - (a.card.stats.sil + a.card.stats.vyn))
     .slice(0, 2);
   if (squad.length < 2) return null;
-  const want = foodDays(w) < 3 ? ["food", "seeds"] : ["fuel", "tools", "base"]; // the only location tables with scrap
+  // food first; otherwise scrap and parts — and chemicals (pharmacy, gas station) when they run out, as the hints say
+  const want = foodDays(w) < 3 ? ["food", "seeds"] : (w.res.chem ?? 0) < 2 ? ["med", "fuel"] : ["fuel", "tools", "base"];
   const m = wmap(w);
   const types = (LOC as any).types as Record<string, { loot: string }>;
   const nodes = Object.values(m.nodes).filter((n) => n.id !== "home" && n.known && types[n.type] && n.type !== "ark" && mapPath(m, "home", n.id, false));

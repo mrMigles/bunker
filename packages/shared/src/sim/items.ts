@@ -124,13 +124,23 @@ export function costText(cost: Record<string, number>) {
     .join(", ");
 }
 
+/** Where a scarce material turns up — said wherever it is missing (#42). */
+export const WHERE_TO_FIND: Record<string, string> = {
+  chem: "аптеки и больницы, заправки, ящики с инструментами, бытовая химия на полках; на верстаке — из 2 батареек",
+  wood: "штабели досок и скамьи в школах, на фермах, в подсобках; разбор мусора на верстаке",
+  scrap: "ящики, стеллажи, гаражи и заправки; разбор мусора на верстаке",
+  parts: "ящики с инструментами, гаражи, технические помещения",
+};
+
 export function missingText(w: World, cost: Record<string, number>) {
   const miss: string[] = [];
   for (const k in cost) {
     const have = w.res[k] ?? 0;
     if (have < cost[k]) miss.push(`${itemName(k)} ${Math.floor(have)}/${cost[k]}`);
   }
-  return miss.length ? "Не хватает: " + miss.join(", ") : "";
+  if (!miss.length) return "";
+  const chem = (w.res.chem ?? 0) < (cost.chem ?? 0);
+  return "Не хватает: " + miss.join(", ") + (chem ? `. Химикаты: ${WHERE_TO_FIND.chem}` : "");
 }
 
 /** Nutrition value of a resource key. */

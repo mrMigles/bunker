@@ -370,7 +370,7 @@ defAction({
     const R = rng(w);
     const got: Record<string, number> = {};
     // a slow but sure source: at least one piece of something from every bag
-    for (const [k, p] of [["scrap", 0.6], ["wood", 0.5], ["cloth", 0.35]] as const) if (R.chance(p)) got[k] = 1;
+    for (const [k, p] of [["scrap", 0.6], ["wood", 0.5], ["cloth", 0.35], ["chem", 0.15]] as const) if (R.chance(p)) got[k] = 1;
     if (!Object.keys(got).length) got.scrap = 1;
     for (const k in got) w.res[k] = (w.res[k] ?? 0) + got[k];
     emitWork(w, c, "🔨 " + Object.keys(got).map((k) => `+${got[k]} ${itemName(k)}`).join(", "), "#8fcf6a");

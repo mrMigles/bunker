@@ -98,6 +98,8 @@ export const CRAFTS: Record<string, { name: string; tech: string; cost: Record<s
   solar: { name: "Солнечная панель", tech: "tech_solar", cost: { parts: 4, scrap: 4, chem: 1 }, out: {}, furn: "furn_solar" },
   thermal: { name: "Термоэлемент", tech: "tech_thermal", cost: { parts: 5, scrap: 5 }, out: {}, furn: "furn_thermal" },
   chess_pieces: { name: "Выточить недостающие фигуры", tech: "", cost: { wood: 1 }, out: {} },
+  // a source of chemicals that needs no research: the acid of dead batteries (#42)
+  chem_acid: { name: "Химикаты из старых батареек", tech: "", cost: { batteries: 2, water: 1 }, out: { chem: 1 } },
 };
 
 FURNITURE.furn_solar = { name: "Солнечная панель", icon: "🔆", obj: "solar_panel", cost: {}, comfort: 0 };

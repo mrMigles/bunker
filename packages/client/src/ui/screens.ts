@@ -1,4 +1,5 @@
 import { askRestart } from "./restart";
+import { openIntro } from "./onboarding";
 import { insideTelegram, openInBrowser, tgInfo } from "../telegram";
 import { portrait } from "../render/portrait";
 import { art, portraitTile } from "./art";
@@ -736,6 +737,7 @@ export function openSettings(r: { shadows: boolean }) {
         h("label.row", null, h("span", { style: { width: "120px" } }, "Эффекты"), quality),
         h("label.row", null, shadows, "Тени от ламп"),
         h("button.small", { onclick: () => ((window as any).__tips?.reset(), closeModal()) }, icon("refresh"), "Показать подсказки заново"),
+        h("button.small", { onclick: () => (closeModal(), openIntro({ skipPrologue: true })) }, icon("book"), "Как играть"),
       ),
       h(
         "div.sect",
@@ -751,11 +753,11 @@ export function openSettings(r: { shadows: boolean }) {
       h(
         "div.settings-foot",
         null,
-        h("button", { onclick: () => closeModal() }, icon("play"), "Продолжить"),
+        h("button.primary", { onclick: () => closeModal() }, icon("play"), "Продолжить"),
         tgGame
           ? h("span.dim", null, "Закрыть игру — крестиком Telegram. Бункер чата сохранится.")
           : h(
-          "button.primary",
+          "button",
           {
             onclick: () => {
               closeModal();

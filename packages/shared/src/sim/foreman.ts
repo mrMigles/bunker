@@ -100,6 +100,7 @@ function autoPlan(w: World) {
   let type = need.type;
   // power first: no new grow-lamps while the generators can't keep up — mushrooms need no light
   if (powerShort(w) && type === "hydro") type = "mushroom";
+  crackBatteries(w, roomCost(type, ROOMS[type]?.w?.[0] ?? 4).chem ?? 0);
   let spot = findSpot(w, type);
   // can't afford hydro → cheap mushroom beds are still food
   if (!spot && type === "hydro") {
@@ -167,6 +168,9 @@ function fitForRun(c: Char) {
 function shortage(w: World): "food" | "materials" | null {
   if (foodDays(w) < 3) return "food";
   if ((w.res.scrap ?? 0) < 8 || (w.res.parts ?? 0) < 4) return "materials";
+  // the room the colony wants waits only on chemicals: go and get them (#42)
+  const need = neededRoom(w);
+  if (need && (w.res.chem ?? 0) < (roomCost(need.type, ROOMS[need.type]?.w?.[0] ?? 4).chem ?? 0)) return "materials";
   return null;
 }
 
@@ -184,6 +188,8 @@ function pickTarget(w: World, want: "food" | "materials"): string | null {
     if (want === "food" && t.loot === "food") score -= 4;
     if (want === "food" && t.loot === "seeds") score -= 2;
     if (want === "materials" && ["base", "tools", "fuel", "misc"].includes(t.loot)) score -= 4;
+    // no chemicals on the shelves: the pharmacy and the gas station first (#42)
+    if (want === "materials" && (w.res.chem ?? 0) < 2 && ["med", "fuel"].includes(t.loot)) score -= 3;
     if (!best || score < best.score) best = { id: n.id, score };
   }
   return best?.id ?? null;
@@ -346,6 +352,18 @@ function crisisGift(w: World) {
   log(w, `🐫 У люка оставили свёрток: ${n * 2} банок консервов и ${n * 2} л воды. Кто-то наверху помнит о вас.`, "good");
 }
 
+/** Short of chemicals for a room: the residents crack old batteries at the workbench (#42). */
+function crackBatteries(w: World, need: number) {
+  let n = 0;
+  while ((w.res.chem ?? 0) < need && (w.res.batteries ?? 0) >= 2 && (w.res.water ?? 0) >= 4 && objsOfKind(w, "workbench").length && n < 3) {
+    w.res.batteries -= 2;
+    w.res.water -= 1;
+    w.res.chem = (w.res.chem ?? 0) + 1;
+    n++;
+  }
+  if (n) log(w, `🧪 Жильцы разобрали старые батарейки на верстаке: +${n} химикаты для стройки.`, "info");
+}
+
 /** Unpaid marked rooms that cannot afford their frame: remember since when, say once a day what is missing. */
 function watchStalls(w: World) {
   for (const r of Object.values(w.rooms)) {
@@ -360,6 +378,7 @@ function watchStalls(w: World) {
       continue;
     }
     w.flags[key] ??= w.day;
+    crackBatteries(w, roomCost(r.type, r.w).chem ?? 0);
     if (r.state === "frame" && (w.flags["_stallSaid_" + r.id] ?? -1) < w.day) {
       w.flags["_stallSaid_" + r.id] = w.day;
       log(w, `🏗 Каркас «${ROOMS[r.type]?.name ?? r.type}» ждёт материалов. ${miss}.`, "info");

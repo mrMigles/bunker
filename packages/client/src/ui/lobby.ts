@@ -2,7 +2,8 @@ import { avatar } from "./avatar";
 import { portrait } from "../render/portrait";
 import { BAL, GOALS, PROFS, STAT_NAMES, TRAITS_MINUS, TRAITS_PLUS, type Card } from "@bunker/shared";
 import { net } from "../net";
-import { clear, h, toast, ui } from "./dom";
+import { clear, h, isModalOpen, toast, ui } from "./dom";
+import { introSeen, openIntro } from "./onboarding";
 import { openCharEditor } from "./charedit";
 import { tgInfo } from "../telegram";
 import { art, portraitTile } from "./art";
@@ -18,9 +19,16 @@ export class LobbyUI {
     this.root.remove();
   }
 
+  private introAsked = false;
+
   render() {
     const v = net.pub!;
     const me = net.priv!;
+    // the first game: once a survivor is picked, the three cards — before any clock runs (#43)
+    if (!this.introAsked && me.pick !== undefined && !introSeen() && !isModalOpen()) {
+      this.introAsked = true;
+      setTimeout(() => openIntro({ skipPrologue: !!v.settings.skipPrologue }), 300);
+    }
     const r = this.root;
     // keep the scroll position (on a phone the lobby is taller than the screen)
     const scroll = r.scrollTop;
@@ -77,7 +85,7 @@ export class LobbyUI {
             p.name,
             p.host ? icon("crown", { title: "Хост" }) : null,
             p.id === me.pid ? h("span.dim", null, "(вы)") : null,
-            p.ready ? h("span.good", null, icon("check"), "готов") : h("span.dim", null, p.pick ? "выбрал" : "выбирает…"),
+            p.reading ? h("span.dim", null, "📖 читает «Как играть»") : p.ready ? h("span.good", null, icon("check"), "готов") : h("span.dim", null, p.pick ? "выбрал" : "выбирает…"),
           ),
         ),
         h("div.pchip", { title: "Новые жильцы постучат в интерком или найдутся на вылазках" }, icon("bot"), `+ ${Math.max(0, Math.min(3, s.residents - players.length))} бот(ов)-жильцов`),
@@ -91,6 +99,7 @@ export class LobbyUI {
         "div.lobby-actions",
         null,
         h("button", { onclick: () => net.send({ k: "reroll" }) }, icon("dice"), "Другие карточки"),
+        h("button", { onclick: () => openIntro({ skipPrologue: !!v.settings.skipPrologue }) }, icon("book"), "Как играть"),
         h("button", { onclick: () => openCharEditor() }, icon("userPlus"), "Создать своего"),
         me.pick !== undefined && cards?.[me.pick] ? h("button", { onclick: () => openCharEditor(cards[me.pick as number]) }, icon("wrench"), "Изменить выбранного") : null,
         h("div.grow"),

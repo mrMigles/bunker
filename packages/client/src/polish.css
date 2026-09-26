@@ -236,3 +236,26 @@ html.mobile .prompt .key, html.mobile .exp-action .key {display:none}
 @media (orientation: portrait) and (max-width: 700px) {
   html.mobile body[data-phase]:not([data-phase=lobby])::before {content:"⟳  Поверните телефон горизонтально";position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:30px;text-align:center;background:#121719f5;color:#eac98a;font:600 20px/1.4 sans-serif}
 }
+/* the prologue lesson (#43): one short line in the timer panel, the target glows */
+.prologue-hud .pro-step{margin-top:5px;padding:4px 6px;border-radius:5px;background:#f0c26a22;border:1px solid #f0c26a66;font-size:11px;line-height:1.3;color:#fbe7bd}
+.prologue-hud .pro-step b{color:#ffd27a;margin-right:3px}.prologue-hud .pro-step.ok{background:#8fcf6a22;border-color:#8fcf6a88;color:#dff3cf}.prologue-hud .pro-step.ok b{color:#a8e88a}
+.loot-marker.hint,.hatch-marker.hint{border-color:#ffd27a;box-shadow:0 0 0 2px #ffd27a88,0 0 18px #ffc75a88;animation:hintPulse 1s ease-in-out infinite alternate;z-index:6}
+@keyframes hintPulse{to{box-shadow:0 0 0 4px #ffd27a44,0 0 26px #ffc75acc}}
+/* «Как играть» (#43): three cards with frames of the game */
+.intro-modal .modal-body,.intro{max-width:100%}
+.intro-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.intro-card{display:flex;flex-direction:column;gap:6px;background:#1c1713;border:1px solid #5c4a36;border-radius:10px;padding:10px;min-width:0}
+.intro-img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:6px;border:1px solid #00000080;background:#2a221c}
+.intro-q{font-size:17px;font-weight:700;color:var(--warm);display:flex;align-items:center;gap:8px}
+.intro-n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#f0c26a;color:#2a1d10;font-size:13px;flex:none}
+.intro-text{margin:0;line-height:1.45;font-size:14px}
+.intro-example{margin:0;padding:6px 8px;border-left:3px solid #f0c26a;background:#f0c26a14;font-size:12.5px;color:#f3e3c3;line-height:1.35}
+.intro-foot{margin-top:12px;align-items:center;gap:10px}.intro-dots{font-size:13px;color:#cdbb9c}
+/* «Сегодня: обеспечьте жильцов» — the first days, one step at a time */
+.first-day{position:fixed;left:50%;top:92px;transform:translateX(-50%);width:min(470px,calc(100vw - 24px));z-index:18;padding:10px 12px;border-radius:12px;background:#1f1812f2;border:1px solid #c89a5a;box-shadow:0 8px 26px #000a;font-size:13px;line-height:1.4}
+.fd-head{display:flex;align-items:center;gap:8px}.fd-head b{color:var(--warm);font-size:14px}.fd-head .dim{margin-left:auto;font-size:11px}
+.fd-skip{min-height:0!important;min-width:0!important;padding:0 6px!important;background:none!important;border:0!important;color:#a99478;font-size:14px}
+.fd-stock{display:flex;flex-wrap:wrap;gap:4px 12px;margin:5px 0;font-size:12.5px}.fd-stock .bad{color:#ff9a7a;font-weight:700}.fd-stock small{flex-basis:100%;font-size:11px}
+.fd-actions{margin-top:7px;gap:8px;flex-wrap:wrap}
+html.mobile .first-day{top:calc(var(--top) + 6px);left:calc(6px + var(--sl));right:calc(56px + var(--sr));width:auto;transform:none;padding:8px 10px;font-size:12px}
+html.mobile .intro-q{font-size:15px}html.mobile .intro-text{font-size:13px}

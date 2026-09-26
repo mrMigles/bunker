@@ -65,7 +65,7 @@ export function publicView(w: World) {
   const players: Record<string, any> = {};
   for (const id in w.players) {
     const p = w.players[id];
-    players[id] = { id: p.id, name: p.name, char: p.char, online: p.online, ready: p.ready, host: p.host, color: p.color, ghost: p.ghost, pick: p.pick !== undefined ? 1 : 0, aquarium: p.aquarium };
+    players[id] = { id: p.id, name: p.name, char: p.char, online: p.online, ready: p.ready, host: p.host, color: p.color, ghost: p.ghost, pick: p.pick !== undefined ? 1 : 0, aquarium: p.aquarium, reading: !!p.reading };
   }
   const dig: Record<string, number> = {};
   for (const k in w.dig) dig[k] = r1(w.dig[k]);
