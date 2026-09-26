@@ -8,6 +8,7 @@ export const BAL = {
   defaultDayLength: 900, // real seconds of daytime (06→23)
   defaultNightLength: 120,
   skipTimeMult: 3,
+  sleepTimeMult: 6, // every living player asleep
   combatTimeMult: 0.25,
 
   // --- movement (cells per second)

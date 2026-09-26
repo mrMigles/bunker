@@ -1,7 +1,7 @@
 import { unitAlive, type Cover, type Door, type Field, type UnitInit } from "../combat/combat";
 import { BAL } from "../data/balance";
 import { ITEMS, itemName } from "../data/items";
-import { FACTIONS, LOC, generateMap, mapPath, travelHours, type MapNode, type WasteMap, TERRITORY, roadAmbush } from "../expedition/map";
+import { FACTIONS, LOC, generateMap, mapPath, travelHours, type MapNode, type WasteMap, TERRITORY, roadAmbush, AUTO_PACE, AUTO_SEARCH_H } from "../expedition/map";
 import { generateSite, rollLoot, siteRoomAt, siteWorld, type Site, type SiteCont } from "../expedition/site";
 import { modViews } from "../net/view";
 import { Rng } from "../rng";
@@ -62,6 +62,8 @@ export interface Expedition {
   auto?: string;
   /** what the enemies of a road fight carried, until someone searches the bodies */
   bodies?: Record<string, number>;
+  /** residents alone: game hours left searching the place before they head back */
+  autoWait?: number;
   /** this leg's attack, rolled when it starts: fires when `travelLeft` drops to `at` */
   ambush?: { at: number; foes: string[]; who: string };
 }
@@ -747,7 +749,14 @@ onTick("expedition", "*", (w, dt) => {
   }
   // everyone offline → the squad walks home on its own after 3 minutes
   const online = squad.some((c) => !isBotDriven(w, c.id));
-  e.offlineT = online ? 0 : e.offlineT + dt;
+  e.offlineT = online || e.auto ? 0 : e.offlineT + dt;
+  // residents alone: searching the place (resolved on arrival) takes its time, then home
+  if (e.autoWait) {
+    if (battle(w)) return;
+    e.autoWait = Math.max(0, e.autoWait - hours);
+    if (!e.autoWait && e.route.length) startLeg(w, e);
+    return;
+  }
   if (e.offlineT > 180 && e.stage !== "travel") {
     elog(e, "Связь с отрядом потеряна — они возвращаются сами.");
     if (e.stage === "site") leaveSite(w, e);
@@ -762,9 +771,10 @@ onTick("expedition", "*", (w, dt) => {
   if (e.stage === "travel") {
     if (hours <= 0) return; // camp at night
     // legs play out twice as fast as bunker time: the road is a transition, not the game;
-    // the residents' own runs (nobody to play them) go by three times faster still
+    // residents on their own walk carefully and the distance shows (AUTO_PACE: near places take
+    // half a day there and back, the far edge a night out)
     const unattended = e.auto && squad.every((c) => isBotDriven(w, c.id));
-    e.travelLeft -= hours * (unattended ? 6 : 2);
+    e.travelLeft -= hours * (unattended ? AUTO_PACE : 2);
     // the leg's attack, if one was rolled: a street fight, then the road goes on
     if (e.ambush && e.travelLeft <= e.ambush.at) {
       const a = e.ambush;
@@ -821,7 +831,20 @@ nightHooks.end.push((w) => {
     eatFromSupplies(w, e, c);
     eatFromSupplies(w, e, c);
   }
+  nightRaid(w, e);
 });
+
+/** A night in the open: the camp may be found — the district decides how likely and by whom. */
+function nightRaid(w: World, e: Expedition) {
+  if (e.stage === "site" || e.node === "home" || battle(w)) return;
+  const m = wmap(w);
+  const road = roadAmbush(m, e.node, e.route[0] ?? e.node, w.flags);
+  if (!road.chance || !rng(w).chance(Math.min(0.5, road.chance * 1.5))) return;
+  const t = TERRITORY[road.district];
+  elog(e, `🌙 Ночью на лагерь напали: ${t?.who ?? "мародёры"}!`);
+  log(w, `🌙 Ночью на лагерь отряда напали (${m.nodes[e.node]?.name ?? "пустошь"}).`, "bad");
+  roadFight(w, e, rng(w).pick(t?.foes ?? [["marauder", "raider"]]));
+}
 
 // ---------------------------------------------------------------- inside a site
 

@@ -143,6 +143,43 @@ export function roadAmbush(m: WasteMap, a: string, b: string, flags: Record<stri
   return best;
 }
 
+/**
+ * Residents sent alone walk carefully: a map-hour of road takes them 1 / AUTO_PACE game hours, and
+ * they spend AUTO_SEARCH_H on the place. Near places are there and back in half a day, the middle
+ * ring takes the day, the far edge means a night in the open (and a camp can be raided).
+ */
+export const AUTO_PACE = 0.4;
+export const AUTO_SEARCH_H = 1.5;
+
+export interface AutoTrip {
+  oneWay: number;
+  total: number;
+  /** nights spent out */
+  nights: number;
+  /** clock time they are back (on the day `nights` after today) */
+  backHour: number;
+  reach: "near" | "mid" | "far";
+}
+
+/** When residents sent from home now to `to` would be back. Walking happens 06:00–23:00 only. */
+export function autoTrip(m: WasteMap, to: string, hour: number, weather = "ash", dayStart = 6, dayEnd = 23): AutoTrip | null {
+  const path = mapPath(m, m.home, to, false);
+  if (!path || path.length < 2) return null;
+  let map = 0;
+  for (let i = 1; i < path.length; i++) map += travelHours(m.nodes[path[i - 1]], m.nodes[path[i]], weather);
+  const oneWay = map / AUTO_PACE;
+  const total = oneWay * 2 + AUTO_SEARCH_H;
+  let t = Math.max(dayStart, Math.min(dayEnd, hour)),
+    left = total,
+    nights = 0;
+  while (left > dayEnd - t + 1e-9) {
+    left -= dayEnd - t;
+    nights++;
+    t = dayStart;
+  }
+  return { oneWay, total, nights, backHour: t + left, reach: total <= 8.5 ? "near" : nights === 0 ? "mid" : "far" };
+}
+
 /** Travel time in game hours between linked nodes. */
 export function travelHours(a: MapNode, b: MapNode, weather = "ash") {
   const d = Math.hypot(a.x - b.x, a.y - b.y);

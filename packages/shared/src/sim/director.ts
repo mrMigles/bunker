@@ -28,12 +28,22 @@ onTick("skip-time", "day", (w) => {
   // (it is a "leave it on the second monitor" mode) but don't block the others from skipping.
   const active = Object.values(w.players).filter((p) => p.online && p.char && w.chars[p.char]?.status === "ok" && !p.aquarium);
   let resting = active.length > 0;
+  let asleep = active.length > 0;
   for (const p of active) {
     const c = w.chars[p.char!];
     if (!c.task || !REST_ACTIONS.has(c.task.action)) resting = false;
+    if (c.task?.action !== "sleep") asleep = false;
   }
-  if (w.mods.combat?.active || w.mods.expedition?.active || w.vote) resting = false;
-  w.speed = resting ? BAL.skipTimeMult : 1;
+  // a squad out on its own (no player online in it) is no reason to sit through the wait: only a
+  // sortie someone is playing holds the clock
+  const e = w.mods.expedition;
+  const played = !!e?.active && (e.squad as string[]).some((id) => {
+    const pl = w.players[w.chars[id]?.ctrl ?? ""];
+    return !!pl?.online && !pl.aquarium;
+  });
+  if (w.mods.combat?.active || played || w.vote) resting = asleep = false;
+  // everyone asleep: the hours fly; resting with a book or the radio: a bit faster
+  w.speed = asleep ? BAL.sleepTimeMult : resting ? BAL.skipTimeMult : 1;
 });
 
 nightHooks.dayStart.push((w) => {

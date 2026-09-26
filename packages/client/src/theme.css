@@ -1561,3 +1561,4 @@ html.mobile .restart-text small { font-size: 9.5px; }
   font-variant-numeric: tabular-nums;
 }
 .bunker-share small { flex-basis: 100%; }
+.hud-fast { font-size: 0.7em; color: #9fd6ff; margin-left: 3px; }

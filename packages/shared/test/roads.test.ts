@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BAL, applyCmd, debugOps, feetY, generateMap, generateSite, hoursPerSec, objsOfKind, roadAmbush, siteWorld, startAction, stepMove, tickWorld, wmap, type Char, type World } from "../src/index";
+import { BAL, LOC, applyCmd, autoTrip, debugOps, feetY, generateMap, generateSite, hoursPerSec, objsOfKind, roadAmbush, siteWorld, startAction, stepMove, tickWorld, wmap, type Char, type World } from "../src/index";
 import { startedWorld } from "./helpers";
 
 function tick(w: World, seconds: number, stop?: () => boolean) {
@@ -50,21 +50,60 @@ describe("road ambushes by territory", () => {
 });
 
 describe("residents' own runs", () => {
-  it("are over in a few game hours, not the whole day", () => {
+  const send = (pickFar: boolean) => {
     const w = startedWorld({ players: 1, residents: 6, seed: 77, dayLength: 900 });
+    w.hour = 7;
     const me = w.chars[w.players.p0.char!];
     const t = objsOfKind(w, "sortie_terminal")[0];
     Object.assign(me, { x: t.x + 0.5, lv: t.lv, y: feetY(t.lv) });
     expect(startAction(w, me, "sortie", { type: "obj", id: t.id })).toBeUndefined();
-    const node = Object.values(wmap(w).nodes).find((n) => n.known && n.danger === 1 && n.type !== "trader" && n.type !== "camp" && n.id !== "home" && !wmap(w).nodes.home.links.includes(n.id))!;
-    expect(applyCmd(w, "p0", { k: "expSendBots", node: node.id })).toBeUndefined();
-    const h0 = w.hour;
-    tick(w, 900, () => !w.mods.expedition);
+    const m = wmap(w);
+    for (const n of Object.values(m.nodes)) n.known = true;
+    const places = Object.values(m.nodes).filter((n) => LOC.types[n.type] && n.type !== "ark" && n.id !== "home").map((n) => ({ n, trip: autoTrip(m, n.id, 7)! })).filter((x) => x.trip).sort((a, b) => a.trip.total - b.trip.total);
+    const pick = pickFar ? places.find((x) => x.trip.nights === 1)! : places[0];
+    expect(applyCmd(w, "p0", { k: "expSendBots", node: pick.n.id })).toBeUndefined();
+    tick(w, 4000, () => !w.mods.expedition);
+    return { w, pick };
+  };
+  it("to a near place: there and back in about half a day, home before evening", () => {
+    const { w, pick } = send(false);
+    expect(pick.trip.reach).toBe("near");
     expect(w.mods.expedition).toBeUndefined();
     expect(w.day).toBe(1);
-    // fights on the road may add a little, the walk itself is quick
-    expect(w.hour - h0).toBeLessThan(2);
+    expect(w.hour - 7).toBeGreaterThan(4);
+    expect(w.hour - 7).toBeLessThan(9);
+    // the plan shown to the player is what happens
+    expect(Math.abs(w.hour - pick.trip.backHour)).toBeLessThan(0.3);
   }, 60000);
+  it("to a far place: a night out, back the next day", () => {
+    const { w, pick } = send(true);
+    expect(pick.trip.reach).toBe("far");
+    expect(w.mods.expedition).toBeUndefined();
+    expect(w.day).toBe(2);
+  }, 60000);
+  it("the trip grows with distance: near < middle < far", () => {
+    const m = generateMap(4);
+    const trips = Object.keys(m.nodes).filter((id) => id !== "home").map((id) => autoTrip(m, id, 7)).filter(Boolean) as any[];
+    const kinds = new Set(trips.map((t) => t.reach));
+    expect(kinds).toEqual(new Set(["near", "mid", "far"]));
+    for (const t of trips) if (t.reach === "near") expect(t.total).toBeLessThanOrEqual(8.5);
+  });
+});
+
+describe("waiting it out", () => {
+  it("everyone asleep: the clock runs fast, even with residents out on their own", () => {
+    const w = startedWorld({ players: 1, residents: 6, seed: 5 });
+    const me = w.chars[w.players.p0.char!];
+    w.players.p0.online = true;
+    me.task = { action: "sleep", t: 0 } as any;
+    w.mods.expedition = { active: true, stage: "travel", squad: [Object.values(w.chars).find((c) => c.id !== me.id)!.id] } as any;
+    tickWorld(w, 0.05);
+    expect(w.speed).toBe(BAL.sleepTimeMult);
+    // a player out with the squad holds the clock
+    w.mods.expedition.squad.push(me.id);
+    tickWorld(w, 0.05);
+    expect(w.speed).toBe(1);
+  });
 });
 
 describe("the working day", () => {

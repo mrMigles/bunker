@@ -131,7 +131,7 @@ export class Hud {
     const resource = (tile: number, value: string | number, label: string, title: string) => h("div.resource-meter", { title }, art(tile), h("b", null, value), h("small", null, label));
     add(this.top,
       h("div.hud-clock", null, h("strong", null, mode), h("small", { title: "Угроза растёт с уровнями жильцов и днями: враги крепче и метче, в зданиях их больше" }, v.phase === "prologue" ? "До закрытия убежища" : v.phase === "night" ? "Ночной совет" : [icon("rad"), ` Угроза ${threatLevel(v)} · выжить вместе`])),
-      h("div.hud-time", null, h("strong",null,icon(v.phase === "night" || v.hour >= 20 ? "moon" : "sun"),` ${fmtHour(v.hour)}`), h("small",{ title: "Код бункера — поделиться: Меню → «Поделиться ссылкой»" },`Бункер № ${net.code}`)),
+      h("div.hud-time", null, h("strong",{ title: v.speed > 1 ? "Время ускорено: все игроки отдыхают" : "" },icon(v.phase === "night" || v.hour >= 20 ? "moon" : "sun"),` ${fmtHour(v.hour)}`, v.speed > 1 ? h("span.hud-fast", null, ` ⏩×${v.speed}`) : null), h("small",{ title: "Код бункера — поделиться: Меню → «Поделиться ссылкой»" },`Бункер № ${net.code}`)),
       resource(0,Math.floor(food),"Еда",`Пайков. Нужно ${people} в день`),
       resource(1,Math.floor(water),(res.water_dirty??0)>=1?`Вода · гр. ${Math.floor(res.water_dirty)}`:"Вода",`Чистой: ${Math.floor(water)}, нужно ${people*2} в день.
 Грязной: ${Math.floor(res.water_dirty??0)} — её качает насос, водоочистка делает из неё чистую (нужен ток). Грязная годится для полива грядок и тушения огня, пить её нельзя.`),

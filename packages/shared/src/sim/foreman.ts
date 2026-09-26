@@ -2,7 +2,7 @@
 // when nobody does (bots only, or players busy elsewhere), the colony plans the most urgent
 // room itself and sends small scavenging runs when food runs low.
 // Toggle: settings.botInitiative. Everything it does is logged and can be cancelled by players.
-import { LOC, mapPath } from "../expedition/map";
+import { AUTO_SEARCH_H, LOC, mapPath } from "../expedition/map";
 import { rollPlaceLoot } from "../expedition/site";
 import type { Char, World } from "../types";
 import { BAL } from "../data/balance";
@@ -313,7 +313,9 @@ arriveHooks.push((w, e: Expedition, n) => {
   const back = mapPath(wmap(w), n.id, "home", false);
   if (back && back.length > 1) {
     e.route = back.slice(1);
-    startAutoLeg(w, e);
+    // the search itself takes time; the expedition tick sends them home after it
+    e.stage = "map";
+    e.autoWait = AUTO_SEARCH_H;
   }
   return true;
 });

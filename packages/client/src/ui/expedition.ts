@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { BOX_NAMES, ENEMIES, FACTIONS, ITEMS, LOC, PROFS, itemName, listSiteActions, mapPath, sortieOdds, squadPower, travelHours, type SiteAction } from "@bunker/shared";
+import { BOX_NAMES, ENEMIES, FACTIONS, ITEMS, LOC, PROFS, autoTrip, itemName, listSiteActions, mapPath, sortieOdds, squadPower, travelHours, type SiteAction } from "@bunker/shared";
 
 const profName = (p: string) => PROFS[p]?.name ?? p;
 
@@ -24,7 +24,7 @@ import { box, glyphTex, mat } from "../render/palette";
 import { SiteRenderer, buildEnemy } from "../render/site";
 import { buildSiteProp } from "../render/scenery";
 import type { WorldRenderer } from "../render/world";
-import { add, bar, clear, closeModal, h, isModalOpen, modal, ui } from "./dom";
+import { add, bar, clear, closeModal, h, isModalOpen, modal, toast, ui } from "./dom";
 import "./expedition.css";
 
 const GEAR = [
@@ -188,6 +188,18 @@ export class ExpeditionUI {
     const odds = (n: any) => sortieOdds(power, n.danger, n.looted ?? 0);
     const cur = nodes.find((n) => n.id === this.sendNode)!;
     const o = odds(cur);
+    const trip = v.mods.wmap ? autoTrip(v.mods.wmap, cur.id, v.hour ?? 6, v.weather?.today) : null;
+    const hhmm = (x: number) => `${Math.floor(x)}:${String(Math.round((x % 1) * 60) % 60).padStart(2, "0")}`;
+    const tripLine = trip
+      ? trip.nights
+        ? `🌙 Далеко: ${trip.nights === 1 ? "ночёвка" : `${trip.nights} ночёвки`} в пути, вернутся ${trip.nights === 1 ? "завтра" : `через ${trip.nights} дня`} к ~${hhmm(trip.backHour)}. Ночью лагерь могут найти.`
+        : `${trip.reach === "near" ? "Близко" : "Неблизко"}: туда и обратно ~${Math.round(trip.total)} ч, вернутся сегодня к ~${hhmm(trip.backHour)}.`
+      : "";
+    const pick = (id: string) => {
+      if (!nodes.some((n) => n.id === id)) return toast("Туда жильцов не отправить — выберите место для обыска");
+      this.sendNode = id;
+      this.openPrep();
+    };
     const names = bots.map((id: string) => v.chars[id].card.name.split(" ")[0]).join(", ");
     return h(
       "div.exp-sendbots",
@@ -200,7 +212,7 @@ export class ExpeditionUI {
         null,
         h(
           "select",
-          { onchange: (ev: Event) => ((this.sendNode = (ev.target as HTMLSelectElement).value), this.openPrep()) },
+          { "aria-label": "Куда отправить", onchange: (ev: Event) => pick((ev.target as HTMLSelectElement).value) },
           nodes.map((n) => {
             const k = odds(n);
             return h("option", { value: n.id, selected: n.id === this.sendNode }, `${n.name} · ${"◆".repeat(n.danger)} · с добычей ${k.clean + k.rough}%`);
@@ -217,6 +229,9 @@ export class ExpeditionUI {
           "Отправить без меня →",
         ),
       ),
+      h("p.exp-trip" + (trip?.nights ? ".warn" : ""), null, tripLine),
+      // the same choice on the chart: tap a place
+      h("div.exp-send-map", null, this.zoomableMap(v.mods.wmap?.nodes?.home, pick, () => this.openPrep(), this.sendNode)),
       h(
         "div.exp-odds",
         null,
@@ -474,7 +489,14 @@ export class ExpeditionUI {
           ),
         ),
       );
+      // rebuilt on every change: keep the reader where they were (the map sits far down on a phone)
+      const old = document.querySelector(".exp-prep-modal");
+      const top = old?.scrollTop ?? 0;
       modal("Снаряжение вылазки", body, { wide: true, cls: "exp-prep-modal" });
+      const now = document.querySelector(".exp-prep-modal");
+      if (now && top) now.scrollTop = top;
+      const chart = document.querySelector(".exp-send-map");
+      if (chart) requestAnimationFrame(() => cullMapLabels(chart));
     };
     render();
   }
@@ -500,7 +522,7 @@ export class ExpeditionUI {
   }
 
   // ---------------------------------------------------------------- map
-  svgMap(onClick?: (id: string) => void, z = 1): SVGSVGElement {
+  svgMap(onClick?: (id: string) => void, z = 1, sel = this.selectedNode): SVGSVGElement {
     const e = this.e;
     // zoomed in, the marks grow slower than the map so the places spread apart instead of just swelling
     const k = 1 / Math.sqrt(z);
@@ -559,7 +581,7 @@ export class ExpeditionUI {
       c.setAttribute("fill", n.visited ? "#3a2f27" : "#2a221c");
       c.setAttribute(
         "stroke",
-        id === this.selectedNode ? "#ffffff" : id === e?.node ? "#ffc58a" : n.danger >= 3 ? "#d66a57" : "#8ba79a",
+        id === sel ? "#ffffff" : id === e?.node ? "#ffc58a" : n.danger >= 3 ? "#d66a57" : "#8ba79a",
       );
       c.setAttribute("stroke-width", String((id === e?.node ? 0.8 : 0.35) * k));
       g.appendChild(c);
@@ -588,7 +610,7 @@ export class ExpeditionUI {
       label.setAttribute("font-size", String((document.documentElement.classList.contains("mobile") ? 2.5 : 1.65) * k));
       label.setAttribute("class", "map-label");
       // who keeps a label when they crowd: the picked place, where the squad is, home, then the rest
-      label.dataset.prio = String(id === this.selectedNode ? 0 : id === e?.node ? 1 : n.type === "home" ? 2 : 3);
+      label.dataset.prio = String(id === sel ? 0 : id === e?.node ? 1 : n.type === "home" ? 2 : 3);
       label.setAttribute("text-anchor", "middle");
       label.setAttribute("fill", "#d7ddd1");
       label.setAttribute("paint-order", "stroke");
@@ -609,7 +631,16 @@ export class ExpeditionUI {
   }
 
   /** The chart with zoom: wheel or pinch, drag to pan, and +/− buttons. The view survives rebuilds. */
-  private zoomableMap(squadAt: any): HTMLElement {
+  private zoomableMap(
+    squadAt: any,
+    onPick: (id: string) => void = (id) => {
+      this.selectedNode = id;
+      this.mapKey = "";
+      this.renderMap();
+    },
+    rerender: () => void = () => ((this.mapKey = ""), this.renderMap()),
+    sel = this.selectedNode,
+  ): HTMLElement {
     const mobile = document.documentElement.classList.contains("mobile");
     if (!this.mapZoom) {
       // a phone shows the whole city as a stamp: start closer, on the squad
@@ -619,11 +650,7 @@ export class ExpeditionUI {
         this.mapCy = squadAt.y;
       }
     }
-    const svg = this.svgMap((id) => {
-      this.selectedNode = id;
-      this.mapKey = "";
-      this.renderMap();
-    }, this.mapZoom);
+    const svg = this.svgMap(onPick, this.mapZoom, sel);
     svg.classList.add("wmap-zoom");
     const view = () => {
       const z = this.mapZoom, w = 100 / z, hh = 80 / z;
@@ -651,7 +678,7 @@ export class ExpeditionUI {
       this.mapZoom = z1;
       view();
     };
-    const commit = () => ((this.mapKey = ""), this.renderMap());
+    const commit = rerender;
     svg.addEventListener(
       "wheel",
       (ev) => {
@@ -787,7 +814,6 @@ export class ExpeditionUI {
           { class: selected?.danger >= 3 ? "bad" : "dim" },
           `Опасность: ${selected?.danger >= 3 ? "высокая" : selected?.danger > 0 ? "умеренная" : "низкая"} ${"◆".repeat(selected?.danger ?? 0)}`,
         ),
-        selected ? this.nodeIntel(v, e, selected) : null,
         e.stage === "map" && selected?.id !== e.node && this.selectedNode && this.selectedNode !== e.node
           ? h(
               "button.primary",
@@ -803,6 +829,10 @@ export class ExpeditionUI {
         e.stage === "map" && here && LOC.types[here.type] && (!this.selectedNode || this.selectedNode === e.node)
           ? h("button.primary", { onclick: () => net.send({ k: "expEnter" }) }, "Войти и исследовать →")
           : null,
+        e.stage === "map" && e.node !== "home"
+          ? h("button", { onclick: () => net.send({ k: "expHome" }) }, "↙ Вернуться в убежище")
+          : null,
+        selected ? this.nodeIntel(v, e, selected) : null,
       ),
       h(
         "div.exp-map-load",
@@ -821,9 +851,6 @@ export class ExpeditionUI {
           )
         : null,
       h("button", { onclick: () => this.openInventory() }, "Открыть снаряжение и добычу"),
-      e.stage === "map" && e.node !== "home"
-        ? h("button", { onclick: () => net.send({ k: "expHome" }) }, "↙ Вернуться в убежище")
-        : null,
       h(
         "details.exp-journal",
         null,
@@ -852,8 +879,9 @@ export class ExpeditionUI {
     // phones: the places as a list too — a finger finds «Школа на Слесарном» easier than a 20 px dot (#10)
     if (document.documentElement.classList.contains("mobile")) {
       const known = (Object.values(nodes) as any[]).filter((n) => n.known && n.type !== "home" && !n.hidden).sort((a, b) => Math.hypot(a.x - (here?.x ?? 50), a.y - (here?.y ?? 50)) - Math.hypot(b.x - (here?.x ?? 50), b.y - (here?.y ?? 50)));
+      // a one-row strip under the destination: the route, «Войти» and «Вернуться» stay in sight
       if (known.length)
-        side.prepend(
+        (side.querySelector(".exp-destination") ?? side.firstChild)!.after(
           h(
             "div.map-places",
             null,
@@ -1607,18 +1635,18 @@ export class ExpeditionUI {
         g.font = "14px monospace";
         g.fillText(e.stage === "travel" ? "Отряд в пути…" : "Отряд на местности.", 20, 100);
       }
+      cvs.classList.add("op-plan");
       const say = h("input", {
         placeholder: "Передать отряду по радио…",
         maxLength: 120,
-        style: { flex: "1" },
       }) as HTMLInputElement;
       const box = h(
-        "div.row",
-        { style: { alignItems: "flex-start", gap: "12px" } },
-        h("div", { style: { width: "360px" } }, this.svgMap()),
+        "div.op-box",
+        null,
+        h("div.op-map", null, this.svgMap()),
         h(
-          "div.col",
-          { style: { gap: "6px", width: "480px" } },
+          "div.op-side",
+          null,
           h(
             "div",
             { style: { color: e.radio?.ok ? "var(--green)" : "var(--bad)" } },
@@ -1627,8 +1655,8 @@ export class ExpeditionUI {
           h("div.dim", null, "План этажа (по мере открытия):"),
           cvs,
           h(
-            "div.row",
-            { style: { flexWrap: "wrap" } },
+            "div.op-actions",
+            null,
             h(
               "button.small",
               { onclick: () => (net.send({ k: "opScan" }), setTimeout(render, 400)) },
@@ -1641,7 +1669,7 @@ export class ExpeditionUI {
             ),
           ),
           h(
-            "div.row",
+            "div.op-say",
             null,
             say,
             h(
@@ -1657,7 +1685,8 @@ export class ExpeditionUI {
           ),
         ),
       );
-      modal("📡 Связь с отрядом", box, { wide: true });
+      modal("📡 Связь с отрядом", box, { wide: true, cls: "op-modal" });
+      requestAnimationFrame(() => cullMapLabels(box));
     };
     render();
   }
